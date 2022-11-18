@@ -1,0 +1,64 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: csearch-goscraper
+  labels:
+    app: csearch
+spec:
+  schedule: "@midnight"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+
+    metadata:
+      labels:
+        app: csearch
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: congress-goscraper
+              image: k3d-registry:57764/congress-goscraper # Sets Image
+              imagePullPolicy: "Always"
+              volumeMounts:
+                - name: csearch-data
+                  mountPath: /congress
+            - name: sidecar-container
+              image: busybox
+              command: [ "ls", "/congress" ]
+              volumeMounts:
+                - name: csearch-data
+                  mountPath: /congress
+          volumes:
+            - name: csearch-data
+              persistentVolumeClaim:
+                claimName: csearch-pv-claim
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: csearch-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /k8s/congress
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csearch-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
