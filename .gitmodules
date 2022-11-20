@@ -1,6 +1,0 @@
-[submodule "congress_api"]
-	path = congress_api
-	url = https://github.com/s4njee/congress_api
-[submodule "congress_data"]
-	path = congress_data
-	url = https://github.com/s4njee/congress_data
