@@ -18,6 +18,9 @@ spec:
         - name: postgres
           image: postgres:15.1 # Sets Image
           imagePullPolicy: "IfNotPresent"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
           ports:
             - containerPort: 5432  # Exposes container port
           envFrom:
@@ -29,4 +32,4 @@ spec:
       volumes:
         - name: postgredb
           persistentVolumeClaim:
-            claimName: postgres-pv-claim
+            claimName: postgrespvc
