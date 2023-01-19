@@ -1,0 +1,12 @@
+beautifulsoup4
+cssselect
+iso8601
+lxml
+mechanize
+mock
+rtyaml
+python-dateutil
+pytz
+pyyaml
+scrapelib
+xmltodict

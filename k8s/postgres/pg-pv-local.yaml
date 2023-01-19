@@ -11,7 +11,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/k8s/pvs/csearch/"
+    path: "/k8s/pvs/temp/"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

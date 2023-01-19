@@ -1,0 +1,79 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: goscraper-archiver
+  labels:
+    app: csearch
+spec:
+  schedule: "0 0 * * 0"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: csearch
+    spec:
+      template:
+        metadata:
+          labels:
+            app: csearch
+        spec:
+          nodeSelector:
+            node: worker1
+          restartPolicy: OnFailure
+          containers:
+            - name: archiver-container
+              image: 10.0.0.3:30252/archiver
+              imagePullPolicy: Always
+              securityContext:
+                runAsUser: 1000
+                runAsGroup: 1000
+              resources:
+                limits:
+                  cpu: "1.5"
+                requests:
+                  cpu: "1"
+              volumeMounts:
+                - name: archive-data
+                  mountPath: /temp/archives
+                - name: congress-data
+                  mountPath: /temp/congress
+          volumes:
+            - name: archive-data
+              persistentVolumeClaim:
+                claimName: archiverpvc
+            - name: congress-data
+              persistentVolumeClaim:
+                claimName: csearchpvc
+
+---
+
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: archive-pv
+spec:
+  storageClassName: nfs-client
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /srv/nfs/temp/archives
+    server: 10.0.0.3
+  persistentVolumeReclaimPolicy: Retain
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: archiverpvc
+spec:
+  storageClassName: nfs-client
+  accessModes:
+    - ReadWriteMany
+  volumeName: archive-pv
+  resources:
+    requests:
+      storage: 20Gi

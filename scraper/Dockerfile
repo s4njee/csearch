@@ -15,8 +15,8 @@ WORKDIR /congress
 RUN ln -s /usr/bin/python3 /usr/bin/python
 ## GO Installation
 
-RUN curl -OL https://go.dev/dl/go1.19.3.linux-arm64.tar.gz
-RUN tar xvf go1.19.3.linux-arm64.tar.gz
+RUN curl -OL https://go.dev/dl/go1.19.4.linux-amd64.tar.gz
+RUN tar xvf go1.19.4.linux-amd64.tar.gz
 RUN chown -R root:root ./go
 RUN mv go /usr/local
 

@@ -1,3 +1,7 @@
 #!/bin/sh
+ DATE=$(date +%F)
+ FPATH=/csearch
+ FILE=${FPATH}/congress
+ TAR=${FPATH}/archives/congress.${DATE}.tar.zstd
 
-exec tar --zstd -cvf /archives/congress.$(date +%Y.%m.%d).tar.zst /congress
+tar --zstd -cf $TAR $FILE

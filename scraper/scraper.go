@@ -8,18 +8,16 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/uptrace/bun"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/bun/driver/pgdriver"
 )
 
 var Tables = [8]string{"s", "hr", "hconres", "hjres", "hres", "sconres", "sjres", "sres"}
@@ -375,48 +373,54 @@ func main() {
 	update_bills()
 
 	ctx := context.Background()
-	dsn := "postgres://postgres:postgres@postgres-service:5432/csearch?sslmode=disable&timeout=1200s"
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
-	db := bun.NewDB(sqldb, pgdialect.New())
-
-	// Create db code
-	var expr = "DROP TABLE IF EXISTS bills CASCADE;"
-	println(expr)
-	db.Exec(expr)
-	_, err := db.NewCreateTable().
-		Model((*Bill)(nil)).
-		PartitionBy("LIST (bill_type)").
-		Exec(ctx)
+	db, err := sql.Open("postgres", "host=localhost user=postgres password=postgres dbname=temp sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
+	queries := csearch.New(db)
 
-	// Create db partitions
-	for _, i := range Tables {
-		var expr = fmt.Sprintf("CREATE TABLE bills_%s PARTITION OF bills FOR VALUES in ('%s');", i, i)
-		var expr2 = fmt.Sprintf("CREATE INDEX ON bills_%s (bill_type);", i)
-		println(expr)
-		db.Exec(expr)
-		println(expr2)
-		db.Exec(expr2)
-	}
-
-	// Create text search vectors and indices
-	for _, i := range Tables {
-		var expr3 = fmt.Sprintf("ALTER TABLE bills ADD COLUMN %s_ts tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(short_title,'') || ' ' || coalesce(summary->>'Text',''))) STORED;", i)
-		var expr4 = fmt.Sprintf("CREATE INDEX %s_ts_idx ON bills USING GIN (%s_ts);", i, i)
-		println(expr3)
-		_, err = db.Exec(expr3)
-		if err != nil {
-			panic(err)
-		}
-		println(expr4)
-		_, err = db.Exec(expr4)
-		if err != nil {
-			panic(err)
-		}
-	}
-
+	//dsn := "postgres://postgres:postgres@postgres-service:5432/temp?sslmode=disable&timeout=1200s"
+	//sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+	//db := bun.NewDB(sqldb, pgdialect.New())
+	//
+	//// Create db code
+	//var expr = "DROP TABLE IF EXISTS bills CASCADE;"
+	//println(expr)
+	//db.Exec(expr)
+	//_, err := db.NewCreateTable().
+	//	Model((*Bill)(nil)).
+	//	PartitionBy("LIST (bill_type)").
+	//	Exec(ctx)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//// Create db partitions
+	//for _, i := range Tables {
+	//	var expr = fmt.Sprintf("CREATE TABLE bills_%s PARTITION OF bills FOR VALUES in ('%s');", i, i)
+	//	var expr2 = fmt.Sprintf("CREATE INDEX ON bills_%s (bill_type);", i)
+	//	println(expr)
+	//	db.Exec(expr)
+	//	println(expr2)
+	//	db.Exec(expr2)
+	//}
+	//
+	//// Create text search vectors and indices
+	//for _, i := range Tables {
+	//	var expr3 = fmt.Sprintf("ALTER TABLE bills ADD COLUMN %s_ts tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(short_title,'') || ' ' || coalesce(summary->>'Text',''))) STORED;", i)
+	//	var expr4 = fmt.Sprintf("CREATE INDEX %s_ts_idx ON bills USING GIN (%s_ts);", i, i)
+	//	println(expr3)
+	//	_, err = db.Exec(expr3)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	println(expr4)
+	//	_, err = db.Exec(expr4)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//}
+	//
 	// Process bills 64 at a time
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 64)
@@ -461,13 +465,24 @@ func main() {
 			wg.Wait()
 
 			if len(bills) > 0 {
-				res, err := db.NewInsert().Model(&bills).Exec(ctx)
-				fmt.Printf("Congress: %s Type: %s Inserted %s rows", strconv.Itoa(i), table, strconv.Itoa(len(bills)))
-				if err != nil {
-					panic(err)
-				} else {
-					fmt.Println(res)
+				for _, bill := range bills {
+					insertedBill, err := queries.InsertBill(ctx, csearch.InsertBillParams{
+						Billid: bill.BillID,
+						Bio:    sql.NullString{String: "Co-author of The C Programming Language and The Go Programming Language", Valid: true},
+					})
+					if err != nil {
+						panic(err)
+					}
+					log.Println(insertedBill)
 				}
+
+				//res, err := db.NewInsert().Model(&bills).Exec(ctx)
+				//fmt.Printf("Congress: %s Type: %s Inserted %s rows", strconv.Itoa(i), table, strconv.Itoa(len(bills)))
+				//if err != nil {
+				//	panic(err)
+				//} else {
+				//	fmt.Println(res)
+				//}
 			}
 		}
 	}

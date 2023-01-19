@@ -17,60 +17,52 @@ spec:
           labels:
             app: csearch
         spec:
+          nodeSelector:
+            storage: congress
           restartPolicy: OnFailure
           containers:
             - name: congress-goscraper
-              image: k3d-registry:54015/congress-goscraper # Sets Image
+              securityContext:
+                runAsUser: 1000
+                runAsGroup: 1000
+              image: 10.0.0.3:30252/scraper
               imagePullPolicy: "Always"
               volumeMounts:
-                - name: csearch-data
-                  mountPath: /congress
-            - name: sidecar-container
-              image: k3d-registry:54015/congress-archiver
-              imagePullPolicy: Always
-              resources:
-                limits:
-                  cpu: "2"
-                requests:
-                  cpu: "2"
-              volumeMounts:
-                - name: archive-data
-                  mountPath: /archives
-                - name: csearch-data
+                - name: temp-data
                   mountPath: /congress
           volumes:
-            - name: csearch-data
+            - name: temp-data
               persistentVolumeClaim:
-                claimName: csearch-pv-claim
-            - name: archive-data
-              persistentVolumeClaim:
-                claimName: archive-pv-claim
+                claimName: csearchpvc
 
 ---
 
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: csearch-pv-volume
-  labels:
-    type: local
+  name: congress-pv
 spec:
-  storageClassName: manual
+  storageClassName: nfs-client
   capacity:
-    storage: 10Gi
+    storage: 50Gi
   accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /k8s/congress
+    - ReadWriteMany
+  nfs:
+    path: /srv/nfs/temp/congress
+    server: 10.0.0.3
+  persistentVolumeReclaimPolicy: Retain
+
 ---
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: csearch-pv-claim
+  name: csearchpvc
 spec:
-  storageClassName: manual
+  storageClassName: nfs-client
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
+  volumeName: congress-pv
   resources:
     requests:
-      storage: 10Gi
+      storage: 50Gi
