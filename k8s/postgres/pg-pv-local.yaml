@@ -5,20 +5,18 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: manual
   capacity:
     storage: 10Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/k8s/pvs/temp/"
+    path: "~/k8s/pvs/temp/"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pv-claim
+  name: postgrespvc
 spec:
-  storageClassName: manual
   accessModes:
     - ReadWriteOnce
   resources:
