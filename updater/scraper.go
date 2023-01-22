@@ -390,6 +390,9 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 				Statusat:      sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
 				Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 				Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},}
+		if billxml.BillXML.BillType == ""{
+			fmt.Printf("%s %s %s",bill.Billid, bill.Congress, bill.Billnumber )
+		}
 	return bill
 
 	} else if congress >= 114 {
@@ -482,6 +485,7 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 		if err != nil {
 			panic(err)
 		}
+
 		var bill = csearch.InsertBillParams{
 			Billid:        sql.NullString{String: billID, Valid: true},
 			Billnumber:    billxml.BillXML.Number,
@@ -496,6 +500,7 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 			Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 			Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 		}
+		
 		return bill
 }
 
@@ -567,7 +572,8 @@ func main() {
 	// Process bills 64 at a time
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 64)
-	for i := 93; i <= 118; i++ {
+	for i := 113; i <= 118; i++ {
+		fmt.Printf("Processing Congress %s",strconv.Itoa(i))
 		for _, table := range Tables {
 			var directory = fmt.Sprintf("/congress/data/%s/bills/%s",strconv.Itoa(i), table)
 			files, err := os.ReadDir(directory)
@@ -575,79 +581,81 @@ func main() {
 				debug.PrintStack()
 				continue
 			}
-			var bills = make([]csearch.InsertBillParams, len(files))
+			//var bills = make([]csearch.InsertBillParams, len(files))
 			wg.Add(len(files))
 			println(len(files))
-			for z, f := range files {
+			for _, f := range files {
 				path := fmt.Sprintf("/congress/data/%s/bills/%s/", strconv.Itoa(i), table) + f.Name()
 				var xmlcheck = path + "/fdsys_billstatus.xml"
 				if _, err := os.Stat(xmlcheck); err == nil {
-					go func(z int) {
-
+					go func() {
 						// defer mutex.Unlock()
 						sem <- struct{}{}
 						// mutex.Lock()
-						bills[z] = parse_bill_xml(xmlcheck, i)
+						var billxml = parse_bill_xml(xmlcheck, i)
+						if billxml.Billtype == "" {
+							return
+						}
+						_ = queries.InsertBill(ctx, billxml)
 						//res2B, _ := json.Marshal(bills[z])
 						//println(res2B)
 						defer func() { <-sem }()
 						defer wg.Done()
-					}(z)
+					}()
 
 				} else if errors.Is(err, os.ErrNotExist) {
 					path += "/data.json"
-					go func(z int) {
+					go func() {
 						// defer mutex.Unlock()
 						sem <- struct{}{}
 						var bjs = parse_bill(path)
 						// mutex.Lock()
-						bills[z] = bjs
+						_ = queries.InsertBill(ctx, bjs)
+					}()
 						defer func() { <-sem }()
 						defer wg.Done()
-					}(z)
+					}
 				}
 
 			}
 			wg.Wait()
 
-			if len(bills) > 0 {
-				//_ = queries.InsertBill(ctx, bills)
-				for count, bill := range bills {
-					_ = queries.InsertBill(ctx, csearch.InsertBillParams{
-						Billid:        bill.Billid,
-						Billnumber:    bill.Billnumber,
-						Billtype:      bill.Billtype,
-						Introducedat:  bill.Introducedat,
-						Congress:      bill.Congress,
-						Summary:       bill.Summary,
-						Actions:       bill.Actions,
-						Sponsors:      bill.Sponsors,
-						Cosponsors:    bill.Cosponsors,
-						Statusat:      bill.Statusat,
-						Shorttitle:    bill.Shorttitle,
-						Officialtitle: bill.Officialtitle,
-					})
-					if err != nil {
-						panic(err)
-					}
-					println(count)
-				}
-
-				//res, err := db.NewInsert().Model(&bills).Exec(ctx)
-				//fmt.Printf("Congress: %s Type: %s Inserted %s rows", strconv.Itoa(i), table, strconv.Itoa(len(bills)))
-				//if err != nil {
-				//	panic(err)
-				//} else {
-				//	fmt.Println(res)
-				//}
-			}
+			//if len(bills) > 0 {
+			//	//_ = queries.InsertBill(ctx, bills)
+			//	for _, bill := range bills {
+			//		_ = queries.InsertBill(ctx, csearch.InsertBillParams{
+			//			Billid:        bill.Billid,
+			//			Billnumber:    bill.Billnumber,
+			//			Billtype:      bill.Billtype,
+			//			Introducedat:  bill.Introducedat,
+			//			Congress:      bill.Congress,
+			//			Summary:       bill.Summary,
+			//			Actions:       bill.Actions,
+			//			Sponsors:      bill.Sponsors,
+			//			Cosponsors:    bill.Cosponsors,
+			//			Statusat:      bill.Statusat,
+			//			Shorttitle:    bill.Shorttitle,
+			//			Officialtitle: bill.Officialtitle,
+			//		})
+			//		if err != nil {
+			//			panic(err)
+			//		}
+			//	}
+			//
+			//	//res, err := db.NewInsert().Model(&bills).Exec(ctx)
+			//	//fmt.Printf("Congress: %s Type: %s Inserted %s rows", strconv.Itoa(i), table, strconv.Itoa(len(bills)))
+			//	//if err != nil {
+			//	//	panic(err)
+			//	//} else {
+			//	//	fmt.Println(res)
+			//	//}
+			//}
 		}
-	}
 	close(sem)
-	if err != nil {
-		panic(err)
-	}
 }
+
+
+
 
 func update_bills() {
 	os.Chdir("/congress")

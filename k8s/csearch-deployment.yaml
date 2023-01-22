@@ -18,7 +18,7 @@ spec:
             app: csearch
         spec:
           nodeSelector:
-            storage: congress
+            node: worker1
           restartPolicy: OnFailure
           containers:
             - name: congress-goscraper
