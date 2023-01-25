@@ -1,7 +1,7 @@
-FROM ubuntu:latest
+FROM ubuntu:lunar
 
-RUN apt-get update && apt-get install -y \
-    curl git python3-dev libxml2-dev libxslt1-dev libz-dev python3-pip wget
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
+    curl git python3-dev libxml2-dev libxslt1-dev libz-dev python3-pip wget postgresql postgresql-contrib
 
 RUN mkdir -p /opt/theunitedstates.io/
 ADD . /opt/theunitedstates.io/congress/
@@ -21,12 +21,14 @@ RUN chown -R root:root ./go
 RUN mv go /usr/local
 
 ENV PATH="$PATH:/usr/local/go/bin"
+ENV PGPASSWORD="postgres"
 
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
 COPY . /usr/local/go/src/app
+COPY schema.sql /usr/local/go/src/app/
 WORKDIR /usr/local/go/src/app
 
 RUN go build -o /scraper

@@ -378,7 +378,6 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 			panic(err)
 		}
 		// Create Bill Struct, same fields as BillJSON
-		println(billxml.BillXML.Number)
 		var bill = csearch.InsertBillParams{
 			Billid:        sql.NullString{String: billID, Valid: true},
 			Billnumber:    billxml.BillXML.Number,
@@ -484,7 +483,6 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 		if err != nil {
 			panic(err)
 		}
-		println(billxml.BillXML.Number)
 		var bill = csearch.InsertBillParams{
 			Billid:        sql.NullString{String: billID, Valid: true},
 			Billnumber:    billxml.BillXML.Number,
@@ -674,6 +672,49 @@ func update_bills() {
 
 	// Latest bills only (if above fails)
 	cmd = exec.Command("./congress/run.py", "govinfo", "--bulkdata=BILLSTATUS", "--congress=118")
+	stdout, err = cmd.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
+	stderr, err = cmd.StderrPipe()
+	if err != nil {
+		panic(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+	go copyOutput(stdout)
+	go copyOutput(stderr)
+	cmd.Wait()
+
+	cmd = exec.Command("psql", "-U", "postgres", "-d", "csearch", "-h", "postgres-service", "-c", "DROP TABLE bills CASCADE ")
+	stdout, err = cmd.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
+	stderr, err = cmd.StderrPipe()
+	if err != nil {
+		panic(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+	go copyOutput(stdout)
+	go copyOutput(stderr)
+	cmd.Wait()
+
+	    files, err := os.ReadDir(".")
+	    if err != nil {
+		panic(err)
+	    }
+
+	    for _, file := range files {
+		fmt.Println(file.Name())
+	    }
+
+	cmd = exec.Command("psql", "-U", "postgres", "-h", "postgres-service", "-d", "csearch", "-f", "./schema.sql")
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		panic(err)
