@@ -11,7 +11,6 @@ import (
 	"github.com/uptrace/bun"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"runtime/debug"
@@ -41,6 +40,22 @@ type XMLBillSummariesItem struct {
 type BillXMLRoot struct {
 	XMLName xml.Name `xml:"billStatus"`
 	BillXML BillXML  `xml:"bill"`
+}
+type BillXMLRootnew struct {
+	XMLName xml.Name   `xml:"billStatus"`
+	BillXML BillXMLnew `xml:"bill"`
+}
+type BillXMLnew struct {
+	XMLName      xml.Name      `xml:"bill"`
+	Number       string        `xml:"number"`
+	IntroducedAt string        `xml:"introducedDate"`
+	Congress     string        `xml:"congress"`
+	Summary      XMLSummaries  `xml:"summaries"`
+	Actions      ActionsXML    `xml:"actions"`
+	Sponsors     SponsorsXML   `xml:"sponsors"`
+	Cosponsors   CosponsorsXML `xml:"cosponsors"`
+	ShortTitle   string        `xml:"title"`
+	Type         string        `xml:"type"`
 }
 type ItemXML struct {
 	XMLName xml.Name `xml:"item"`
@@ -261,7 +276,7 @@ func parse_bill(path string, db *bun.DB) *Bill {
 
 }
 
-func parse_bill_xml(path string, db *bun.DB) *Bill {
+func parse_bill_xml(path string, db *bun.DB, congress int) *Bill {
 	xmlFile, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)
@@ -269,103 +284,204 @@ func parse_bill_xml(path string, db *bun.DB) *Bill {
 	defer xmlFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(xmlFile)
-	var billxml BillXMLRoot
-	xml.Unmarshal(byteValue, &billxml)
+	if congress < 114 {
+		var billxml BillXMLRoot
+		xml.Unmarshal(byteValue, &billxml)
 
-	// Create structs with same hiearchy as billJSON, so that data is uniform when inserted into postgreSQL
-	var action_structs []struct {
-		ActedAt string
-		Text    string
-		Type    string
-	}
-
-	for _, action := range billxml.BillXML.Actions.Actions {
-		action_structs = append(action_structs, struct {
+		// Create structs with same hiearchy as billJSON, so that data is uniform when inserted into postgreSQL
+		var action_structs []struct {
 			ActedAt string
 			Text    string
 			Type    string
-		}{
-			ActedAt: action.ActedAt,
-			Text:    action.Text,
-			Type:    action.Type,
-		})
-	}
-	var sponsor_structs []struct {
-		Title    string `json:"omitempty"`
-		Name     string
-		State    string
-		District string `json:"omitempty"`
-		Party    string `json:"omitempty"`
-	}
+		}
 
-	for _, sponsor := range billxml.BillXML.Sponsors.Sponsors {
-		sponsor_structs = append(sponsor_structs, struct {
+		for _, action := range billxml.BillXML.Actions.Actions {
+			action_structs = append(action_structs, struct {
+				ActedAt string
+				Text    string
+				Type    string
+			}{
+				ActedAt: action.ActedAt,
+				Text:    action.Text,
+				Type:    action.Type,
+			})
+		}
+		var sponsor_structs []struct {
 			Title    string `json:"omitempty"`
 			Name     string
 			State    string
 			District string `json:"omitempty"`
 			Party    string `json:"omitempty"`
-		}{
-			Name:  sponsor.FullName,
-			State: sponsor.State,
-		})
-	}
-	var cosponsor_structs []struct {
-		Title    string `json:"omitempty"`
-		Name     string
-		State    string
-		District string `json:"omitempty"`
-		Party    string `json:"omitempty"`
-	}
+		}
 
-	for _, cosponsor := range billxml.BillXML.Cosponsors.Cosponsors {
-		cosponsor_structs = append(cosponsor_structs, struct {
+		for _, sponsor := range billxml.BillXML.Sponsors.Sponsors {
+			sponsor_structs = append(sponsor_structs, struct {
+				Title    string `json:"omitempty"`
+				Name     string
+				State    string
+				District string `json:"omitempty"`
+				Party    string `json:"omitempty"`
+			}{
+				Name:  sponsor.FullName,
+				State: sponsor.State,
+			})
+		}
+		var cosponsor_structs []struct {
 			Title    string `json:"omitempty"`
 			Name     string
 			State    string
 			District string `json:"omitempty"`
 			Party    string `json:"omitempty"`
-		}{
-			Name:  cosponsor.FullName,
-			State: cosponsor.State,
-		})
-	}
-	var Date string
-	var Text string
-	if billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems != nil {
-		Date = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Date
-		Text = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Text
-	}
-	summary := struct {
-		Date string
-		Text string
-	}{
-		Date: Date,
-		Text: Text,
-	}
-	billID := fmt.Sprintf("%s-%s-%s", billxml.BillXML.Congress, billxml.BillXML.BillType, billxml.BillXML.Number)
+		}
 
-	// Create Bill Struct, same fields as BillJSON
-	var bill = Bill{
-		Number:        billxml.BillXML.Number,
-		BillID:        billID,
-		BillType:      strings.ToLower(billxml.BillXML.BillType),
-		IntroducedAt:  billxml.BillXML.IntroducedAt,
-		Congress:      billxml.BillXML.Congress,
-		Summary:       summary,
-		Actions:       action_structs,
-		Sponsors:      sponsor_structs,
-		Cosponsors:    cosponsor_structs,
-		StatusAt:      billxml.BillXML.Actions.Actions[0].ActedAt,
-		ShortTitle:    billxml.BillXML.ShortTitle,
-		OfficialTitle: billxml.BillXML.ShortTitle,
+		for _, cosponsor := range billxml.BillXML.Cosponsors.Cosponsors {
+			cosponsor_structs = append(cosponsor_structs, struct {
+				Title    string `json:"omitempty"`
+				Name     string
+				State    string
+				District string `json:"omitempty"`
+				Party    string `json:"omitempty"`
+			}{
+				Name:  cosponsor.FullName,
+				State: cosponsor.State,
+			})
+		}
+		var Date string
+		var Text string
+		if billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems != nil {
+			Date = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Date
+			Text = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Text
+		}
+		summary := struct {
+			Date string
+			Text string
+		}{
+			Date: Date,
+			Text: Text,
+		}
+		billID := fmt.Sprintf("%s-%s-%s", billxml.BillXML.Congress, billxml.BillXML.BillType, billxml.BillXML.Number)
+
+		// Create Bill Struct, same fields as BillJSON
+		var bill = Bill{
+			Number:        billxml.BillXML.Number,
+			BillID:        billID,
+			BillType:      strings.ToLower(billxml.BillXML.BillType),
+			IntroducedAt:  billxml.BillXML.IntroducedAt,
+			Congress:      billxml.BillXML.Congress,
+			Summary:       summary,
+			Actions:       action_structs,
+			Sponsors:      sponsor_structs,
+			Cosponsors:    cosponsor_structs,
+			StatusAt:      billxml.BillXML.Actions.Actions[0].ActedAt,
+			ShortTitle:    billxml.BillXML.ShortTitle,
+			OfficialTitle: billxml.BillXML.ShortTitle,
+		}
+		// ctx := context.Background()
+		// _, err = db.NewInsert().Model(&bill).Exec(ctx)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		return &bill
+	} else if congress >= 114 {
+		var billxml BillXMLRootnew
+		xml.Unmarshal(byteValue, &billxml)
+
+		// Create structs with same hiearchy as billJSON, so that data is uniform when inserted into postgreSQL
+		var action_structs []struct {
+			ActedAt string
+			Text    string
+			Type    string
+		}
+
+		for _, action := range billxml.BillXML.Actions.Actions {
+			action_structs = append(action_structs, struct {
+				ActedAt string
+				Text    string
+				Type    string
+			}{
+				ActedAt: action.ActedAt,
+				Text:    action.Text,
+				Type:    action.Type,
+			})
+		}
+		var sponsor_structs []struct {
+			Title    string `json:"omitempty"`
+			Name     string
+			State    string
+			District string `json:"omitempty"`
+			Party    string `json:"omitempty"`
+		}
+
+		for _, sponsor := range billxml.BillXML.Sponsors.Sponsors {
+			sponsor_structs = append(sponsor_structs, struct {
+				Title    string `json:"omitempty"`
+				Name     string
+				State    string
+				District string `json:"omitempty"`
+				Party    string `json:"omitempty"`
+			}{
+				Name:  sponsor.FullName,
+				State: sponsor.State,
+			})
+		}
+		var cosponsor_structs []struct {
+			Title    string `json:"omitempty"`
+			Name     string
+			State    string
+			District string `json:"omitempty"`
+			Party    string `json:"omitempty"`
+		}
+
+		for _, cosponsor := range billxml.BillXML.Cosponsors.Cosponsors {
+			cosponsor_structs = append(cosponsor_structs, struct {
+				Title    string `json:"omitempty"`
+				Name     string
+				State    string
+				District string `json:"omitempty"`
+				Party    string `json:"omitempty"`
+			}{
+				Name:  cosponsor.FullName,
+				State: cosponsor.State,
+			})
+		}
+		var Date string
+		var Text string
+		if billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems != nil {
+			Date = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Date
+			Text = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Text
+		}
+		summary := struct {
+			Date string
+			Text string
+		}{
+			Date: Date,
+			Text: Text,
+		}
+		billID := fmt.Sprintf("%s-%s-%s", billxml.BillXML.Congress, billxml.BillXML.BillType, billxml.BillXML.Number)
+
+		// Create Bill Struct, same fields as BillJSON
+		var bill = Bill{
+			Number:        billxml.BillXML.Number,
+			BillID:        billID,
+			BillType:      strings.ToLower(billxml.BillXML.Type),
+			IntroducedAt:  billxml.BillXML.IntroducedAt,
+			Congress:      billxml.BillXML.Congress,
+			Summary:       summary,
+			Actions:       action_structs,
+			Sponsors:      sponsor_structs,
+			Cosponsors:    cosponsor_structs,
+			StatusAt:      billxml.BillXML.Actions.Actions[0].ActedAt,
+			ShortTitle:    billxml.BillXML.ShortTitle,
+			OfficialTitle: billxml.BillXML.ShortTitle,
+		}
+		// ctx := context.Background()
+		// _, err = db.NewInsert().Model(&bill).Exec(ctx)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		return &bill
 	}
-	// ctx := context.Background()
-	// _, err = db.NewInsert().Model(&bill).Exec(ctx)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	return &bill
+	return &Bill{}
 }
 
 func main() {
@@ -443,7 +559,7 @@ func main() {
 						// defer mutex.Unlock()
 						sem <- struct{}{}
 						// mutex.Lock()
-						bills[z] = parse_bill_xml(xmlcheck, db)
+						bills[z] = parse_bill_xml(xmlcheck, db, i)
 						defer func() { <-sem }()
 						defer wg.Done()
 					}(z)
@@ -465,24 +581,24 @@ func main() {
 			wg.Wait()
 
 			if len(bills) > 0 {
-				for _, bill := range bills {
-					insertedBill, err := queries.InsertBill(ctx, csearch.InsertBillParams{
-						Billid: bill.BillID,
-						Bio:    sql.NullString{String: "Co-author of The C Programming Language and The Go Programming Language", Valid: true},
-					})
-					if err != nil {
-						panic(err)
-					}
-					log.Println(insertedBill)
-				}
-
-				//res, err := db.NewInsert().Model(&bills).Exec(ctx)
-				//fmt.Printf("Congress: %s Type: %s Inserted %s rows", strconv.Itoa(i), table, strconv.Itoa(len(bills)))
-				//if err != nil {
-				//	panic(err)
-				//} else {
-				//	fmt.Println(res)
+				//for _, bill := range bills {
+				//	insertedBill, err := queries.InsertBill(ctx, csearch.InsertBillParams{
+				//		Billid: bill.BillID,
+				//		Bio:    sql.NullString{String: "Co-author of The C Programming Language and The Go Programming Language", Valid: true},
+				//	})
+				//	if err != nil {
+				//		panic(err)
+				//	}
+				//	log.Println(insertedBill)
 				//}
+
+				res, err := db.NewInsert().Model(&bills).Exec(ctx)
+				fmt.Printf("Congress: %s Type: %s Inserted %s rows", strconv.Itoa(i), table, strconv.Itoa(len(bills)))
+				if err != nil {
+					panic(err)
+				} else {
+					fmt.Println(res)
+				}
 			}
 		}
 	}
