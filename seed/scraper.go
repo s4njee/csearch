@@ -651,7 +651,6 @@ func main() {
 func update_bills() {
 	var congressdir = viper.GetString("CONGRESSDIR")
 	var postgresuri = viper.GetString("POSTGRESURI")
-	os.Chdir(congressdir)
 	// Update Congress Bills
 	cmd := exec.Command(congressdir+ "congress/run.py", "govinfo", "--bulkdata=BILLSTATUS")
 	stdout, err := cmd.StdoutPipe()
