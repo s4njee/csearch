@@ -1,10 +1,12 @@
 package main
 
 import (
-	"app/csearch/csearch"
 	"bufio"
 	"context"
+	"app/csearch/csearch"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/gob"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -13,12 +15,14 @@ import (
 	"github.com/tabbed/pqtype"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
+	"github.com/spf13/viper"
 )
 
 var Tables = [8]string{"s", "hr", "hconres", "hjres", "hres", "sconres", "sjres", "sres"}
@@ -286,7 +290,7 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 	defer xmlFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(xmlFile)
-	if congress < 114{
+	if congress < 114 {
 		var billxml BillXMLRoot
 		xml.Unmarshal(byteValue, &billxml)
 		var action_structs []struct {
@@ -513,12 +517,38 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 }
 
 func main() {
+	viper.SetConfigFile(".env")
+	err := viper.ReadInConfig()
+	if err != nil {
+		return
+	}
+	var fileHashes = make(map[string]string)
+	var fileHashesPath = "./fileHashes.gob"
+
+	if _,err := os.Stat(fileHashesPath); err == nil {
+		decodeFile, err := os.Open(fileHashesPath)
+		if err != nil {
+			panic(err)
+		}
+		defer decodeFile.Close()
+
+		// Create a decoder
+		decoder := gob.NewDecoder(decodeFile)
+
+		// Place to decode into
+		fileHashes := make(map[string]string)
+
+		// Decode -- We need to pass a pointer otherwise accounts2 isn't modified
+		decoder.Decode(&fileHashes)
+	}
+	var congressdir = viper.GetString("CONGRESSDIR")
+	var postgresURI = viper.GetString("POSTGRESURI")
 	// Runs unitedstates/congress run script to update bill xmls
-	update_bills()
+	updateBills()
 
 	ctx := context.Background()
 	//db, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres-service:5432/csearch?sslmode=disable")
-	db, err := sql.Open("postgres", "host=postgres-service user=postgres password=postgres dbname=csearch sslmode=disable")
+	db, err := sql.Open("postgres", "host="+postgresURI+" user=postgres password=postgres dbname=csearch sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
@@ -527,140 +557,95 @@ func main() {
 		panic(err)
 	}
 
-	//dsn := "postgres://postgres:postgres@postgres-service:5432/temp?sslmode=disable&timeout=1200s"
-	//sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
-	//db := bun.NewDB(sqldb, pgdialect.New())
-	//
-	//// Create db code
-	//var expr = "DROP TABLE IF EXISTS bills CASCADE;"
-	//println(expr)
-	//db.Exec(expr)
-	//_, err := db.NewCreateTable().
-	//	Model((*Bill)(nil)).
-	//	PartitionBy("LIST (bill_type)").
-	//	Exec(ctx)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//// Create db partitions
-	//for _, i := range Tables {
-	//	var expr = fmt.Sprintf("CREATE TABLE bills_%s PARTITION OF bills FOR VALUES in ('%s');", i, i)
-	//	var expr2 = fmt.Sprintf("CREATE INDEX ON bills_%s (bill_type);", i)
-	//	println(expr)
-	//	db.Exec(expr)
-	//	println(expr2)
-	//	db.Exec(expr2)
-	//}
-	//
-	//// Create text search vectors and indices
-	//for _, i := range Tables {
-	//	var expr3 = fmt.Sprintf("ALTER TABLE bills ADD COLUMN %s_ts tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(short_title,'') || ' ' || coalesce(summary->>'Text',''))) STORED;", i)
-	//	var expr4 = fmt.Sprintf("CREATE INDEX %s_ts_idx ON bills USING GIN (%s_ts);", i, i)
-	//	println(expr3)
-	//	_, err = db.Exec(expr3)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	println(expr4)
-	//	_, err = db.Exec(expr4)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//}
-	//
-	// Process bills 64 at a time
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 64)
-	for i := 113; i <= 118; i++ {
-		fmt.Printf("Processing Congress %s",strconv.Itoa(i))
+	for i := 93 ; i <= 118; i++ {
+		fmt.Printf("Processing Congress %s", strconv.Itoa(i))
 		for _, table := range Tables {
-			var directory = fmt.Sprintf("/congress/data/%s/bills/%s",strconv.Itoa(i), table)
+			var directory = fmt.Sprintf(congressdir+"data/%s/bills/%s", strconv.Itoa(i), table)
 			files, err := os.ReadDir(directory)
 			if err != nil {
 				debug.PrintStack()
 				continue
 			}
-			//var bills = make([]csearch.InsertBillParams, len(files))
+			var bills = make([]csearch.InsertBillParams, len(files))
 			wg.Add(len(files))
-			println(len(files))
-			for _, f := range files {
-				path := fmt.Sprintf("/congress/data/%s/bills/%s/", strconv.Itoa(i), table) + f.Name()
+			fmt.Printf("Processing Congress %d; Type: %s, Number of Bills: %d", i, table, len(files))
+			for z, f := range files {
+				path := fmt.Sprintf(congressdir+"data/%s/bills/%s/", strconv.Itoa(i), table) + f.Name()
 				var xmlcheck = path + "/fdsys_billstatus.xml"
 				if _, err := os.Stat(xmlcheck); err == nil {
-					go func() {
-						// defer mutex.Unlock()
-						sem <- struct{}{}
-						// mutex.Lock()
-						var billxml = parse_bill_xml(xmlcheck, i)
-						if billxml.Billtype == "" {
-							return
-						}
-						_ = queries.InsertBill(ctx, billxml)
-						//res2B, _ := json.Marshal(bills[z])
-						//println(res2B)
-						defer func() { <-sem }()
-						defer wg.Done()
-					}()
-
+					f, err := os.Open(xmlcheck)
+					if err != nil {
+						log.Fatal(err)
+					}
+					fileHash := sha256.New()
+					if _, err := io.Copy(fileHash, f); err != nil {
+						log.Fatal(err)
+					}
+					var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
+					if fileHashes[xmlcheck] != fileHashString {
+						fileHashes[xmlcheck] = fileHashString
+						f.Close()
+						go func(z int) {
+							// defer mutex.Unlock()
+							sem <- struct{}{}
+							// mutex.Lock()
+							bills[z] = parse_bill_xml(xmlcheck, i)
+							//res2B, _ := json.Marshal(bills[z])
+							//println(res2B)
+							defer func() { <-sem }()
+							defer wg.Done()
+						}(z)
+					}
 				} else if errors.Is(err, os.ErrNotExist) {
 					path += "/data.json"
-					go func() {
-						// defer mutex.Unlock()
-						sem <- struct{}{}
-						var bjs = parse_bill(path)
-						// mutex.Lock()
-						_ = queries.InsertBill(ctx, bjs)
-					}()
-						defer func() { <-sem }()
-						defer wg.Done()
+					f, err := os.Open(path)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fileHash := sha256.New()
+					if _, err := io.Copy(fileHash, f); err != nil {
+						log.Fatal(err)
+					}
+					var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
+					if fileHashes[path] != fileHashString {
+						fileHashes[path] = fileHashString
+						f.Close()
+						go func(z int) {
+							// defer mutex.Unlock()
+							sem <- struct{}{}
+							var bjs = parse_bill(path)
+							// mutex.Lock()
+							bills[z] = bjs
+							defer func() { <-sem }()
+							defer wg.Done()
+						}(z)
 					}
 				}
 
 			}
 			wg.Wait()
 
-			//if len(bills) > 0 {
-			//	//_ = queries.InsertBill(ctx, bills)
-			//	for _, bill := range bills {
-			//		_ = queries.InsertBill(ctx, csearch.InsertBillParams{
-			//			Billid:        bill.Billid,
-			//			Billnumber:    bill.Billnumber,
-			//			Billtype:      bill.Billtype,
-			//			Introducedat:  bill.Introducedat,
-			//			Congress:      bill.Congress,
-			//			Summary:       bill.Summary,
-			//			Actions:       bill.Actions,
-			//			Sponsors:      bill.Sponsors,
-			//			Cosponsors:    bill.Cosponsors,
-			//			Statusat:      bill.Statusat,
-			//			Shorttitle:    bill.Shorttitle,
-			//			Officialtitle: bill.Officialtitle,
-			//		})
-			//		if err != nil {
-			//			panic(err)
-			//		}
-			//	}
-			//
-			//	//res, err := db.NewInsert().Model(&bills).Exec(ctx)
-			//	//fmt.Printf("Congress: %s Type: %s Inserted %s rows", strconv.Itoa(i), table, strconv.Itoa(len(bills)))
-			//	//if err != nil {
-			//	//	panic(err)
-			//	//} else {
-			//	//	fmt.Println(res)
-			//	//}
-			//}
+			if len(bills) > 0 {
+				//_ = queries.InsertBill(ctx, bills)
+				for _, bill := range bills {
+					_ = queries.InsertBill(ctx, bill)
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
 		}
-	close(sem)
+		close(sem)
+	}
 }
 
-
-
-
-func update_bills() {
-	os.Chdir("/congress")
+func updateBills() {
+	var congressdir = viper.GetString("CONGRESSDIR")
 	// Update Congress Bills
-	cmd := exec.Command("./congress/run.py", "govinfo", "--bulkdata=BILLSTATUS")
+	cmd := exec.Command(congressdir+ "congress/run.py", "govinfo", "--bulkdata=BILLSTATUS")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		panic(err)
