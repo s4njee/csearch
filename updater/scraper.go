@@ -1,9 +1,9 @@
 package main
 
 import (
+	"app/csearch/csearch"
 	"bufio"
 	"context"
-	"app/csearch/csearch"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/gob"
@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 	"github.com/tabbed/pqtype"
 	"io"
 	"io/ioutil"
@@ -22,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"github.com/spf13/viper"
+
 )
 
 var Tables = [8]string{"s", "hr", "hconres", "hjres", "hres", "sconres", "sjres", "sres"}
@@ -48,8 +49,8 @@ type BillXMLRoot struct {
 	BillXML BillXML  `xml:"bill"`
 }
 type BillXMLRootnew struct {
-	XMLName xml.Name `xml:"billStatus"`
-	BillXML BillXMLnew  `xml:"bill"`
+	XMLName xml.Name   `xml:"billStatus"`
+	BillXML BillXMLnew `xml:"bill"`
 }
 type ItemXML struct {
 	XMLName xml.Name `xml:"item"`
@@ -108,7 +109,7 @@ type BillXMLnew struct {
 	Type         string        `xml:"type"`
 }
 type BillXMLNN struct {
-	Number       string        `xml:"number"`
+	Number string `xml:"number"`
 }
 type Bill struct {
 	BillID        string
@@ -381,23 +382,23 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 			panic(err)
 		}
 		// Create Bill Struct, same fields as BillJSON
-			var bill = csearch.InsertBillParams{
-				Billid:        sql.NullString{String: billID, Valid: true},
-				Billnumber:    billxml.BillXML.Number,
-				Billtype:      strings.ToLower(billxml.BillXML.BillType),
-				Introducedat:  sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
-				Congress:      billxml.BillXML.Congress,
-				Summary:       pqtype.NullRawMessage{RawMessage: summaryjs, Valid: true},
-				Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
-				Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
-				Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
-				Statusat:      sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
-				Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
-				Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},}
-		if billxml.BillXML.BillType == ""{
-			fmt.Printf("%s %s %s",bill.Billid, bill.Congress, bill.Billnumber )
+		var bill = csearch.InsertBillParams{
+			Billid:        sql.NullString{String: billID, Valid: true},
+			Billnumber:    billxml.BillXML.Number,
+			Billtype:      strings.ToLower(billxml.BillXML.BillType),
+			Introducedat:  sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
+			Congress:      billxml.BillXML.Congress,
+			Summary:       pqtype.NullRawMessage{RawMessage: summaryjs, Valid: true},
+			Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
+			Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
+			Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
+			Statusat:      sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
+			Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
+			Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true}}
+		if billxml.BillXML.BillType == "" {
+			fmt.Printf("%s %s %s", bill.Billid, bill.Congress, bill.Billnumber)
 		}
-	return bill
+		return bill
 
 	} else if congress >= 114 {
 		var billxml BillXMLRootnew
@@ -504,9 +505,9 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 			Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 			Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 		}
-		
+
 		return bill
-}
+	}
 
 	// ctx := context.Background()
 	// _, err = db.NewInsert().Model(&bill).Exec(ctx)
@@ -522,10 +523,14 @@ func main() {
 	if err != nil {
 		return
 	}
-	var fileHashes = make(map[string]string)
-	var fileHashesPath = "./fileHashes.gob"
 
-	if _,err := os.Stat(fileHashesPath); err == nil {
+	congressdir := viper.GetString("CONGRESSDIR")
+	postgresURI := viper.GetString("POSTGRESURI")
+	fileHashes := make(map[string]string)
+	fileHashesMutex := sync.RWMutex{}
+	fileHashesPath := congressdir+"./fileHashes.gob"
+
+	if _, err := os.Stat(fileHashesPath); err == nil {
 		decodeFile, err := os.Open(fileHashesPath)
 		if err != nil {
 			panic(err)
@@ -536,15 +541,14 @@ func main() {
 		decoder := gob.NewDecoder(decodeFile)
 
 		// Place to decode into
-		fileHashes := make(map[string]string)
+		fileHashes = make(map[string]string)
 
 		// Decode -- We need to pass a pointer otherwise accounts2 isn't modified
 		decoder.Decode(&fileHashes)
+		println("Hashes Loaded")
 	}
-	var congressdir = viper.GetString("CONGRESSDIR")
-	var postgresURI = viper.GetString("POSTGRESURI")
 	// Runs unitedstates/congress run script to update bill xmls
-	updateBills()
+	//updateBills()
 
 	ctx := context.Background()
 	//db, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres-service:5432/csearch?sslmode=disable")
@@ -559,8 +563,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 64)
-	for i := 93 ; i <= 118; i++ {
-		fmt.Printf("Processing Congress %s", strconv.Itoa(i))
+	for i := 93; i <= 118; i++ {
 		for _, table := range Tables {
 			var directory = fmt.Sprintf(congressdir+"data/%s/bills/%s", strconv.Itoa(i), table)
 			files, err := os.ReadDir(directory)
@@ -568,84 +571,104 @@ func main() {
 				debug.PrintStack()
 				continue
 			}
-			var bills = make([]csearch.InsertBillParams, len(files))
+			var bills []csearch.InsertBillParams
 			wg.Add(len(files))
-			fmt.Printf("Processing Congress %d; Type: %s, Number of Bills: %d", i, table, len(files))
+			fmt.Printf("Processing Congress %d; Type: %s, Number of Bills: %d \n", i, table, len(files))
 			for z, f := range files {
 				path := fmt.Sprintf(congressdir+"data/%s/bills/%s/", strconv.Itoa(i), table) + f.Name()
 				var xmlcheck = path + "/fdsys_billstatus.xml"
 				if _, err := os.Stat(xmlcheck); err == nil {
-					f, err := os.Open(xmlcheck)
-					if err != nil {
-						log.Fatal(err)
-					}
-					fileHash := sha256.New()
-					if _, err := io.Copy(fileHash, f); err != nil {
-						log.Fatal(err)
-					}
-					var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
-					if fileHashes[xmlcheck] != fileHashString {
-						fileHashes[xmlcheck] = fileHashString
+					go func(z int) {
+						f, err := os.Open(xmlcheck)
+						if err != nil {
+							log.Fatal(err)
+						}
+						fileHash := sha256.New()
+						if _, err := io.Copy(fileHash, f); err != nil {
+							log.Fatal(err)
+						}
+						var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
 						f.Close()
-						go func(z int) {
-							// defer mutex.Unlock()
+						// defer mutex.Unlock()
+						fileHashesMutex.Lock()
+						hash := fileHashes[xmlcheck]
+						fileHashesMutex.Unlock()
+						if hash != fileHashString {
+							fileHashesMutex.Lock()
+							fileHashes[xmlcheck] = fileHashString
+
+							fileHashesMutex.Unlock()
 							sem <- struct{}{}
 							// mutex.Lock()
 							bills[z] = parse_bill_xml(xmlcheck, i)
 							//res2B, _ := json.Marshal(bills[z])
 							//println(res2B)
-							defer func() { <-sem }()
-							defer wg.Done()
-						}(z)
-					}
+
+						}
+						defer func() { <-sem }()
+						defer wg.Done()
+					}(z)
 				} else if errors.Is(err, os.ErrNotExist) {
 					path += "/data.json"
-					f, err := os.Open(path)
-					if err != nil {
-						log.Fatal(err)
-					}
 
-					fileHash := sha256.New()
-					if _, err := io.Copy(fileHash, f); err != nil {
-						log.Fatal(err)
-					}
-					var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
-					if fileHashes[path] != fileHashString {
-						fileHashes[path] = fileHashString
+					go func(z int) {
+						f, err := os.Open(path)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						fileHash := sha256.New()
+						if _, err := io.Copy(fileHash, f); err != nil {
+							log.Fatal(err)
+						}
+						var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
 						f.Close()
-						go func(z int) {
-							// defer mutex.Unlock()
+						fileHashesMutex.Lock()
+						hash := fileHashes[path]
+						fileHashesMutex.Unlock()
+						if hash != fileHashString {
+							fileHashesMutex.Lock()
+							fileHashes[path] = fileHashString
+							fileHashesMutex.Unlock()
 							sem <- struct{}{}
 							var bjs = parse_bill(path)
 							// mutex.Lock()
 							bills[z] = bjs
-							defer func() { <-sem }()
-							defer wg.Done()
-						}(z)
-					}
-				}
 
+						}
+						defer func() { <-sem }()
+						defer wg.Done()
+					}(z)
+				}
 			}
+
 			wg.Wait()
 
 			if len(bills) > 0 {
 				//_ = queries.InsertBill(ctx, bills)
 				for _, bill := range bills {
 					_ = queries.InsertBill(ctx, bill)
+					fmt.Printf("Congress %s, BillType %s, Bill %s", bill.Congress, bill.Billtype, bill.Billnumber)
 					if err != nil {
 						panic(err)
 					}
 				}
+				fmt.Printf("Table %s Inserted", table)
 			}
 		}
-		close(sem)
+
+	}
+	close(sem)
+	if err != nil {
+		panic(err)
 	}
 }
 
 func updateBills() {
 	var congressdir = viper.GetString("CONGRESSDIR")
+	os.Chdir(congressdir)
 	// Update Congress Bills
-	cmd := exec.Command(congressdir+ "congress/run.py", "govinfo", "--bulkdata=BILLSTATUS")
+	cmd := exec.Command(congressdir+"congress/run.py", "govinfo", "--bulkdata=BILLSTATUS")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		panic(err)
