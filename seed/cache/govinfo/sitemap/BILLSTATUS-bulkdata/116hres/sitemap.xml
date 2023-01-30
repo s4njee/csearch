@@ -81,7 +81,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres17.xml</loc>
-    <lastmod>2022-11-03T14:07:02.306Z</lastmod>
+    <lastmod>2023-01-12T07:08:01.390Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -1143,7 +1143,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres189.xml</loc>
-    <lastmod>2022-11-04T01:08:00.273Z</lastmod>
+    <lastmod>2023-01-12T07:10:00.523Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -1635,7 +1635,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres278.xml</loc>
-    <lastmod>2022-11-04T03:12:00.380Z</lastmod>
+    <lastmod>2022-11-23T08:52:00.474Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -1659,7 +1659,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres279.xml</loc>
-    <lastmod>2022-11-04T03:11:00.049Z</lastmod>
+    <lastmod>2022-11-23T08:52:00.400Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -2109,7 +2109,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres349.xml</loc>
-    <lastmod>2022-02-12T16:35:00.559Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.423Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -3069,7 +3069,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres512.xml</loc>
-    <lastmod>2022-11-03T17:04:03.556Z</lastmod>
+    <lastmod>2023-01-12T07:09:00.436Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -3303,7 +3303,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres549.xml</loc>
-    <lastmod>2022-11-03T15:47:00.090Z</lastmod>
+    <lastmod>2023-01-12T07:12:00.274Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -4005,7 +4005,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres672.xml</loc>
-    <lastmod>2022-11-01T19:22:03.242Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.286Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -4167,7 +4167,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres697.xml</loc>
-    <lastmod>2022-11-01T20:00:00.252Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.552Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -4467,7 +4467,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres746.xml</loc>
-    <lastmod>2022-10-28T18:14:00.344Z</lastmod>
+    <lastmod>2023-01-12T07:09:00.794Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -4851,7 +4851,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres809.xml</loc>
-    <lastmod>2022-02-13T19:08:15.135Z</lastmod>
+    <lastmod>2023-01-12T08:00:01.624Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -4917,7 +4917,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres823.xml</loc>
-    <lastmod>2022-02-09T00:32:01.274Z</lastmod>
+    <lastmod>2023-01-12T07:11:00.076Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -4941,7 +4941,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres825.xml</loc>
-    <lastmod>2022-02-12T13:48:08.310Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.465Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -5451,7 +5451,7 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres908.xml</loc>
-    <lastmod>2022-08-11T01:13:00.487Z</lastmod>
+    <lastmod>2023-01-12T09:33:00.108Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -5487,499 +5487,499 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres915.xml</loc>
-    <lastmod>2022-02-12T13:46:12.859Z</lastmod>
+    <lastmod>2023-01-12T06:27:02.237Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres916.xml</loc>
-    <lastmod>2022-02-12T13:48:09.775Z</lastmod>
+    <lastmod>2023-01-12T06:27:02.637Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres917.xml</loc>
-    <lastmod>2022-02-12T13:48:09.744Z</lastmod>
+    <lastmod>2023-01-12T06:22:02.143Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres919.xml</loc>
-    <lastmod>2022-02-12T13:48:10.081Z</lastmod>
+    <lastmod>2023-01-12T06:21:02.144Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres918.xml</loc>
-    <lastmod>2022-02-13T19:05:39.554Z</lastmod>
+    <lastmod>2023-01-12T06:24:01.787Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres924.xml</loc>
-    <lastmod>2022-02-12T13:48:09.628Z</lastmod>
+    <lastmod>2023-01-12T06:22:01.791Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres923.xml</loc>
-    <lastmod>2022-02-12T13:48:09.656Z</lastmod>
+    <lastmod>2023-01-12T06:24:01.830Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres921.xml</loc>
-    <lastmod>2022-02-12T13:48:09.842Z</lastmod>
+    <lastmod>2023-01-12T06:21:02.448Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres922.xml</loc>
-    <lastmod>2022-02-09T01:47:02.029Z</lastmod>
+    <lastmod>2023-01-12T06:20:04.218Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres925.xml</loc>
-    <lastmod>2022-02-12T13:48:08.901Z</lastmod>
+    <lastmod>2023-01-12T06:24:01.464Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres920.xml</loc>
-    <lastmod>2022-02-12T14:41:00.080Z</lastmod>
+    <lastmod>2023-01-12T06:25:03.044Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres926.xml</loc>
-    <lastmod>2022-02-09T02:33:00.565Z</lastmod>
+    <lastmod>2023-01-12T06:23:02.412Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres929.xml</loc>
-    <lastmod>2022-02-12T13:48:09.714Z</lastmod>
+    <lastmod>2023-01-12T06:19:02.468Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres927.xml</loc>
-    <lastmod>2022-02-12T15:47:00.444Z</lastmod>
+    <lastmod>2023-01-12T06:22:02.008Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres928.xml</loc>
-    <lastmod>2022-02-09T05:34:01.031Z</lastmod>
+    <lastmod>2023-01-12T06:20:04.569Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres930.xml</loc>
-    <lastmod>2022-02-13T19:07:22.280Z</lastmod>
+    <lastmod>2023-01-12T06:24:02.095Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres931.xml</loc>
-    <lastmod>2022-02-12T13:48:10.221Z</lastmod>
+    <lastmod>2023-01-12T06:24:01.420Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres932.xml</loc>
-    <lastmod>2022-02-12T13:48:10.145Z</lastmod>
+    <lastmod>2023-01-12T06:25:03.446Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres933.xml</loc>
-    <lastmod>2022-02-09T02:39:02.982Z</lastmod>
+    <lastmod>2023-01-12T06:23:02.611Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres935.xml</loc>
-    <lastmod>2022-08-11T03:13:00.706Z</lastmod>
+    <lastmod>2023-01-12T06:22:02.075Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres937.xml</loc>
-    <lastmod>2022-02-09T02:59:01.499Z</lastmod>
+    <lastmod>2023-01-12T06:24:01.376Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres936.xml</loc>
-    <lastmod>2022-02-12T16:54:00.418Z</lastmod>
+    <lastmod>2023-01-12T06:23:02.568Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres934.xml</loc>
-    <lastmod>2022-08-11T01:49:00.653Z</lastmod>
+    <lastmod>2023-01-12T06:23:02.371Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres940.xml</loc>
-    <lastmod>2022-02-12T13:48:10.278Z</lastmod>
+    <lastmod>2023-01-12T06:20:04.089Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres939.xml</loc>
-    <lastmod>2022-02-09T04:53:00.689Z</lastmod>
+    <lastmod>2023-01-12T06:19:02.547Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres938.xml</loc>
-    <lastmod>2022-08-11T01:44:00.803Z</lastmod>
+    <lastmod>2023-01-12T06:20:04.451Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres941.xml</loc>
-    <lastmod>2022-02-12T13:48:10.461Z</lastmod>
+    <lastmod>2023-01-12T06:20:03.963Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres942.xml</loc>
-    <lastmod>2022-02-12T13:48:10.432Z</lastmod>
+    <lastmod>2023-01-12T06:21:02.376Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres943.xml</loc>
-    <lastmod>2022-02-13T19:05:20.114Z</lastmod>
+    <lastmod>2023-01-12T06:21:02.556Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres944.xml</loc>
-    <lastmod>2022-02-12T13:48:10.404Z</lastmod>
+    <lastmod>2023-01-12T06:21:02.500Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres948.xml</loc>
-    <lastmod>2022-02-09T01:48:02.600Z</lastmod>
+    <lastmod>2023-01-12T05:31:02.252Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres949.xml</loc>
-    <lastmod>2022-02-12T15:15:00.464Z</lastmod>
+    <lastmod>2023-01-12T05:35:05.588Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres946.xml</loc>
-    <lastmod>2022-02-09T02:14:00.457Z</lastmod>
+    <lastmod>2023-01-12T05:36:02.694Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres947.xml</loc>
-    <lastmod>2022-02-13T19:06:28.095Z</lastmod>
+    <lastmod>2023-01-12T05:36:02.270Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres945.xml</loc>
-    <lastmod>2022-02-12T13:48:10.577Z</lastmod>
+    <lastmod>2023-01-12T05:36:02.736Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres951.xml</loc>
-    <lastmod>2022-02-12T15:00:00.846Z</lastmod>
+    <lastmod>2023-01-12T05:35:04.071Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres950.xml</loc>
-    <lastmod>2022-02-13T19:02:31.194Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.385Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres953.xml</loc>
-    <lastmod>2022-02-12T16:27:00.310Z</lastmod>
+    <lastmod>2023-01-12T05:34:01.858Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres952.xml</loc>
-    <lastmod>2022-02-09T00:47:00.674Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.598Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres961.xml</loc>
-    <lastmod>2022-02-12T13:48:10.191Z</lastmod>
+    <lastmod>2023-01-12T05:30:04.812Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres958.xml</loc>
-    <lastmod>2022-02-13T18:59:41.262Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.341Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres963.xml</loc>
-    <lastmod>2022-02-12T13:48:10.342Z</lastmod>
+    <lastmod>2023-01-12T05:31:02.296Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres954.xml</loc>
-    <lastmod>2022-02-12T13:48:10.312Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.297Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres962.xml</loc>
-    <lastmod>2022-02-12T13:48:10.249Z</lastmod>
+    <lastmod>2023-01-12T05:30:04.747Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres955.xml</loc>
-    <lastmod>2022-02-13T19:00:31.880Z</lastmod>
+    <lastmod>2023-01-12T05:35:03.960Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres956.xml</loc>
-    <lastmod>2022-02-09T05:03:01.095Z</lastmod>
+    <lastmod>2023-01-12T05:35:05.436Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres957.xml</loc>
-    <lastmod>2022-02-13T19:07:06.597Z</lastmod>
+    <lastmod>2023-01-12T05:33:02.896Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres959.xml</loc>
-    <lastmod>2022-02-12T13:48:10.374Z</lastmod>
+    <lastmod>2023-01-12T05:30:04.294Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres960.xml</loc>
-    <lastmod>2022-02-09T02:56:00.069Z</lastmod>
+    <lastmod>2023-01-12T05:31:02.632Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres964.xml</loc>
-    <lastmod>2022-08-11T01:30:00.460Z</lastmod>
+    <lastmod>2023-01-12T05:33:02.650Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres966.xml</loc>
-    <lastmod>2022-02-12T13:48:10.639Z</lastmod>
+    <lastmod>2023-01-12T05:31:02.725Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres965.xml</loc>
-    <lastmod>2022-08-11T02:56:00.528Z</lastmod>
+    <lastmod>2023-01-12T05:35:03.786Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres968.xml</loc>
-    <lastmod>2022-02-13T19:01:29.365Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.470Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres967.xml</loc>
-    <lastmod>2022-08-11T02:56:00.577Z</lastmod>
+    <lastmod>2023-01-12T05:31:02.829Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres970.xml</loc>
-    <lastmod>2022-02-12T13:59:07.371Z</lastmod>
+    <lastmod>2023-01-12T05:32:02.659Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres971.xml</loc>
-    <lastmod>2022-02-12T13:48:10.669Z</lastmod>
+    <lastmod>2023-01-12T05:33:02.813Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres969.xml</loc>
-    <lastmod>2022-02-13T19:08:27.020Z</lastmod>
+    <lastmod>2023-01-12T05:32:02.194Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres972.xml</loc>
-    <lastmod>2022-02-12T13:48:10.939Z</lastmod>
+    <lastmod>2023-01-12T05:33:02.571Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres976.xml</loc>
-    <lastmod>2022-08-11T01:08:00.934Z</lastmod>
+    <lastmod>2023-01-12T05:31:02.678Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres973.xml</loc>
-    <lastmod>2022-02-12T13:48:10.698Z</lastmod>
+    <lastmod>2023-01-12T05:33:02.856Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres975.xml</loc>
-    <lastmod>2022-08-11T01:26:00.235Z</lastmod>
+    <lastmod>2023-01-12T05:33:02.486Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres978.xml</loc>
-    <lastmod>2022-02-12T13:48:10.520Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.428Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres979.xml</loc>
-    <lastmod>2022-02-12T13:48:10.820Z</lastmod>
+    <lastmod>2023-01-12T05:32:02.236Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres974.xml</loc>
-    <lastmod>2022-02-12T13:48:10.727Z</lastmod>
+    <lastmod>2023-01-12T05:32:02.764Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres977.xml</loc>
-    <lastmod>2022-02-12T13:48:10.756Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.515Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres980.xml</loc>
-    <lastmod>2022-02-12T13:48:10.850Z</lastmod>
+    <lastmod>2023-01-12T05:32:02.716Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres981.xml</loc>
-    <lastmod>2022-08-11T01:10:00.477Z</lastmod>
+    <lastmod>2023-01-12T05:34:02.557Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres983.xml</loc>
-    <lastmod>2022-02-13T19:08:29.503Z</lastmod>
+    <lastmod>2023-01-12T05:30:04.057Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres987.xml</loc>
-    <lastmod>2022-02-13T19:07:11.366Z</lastmod>
+    <lastmod>2023-01-12T05:32:02.122Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres986.xml</loc>
-    <lastmod>2022-02-12T13:48:12.809Z</lastmod>
+    <lastmod>2023-01-12T05:30:03.454Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres985.xml</loc>
-    <lastmod>2022-02-12T13:48:10.608Z</lastmod>
+    <lastmod>2023-01-12T05:30:04.173Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres982.xml</loc>
-    <lastmod>2022-02-13T19:00:40.483Z</lastmod>
+    <lastmod>2023-01-12T05:30:03.947Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres984.xml</loc>
-    <lastmod>2022-02-12T13:48:10.786Z</lastmod>
+    <lastmod>2023-01-12T05:31:02.778Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres988.xml</loc>
-    <lastmod>2022-08-11T03:00:00.432Z</lastmod>
+    <lastmod>2023-01-12T12:54:01.451Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres989.xml</loc>
-    <lastmod>2022-02-09T02:37:00.226Z</lastmod>
+    <lastmod>2023-01-12T12:54:01.707Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres994.xml</loc>
-    <lastmod>2022-02-12T13:48:12.713Z</lastmod>
+    <lastmod>2023-01-12T12:54:01.590Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres992.xml</loc>
-    <lastmod>2022-02-12T13:48:12.897Z</lastmod>
+    <lastmod>2023-01-12T12:55:02.042Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres993.xml</loc>
-    <lastmod>2022-02-13T19:05:39.362Z</lastmod>
+    <lastmod>2023-01-12T12:55:02.157Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres990.xml</loc>
-    <lastmod>2022-02-12T13:48:12.838Z</lastmod>
+    <lastmod>2023-01-12T12:53:01.947Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres991.xml</loc>
-    <lastmod>2022-02-12T13:48:12.869Z</lastmod>
+    <lastmod>2023-01-12T12:54:01.747Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres995.xml</loc>
-    <lastmod>2022-02-13T19:04:31.946Z</lastmod>
+    <lastmod>2023-01-12T12:55:02.387Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres997.xml</loc>
-    <lastmod>2022-02-12T13:48:12.926Z</lastmod>
+    <lastmod>2023-01-12T12:54:01.789Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres996.xml</loc>
-    <lastmod>2022-02-09T02:00:02.160Z</lastmod>
+    <lastmod>2023-01-12T07:10:00.583Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -5991,13 +5991,13 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres998.xml</loc>
-    <lastmod>2022-02-12T16:20:00.251Z</lastmod>
+    <lastmod>2023-01-12T12:57:02.145Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres999.xml</loc>
-    <lastmod>2022-02-12T13:58:24.517Z</lastmod>
+    <lastmod>2023-01-12T12:55:02.267Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -6045,973 +6045,973 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1066.xml</loc>
-    <lastmod>2022-02-13T19:03:10.555Z</lastmod>
+    <lastmod>2023-01-12T11:38:00.942Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1017.xml</loc>
-    <lastmod>2022-08-11T02:58:01.273Z</lastmod>
+    <lastmod>2023-01-12T12:57:02.441Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1062.xml</loc>
-    <lastmod>2022-08-11T01:57:01.261Z</lastmod>
+    <lastmod>2023-01-12T08:02:00.346Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1053.xml</loc>
-    <lastmod>2022-08-11T02:58:01.421Z</lastmod>
+    <lastmod>2023-01-12T11:37:00.423Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1054.xml</loc>
-    <lastmod>2022-02-09T02:51:01.205Z</lastmod>
+    <lastmod>2023-01-12T11:35:00.645Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1037.xml</loc>
-    <lastmod>2022-08-11T02:58:01.602Z</lastmod>
+    <lastmod>2023-01-12T11:35:01.536Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1013.xml</loc>
-    <lastmod>2022-02-09T00:54:00.530Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.708Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1046.xml</loc>
-    <lastmod>2022-02-12T13:55:12.830Z</lastmod>
+    <lastmod>2023-01-12T11:41:00.386Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1048.xml</loc>
-    <lastmod>2022-02-12T13:55:12.773Z</lastmod>
+    <lastmod>2023-01-12T11:38:01.030Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1052.xml</loc>
-    <lastmod>2022-02-09T00:51:02.135Z</lastmod>
+    <lastmod>2023-01-12T11:35:00.785Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1057.xml</loc>
-    <lastmod>2022-02-22T22:58:00.542Z</lastmod>
+    <lastmod>2023-01-12T11:37:00.570Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1064.xml</loc>
-    <lastmod>2022-02-12T15:18:00.120Z</lastmod>
+    <lastmod>2023-01-12T11:36:00.414Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1040.xml</loc>
-    <lastmod>2022-02-09T00:47:00.290Z</lastmod>
+    <lastmod>2023-01-12T11:41:00.213Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1056.xml</loc>
-    <lastmod>2022-02-12T13:55:13.193Z</lastmod>
+    <lastmod>2023-01-12T11:35:00.903Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1024.xml</loc>
-    <lastmod>2022-02-12T13:55:11.877Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.532Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1034.xml</loc>
-    <lastmod>2022-02-12T13:55:12.399Z</lastmod>
+    <lastmod>2023-01-12T12:57:02.388Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1033.xml</loc>
-    <lastmod>2022-02-12T13:55:12.427Z</lastmod>
+    <lastmod>2023-01-12T08:04:00.729Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1069.xml</loc>
-    <lastmod>2022-02-12T13:55:13.432Z</lastmod>
+    <lastmod>2023-01-12T11:36:00.318Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1070.xml</loc>
-    <lastmod>2022-02-12T13:55:13.282Z</lastmod>
+    <lastmod>2023-01-12T11:34:00.778Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1068.xml</loc>
-    <lastmod>2022-02-12T13:55:13.225Z</lastmod>
+    <lastmod>2023-01-12T11:34:00.821Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1067.xml</loc>
-    <lastmod>2022-08-11T01:34:00.295Z</lastmod>
+    <lastmod>2023-01-12T11:38:00.533Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1072.xml</loc>
-    <lastmod>2022-08-11T02:10:01.350Z</lastmod>
+    <lastmod>2023-01-12T11:34:00.589Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1071.xml</loc>
-    <lastmod>2022-02-13T19:02:06.889Z</lastmod>
+    <lastmod>2023-01-12T11:34:00.986Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1073.xml</loc>
-    <lastmod>2022-02-13T18:59:17.037Z</lastmod>
+    <lastmod>2023-01-12T11:38:00.986Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1074.xml</loc>
-    <lastmod>2022-02-12T13:55:13.403Z</lastmod>
+    <lastmod>2023-01-12T11:34:00.943Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1076.xml</loc>
-    <lastmod>2022-02-09T04:51:01.049Z</lastmod>
+    <lastmod>2023-01-12T11:37:00.477Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1075.xml</loc>
-    <lastmod>2022-02-12T13:55:13.312Z</lastmod>
+    <lastmod>2023-01-12T11:37:00.346Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1077.xml</loc>
-    <lastmod>2022-02-12T13:55:13.372Z</lastmod>
+    <lastmod>2023-01-12T11:37:00.526Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1078.xml</loc>
-    <lastmod>2022-02-12T17:26:00.201Z</lastmod>
+    <lastmod>2023-01-12T11:36:00.137Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1030.xml</loc>
-    <lastmod>2022-02-12T13:55:12.218Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.488Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1044.xml</loc>
-    <lastmod>2022-02-12T14:54:00.448Z</lastmod>
+    <lastmod>2023-01-12T11:39:00.893Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1079.xml</loc>
-    <lastmod>2022-02-12T13:55:13.342Z</lastmod>
+    <lastmod>2023-01-12T10:51:01.010Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1061.xml</loc>
-    <lastmod>2022-02-13T19:00:40.307Z</lastmod>
+    <lastmod>2023-01-12T11:38:00.579Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1047.xml</loc>
-    <lastmod>2022-02-09T04:29:00.793Z</lastmod>
+    <lastmod>2023-01-12T11:41:00.806Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1008.xml</loc>
-    <lastmod>2022-02-12T13:55:11.790Z</lastmod>
+    <lastmod>2023-01-12T12:57:02.695Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1080.xml</loc>
-    <lastmod>2022-02-12T13:55:15.225Z</lastmod>
+    <lastmod>2023-01-12T10:50:01.243Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1081.xml</loc>
-    <lastmod>2022-02-13T19:00:26.476Z</lastmod>
+    <lastmod>2023-01-12T10:51:00.948Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1082.xml</loc>
-    <lastmod>2022-02-12T13:55:15.702Z</lastmod>
+    <lastmod>2023-01-12T10:49:00.157Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1084.xml</loc>
-    <lastmod>2022-02-09T04:42:00.902Z</lastmod>
+    <lastmod>2023-01-12T10:50:02.233Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1085.xml</loc>
-    <lastmod>2022-02-13T19:01:31.629Z</lastmod>
+    <lastmod>2023-01-12T10:50:00.622Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1083.xml</loc>
-    <lastmod>2022-02-12T13:55:16.164Z</lastmod>
+    <lastmod>2023-01-12T10:50:02.528Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1041.xml</loc>
-    <lastmod>2022-02-09T02:21:13.705Z</lastmod>
+    <lastmod>2023-01-12T11:41:00.853Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1049.xml</loc>
-    <lastmod>2022-02-09T02:01:03.404Z</lastmod>
+    <lastmod>2023-01-12T11:36:00.272Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1065.xml</loc>
-    <lastmod>2022-08-11T01:32:00.689Z</lastmod>
+    <lastmod>2023-01-12T11:38:00.814Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1043.xml</loc>
-    <lastmod>2022-02-12T13:55:12.864Z</lastmod>
+    <lastmod>2023-01-12T11:38:01.072Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1088.xml</loc>
-    <lastmod>2022-02-12T16:03:00.185Z</lastmod>
+    <lastmod>2023-01-12T10:49:00.448Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1087.xml</loc>
-    <lastmod>2022-02-09T05:33:01.382Z</lastmod>
+    <lastmod>2023-01-12T10:51:00.706Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1089.xml</loc>
-    <lastmod>2022-02-13T19:01:20.691Z</lastmod>
+    <lastmod>2023-01-12T10:48:01.462Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1086.xml</loc>
-    <lastmod>2022-08-11T01:20:00.914Z</lastmod>
+    <lastmod>2023-01-12T10:49:00.602Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1042.xml</loc>
-    <lastmod>2022-02-13T19:09:13.069Z</lastmod>
+    <lastmod>2023-01-12T11:40:01.195Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1059.xml</loc>
-    <lastmod>2022-02-12T14:12:00.679Z</lastmod>
+    <lastmod>2023-01-12T11:34:01.149Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1050.xml</loc>
-    <lastmod>2022-02-12T13:55:12.456Z</lastmod>
+    <lastmod>2023-01-12T11:34:01.111Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1094.xml</loc>
-    <lastmod>2022-02-12T13:55:24.911Z</lastmod>
+    <lastmod>2023-01-12T10:50:01.604Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1095.xml</loc>
-    <lastmod>2022-02-12T13:55:25.154Z</lastmod>
+    <lastmod>2023-01-12T10:48:01.858Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1029.xml</loc>
-    <lastmod>2022-08-11T01:48:00.949Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.666Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1096.xml</loc>
-    <lastmod>2022-02-12T13:55:29.715Z</lastmod>
+    <lastmod>2023-01-12T09:39:00.427Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1098.xml</loc>
-    <lastmod>2022-02-12T13:55:29.685Z</lastmod>
+    <lastmod>2023-01-12T09:39:00.728Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1097.xml</loc>
-    <lastmod>2022-02-12T17:35:00.307Z</lastmod>
+    <lastmod>2023-01-12T09:42:00.207Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1093.xml</loc>
-    <lastmod>2022-02-12T13:55:24.327Z</lastmod>
+    <lastmod>2023-01-12T10:50:02.651Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1028.xml</loc>
-    <lastmod>2022-08-11T02:58:01.568Z</lastmod>
+    <lastmod>2023-01-12T12:56:02.005Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1060.xml</loc>
-    <lastmod>2022-08-11T01:42:01.214Z</lastmod>
+    <lastmod>2023-01-12T11:34:01.027Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1100.xml</loc>
-    <lastmod>2022-08-11T01:57:01.308Z</lastmod>
+    <lastmod>2023-01-12T07:14:01.713Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1099.xml</loc>
-    <lastmod>2022-02-09T04:35:00.733Z</lastmod>
+    <lastmod>2023-01-12T09:39:00.372Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1090.xml</loc>
-    <lastmod>2022-02-13T19:09:26.683Z</lastmod>
+    <lastmod>2023-01-12T10:51:00.895Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1106.xml</loc>
-    <lastmod>2022-02-09T00:46:00.530Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.566Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1105.xml</loc>
-    <lastmod>2022-02-09T01:06:01.751Z</lastmod>
+    <lastmod>2023-01-12T09:41:01.173Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1103.xml</loc>
-    <lastmod>2022-02-12T13:56:09.692Z</lastmod>
+    <lastmod>2023-01-12T09:39:00.469Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1101.xml</loc>
-    <lastmod>2022-02-12T13:56:08.269Z</lastmod>
+    <lastmod>2023-01-12T09:39:00.931Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1102.xml</loc>
-    <lastmod>2022-08-11T02:14:00.366Z</lastmod>
+    <lastmod>2023-01-12T09:40:01.219Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1104.xml</loc>
-    <lastmod>2022-02-12T13:56:08.297Z</lastmod>
+    <lastmod>2023-01-12T09:40:00.790Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1108.xml</loc>
-    <lastmod>2022-02-12T13:56:08.973Z</lastmod>
+    <lastmod>2023-01-12T09:39:00.773Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1107.xml</loc>
-    <lastmod>2022-08-11T01:09:00.957Z</lastmod>
+    <lastmod>2023-01-12T09:41:00.623Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1111.xml</loc>
-    <lastmod>2022-02-12T13:56:11.806Z</lastmod>
+    <lastmod>2023-01-12T09:34:00.685Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1113.xml</loc>
-    <lastmod>2022-02-12T14:34:00.439Z</lastmod>
+    <lastmod>2023-01-12T09:38:00.131Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1109.xml</loc>
-    <lastmod>2022-02-12T13:56:10.855Z</lastmod>
+    <lastmod>2023-01-12T09:37:00.163Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1112.xml</loc>
-    <lastmod>2022-02-13T19:09:16.117Z</lastmod>
+    <lastmod>2023-01-12T09:39:00.512Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1110.xml</loc>
-    <lastmod>2022-02-09T04:57:00.115Z</lastmod>
+    <lastmod>2023-01-12T09:38:00.068Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1114.xml</loc>
-    <lastmod>2022-02-12T15:42:00.859Z</lastmod>
+    <lastmod>2023-01-12T09:35:00.342Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1115.xml</loc>
-    <lastmod>2022-02-13T19:07:22.861Z</lastmod>
+    <lastmod>2023-01-12T07:14:00.404Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1118.xml</loc>
-    <lastmod>2022-02-13T19:10:03.935Z</lastmod>
+    <lastmod>2023-01-12T09:37:00.241Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1117.xml</loc>
-    <lastmod>2022-02-13T19:08:29.920Z</lastmod>
+    <lastmod>2023-01-12T09:37:00.437Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1116.xml</loc>
-    <lastmod>2022-08-11T01:06:00.801Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.221Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1022.xml</loc>
-    <lastmod>2022-02-09T05:10:01.172Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.359Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1124.xml</loc>
-    <lastmod>2022-02-09T05:08:03.236Z</lastmod>
+    <lastmod>2023-01-12T09:34:00.729Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1121.xml</loc>
-    <lastmod>2022-02-13T19:09:15.910Z</lastmod>
+    <lastmod>2023-01-12T09:35:00.288Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1123.xml</loc>
-    <lastmod>2022-02-13T19:02:28.532Z</lastmod>
+    <lastmod>2023-01-12T09:35:00.395Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1122.xml</loc>
-    <lastmod>2022-02-13T19:06:27.809Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.399Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1120.xml</loc>
-    <lastmod>2022-02-12T13:56:11.456Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.612Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1119.xml</loc>
-    <lastmod>2022-02-12T13:56:10.990Z</lastmod>
+    <lastmod>2023-01-12T09:37:00.285Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1063.xml</loc>
-    <lastmod>2022-02-12T13:56:10.395Z</lastmod>
+    <lastmod>2023-01-12T11:36:00.366Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1126.xml</loc>
-    <lastmod>2022-02-09T00:40:04.131Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.354Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1127.xml</loc>
-    <lastmod>2022-02-12T13:56:09.432Z</lastmod>
+    <lastmod>2023-01-12T09:37:00.331Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1125.xml</loc>
-    <lastmod>2022-02-12T15:36:00.156Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.263Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1134.xml</loc>
-    <lastmod>2022-02-13T19:08:07.951Z</lastmod>
+    <lastmod>2023-01-12T09:30:00.453Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1129.xml</loc>
-    <lastmod>2022-08-11T02:28:01.256Z</lastmod>
+    <lastmod>2023-01-12T09:30:00.243Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1133.xml</loc>
-    <lastmod>2022-02-12T13:56:12.518Z</lastmod>
+    <lastmod>2023-01-12T09:30:00.320Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1132.xml</loc>
-    <lastmod>2022-02-12T13:56:14.326Z</lastmod>
+    <lastmod>2023-01-12T09:30:00.408Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1131.xml</loc>
-    <lastmod>2022-02-09T04:32:00.534Z</lastmod>
+    <lastmod>2023-01-12T09:31:00.195Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1130.xml</loc>
-    <lastmod>2022-02-12T13:56:12.490Z</lastmod>
+    <lastmod>2023-01-12T09:29:00.482Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1128.xml</loc>
-    <lastmod>2022-02-13T19:06:18.698Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.309Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1137.xml</loc>
-    <lastmod>2022-02-12T13:56:13.193Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.172Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1136.xml</loc>
-    <lastmod>2022-02-13T19:03:07.202Z</lastmod>
+    <lastmod>2023-01-12T09:31:00.117Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1135.xml</loc>
-    <lastmod>2022-02-13T19:07:10.422Z</lastmod>
+    <lastmod>2023-01-12T09:37:00.496Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1141.xml</loc>
-    <lastmod>2022-02-13T19:04:05.892Z</lastmod>
+    <lastmod>2023-01-12T09:37:00.390Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1139.xml</loc>
-    <lastmod>2022-02-13T19:04:10.858Z</lastmod>
+    <lastmod>2023-01-12T09:29:00.399Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1138.xml</loc>
-    <lastmod>2022-02-12T13:56:13.991Z</lastmod>
+    <lastmod>2023-01-12T09:35:00.194Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1140.xml</loc>
-    <lastmod>2022-02-12T13:56:13.743Z</lastmod>
+    <lastmod>2023-01-12T09:35:00.438Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1146.xml</loc>
-    <lastmod>2022-02-12T13:56:14.049Z</lastmod>
+    <lastmod>2023-01-12T09:32:00.260Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1147.xml</loc>
-    <lastmod>2022-02-12T13:57:24.672Z</lastmod>
+    <lastmod>2023-01-12T09:31:00.246Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1143.xml</loc>
-    <lastmod>2022-02-13T19:02:14.891Z</lastmod>
+    <lastmod>2023-01-12T09:34:00.818Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1145.xml</loc>
-    <lastmod>2022-08-11T02:59:00.775Z</lastmod>
+    <lastmod>2023-01-12T08:03:00.323Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1144.xml</loc>
-    <lastmod>2022-02-12T13:56:14.354Z</lastmod>
+    <lastmod>2023-01-12T09:32:00.349Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1142.xml</loc>
-    <lastmod>2022-02-12T13:56:14.187Z</lastmod>
+    <lastmod>2023-01-12T09:35:00.083Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1012.xml</loc>
-    <lastmod>2022-02-13T19:05:38.608Z</lastmod>
+    <lastmod>2023-01-12T08:05:00.324Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1151.xml</loc>
-    <lastmod>2022-02-12T13:56:14.020Z</lastmod>
+    <lastmod>2023-01-12T09:29:00.357Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1149.xml</loc>
-    <lastmod>2022-02-12T15:21:00.908Z</lastmod>
+    <lastmod>2023-01-12T09:34:00.770Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1148.xml</loc>
-    <lastmod>2022-02-09T02:25:02.568Z</lastmod>
+    <lastmod>2023-01-12T09:29:00.307Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1150.xml</loc>
-    <lastmod>2022-02-12T13:56:14.633Z</lastmod>
+    <lastmod>2023-01-12T09:32:00.307Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1154.xml</loc>
-    <lastmod>2022-08-11T01:51:00.511Z</lastmod>
+    <lastmod>2023-01-12T08:31:00.967Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1152.xml</loc>
-    <lastmod>2022-02-09T01:11:01.653Z</lastmod>
+    <lastmod>2023-01-12T09:29:00.439Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1153.xml</loc>
-    <lastmod>2022-08-11T01:05:01.645Z</lastmod>
+    <lastmod>2023-01-12T08:34:00.393Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1155.xml</loc>
-    <lastmod>2022-02-13T19:00:29.697Z</lastmod>
+    <lastmod>2023-01-12T09:30:00.364Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1158.xml</loc>
-    <lastmod>2022-02-12T13:56:14.604Z</lastmod>
+    <lastmod>2023-01-12T09:30:00.631Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1157.xml</loc>
-    <lastmod>2022-02-13T19:03:22.324Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.448Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1156.xml</loc>
-    <lastmod>2022-02-12T13:56:13.715Z</lastmod>
+    <lastmod>2023-01-12T09:31:00.304Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1159.xml</loc>
-    <lastmod>2022-02-12T13:56:13.362Z</lastmod>
+    <lastmod>2023-01-12T09:34:00.626Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1163.xml</loc>
-    <lastmod>2022-02-13T19:07:10.559Z</lastmod>
+    <lastmod>2023-01-12T09:28:00.976Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1162.xml</loc>
-    <lastmod>2022-02-13T19:03:14.927Z</lastmod>
+    <lastmod>2023-01-12T09:28:01.067Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1160.xml</loc>
-    <lastmod>2022-02-09T04:44:00.612Z</lastmod>
+    <lastmod>2023-01-12T09:36:00.494Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1161.xml</loc>
-    <lastmod>2022-08-11T01:49:00.324Z</lastmod>
+    <lastmod>2023-01-12T09:30:00.589Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1172.xml</loc>
-    <lastmod>2022-02-12T14:21:00.528Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.521Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1171.xml</loc>
-    <lastmod>2022-02-13T19:02:32.556Z</lastmod>
+    <lastmod>2023-01-12T08:31:01.016Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1167.xml</loc>
-    <lastmod>2022-02-13T19:05:35.938Z</lastmod>
+    <lastmod>2023-01-12T08:32:00.115Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1165.xml</loc>
-    <lastmod>2022-02-12T13:56:15.369Z</lastmod>
+    <lastmod>2023-01-12T08:32:00.411Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1166.xml</loc>
-    <lastmod>2022-02-12T13:56:14.876Z</lastmod>
+    <lastmod>2023-01-12T08:30:01.328Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1164.xml</loc>
-    <lastmod>2022-08-11T01:44:00.741Z</lastmod>
+    <lastmod>2023-01-12T08:31:00.528Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1173.xml</loc>
-    <lastmod>2022-02-12T13:56:15.398Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.477Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1174.xml</loc>
-    <lastmod>2022-02-12T17:11:00.441Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.606Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1169.xml</loc>
-    <lastmod>2022-02-09T00:40:03.603Z</lastmod>
+    <lastmod>2023-01-12T08:31:00.424Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1170.xml</loc>
-    <lastmod>2022-02-13T19:07:21.788Z</lastmod>
+    <lastmod>2023-01-12T08:30:02.281Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1168.xml</loc>
-    <lastmod>2022-02-12T13:56:14.904Z</lastmod>
+    <lastmod>2023-01-12T08:31:01.077Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1180.xml</loc>
-    <lastmod>2022-02-12T14:14:00.601Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.564Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1177.xml</loc>
-    <lastmod>2022-02-12T13:56:18.430Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.645Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1175.xml</loc>
-    <lastmod>2022-02-09T02:16:00.885Z</lastmod>
+    <lastmod>2023-01-12T08:30:01.557Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1176.xml</loc>
-    <lastmod>2022-02-13T19:00:46.551Z</lastmod>
+    <lastmod>2023-01-12T08:30:00.982Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1178.xml</loc>
-    <lastmod>2022-02-09T00:26:01.823Z</lastmod>
+    <lastmod>2023-01-12T08:31:00.587Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1179.xml</loc>
-    <lastmod>2022-02-13T18:59:24.419Z</lastmod>
+    <lastmod>2023-01-12T08:31:00.470Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1181.xml</loc>
-    <lastmod>2022-02-09T01:07:01.645Z</lastmod>
+    <lastmod>2023-01-12T07:14:00.520Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1182.xml</loc>
-    <lastmod>2022-02-12T13:56:17.613Z</lastmod>
+    <lastmod>2023-01-12T08:34:01.010Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1018.xml</loc>
-    <lastmod>2022-02-12T13:55:12.115Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.401Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1045.xml</loc>
-    <lastmod>2022-02-13T19:07:17.689Z</lastmod>
+    <lastmod>2023-01-12T11:40:00.751Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1091.xml</loc>
-    <lastmod>2022-02-12T13:55:24.081Z</lastmod>
+    <lastmod>2023-01-12T10:49:00.204Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1185.xml</loc>
-    <lastmod>2022-02-12T13:56:17.584Z</lastmod>
+    <lastmod>2023-01-12T08:34:01.896Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1187.xml</loc>
-    <lastmod>2022-02-12T13:56:19.027Z</lastmod>
+    <lastmod>2023-01-12T08:26:01.267Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1183.xml</loc>
-    <lastmod>2022-02-13T18:59:17.369Z</lastmod>
+    <lastmod>2023-01-12T08:33:00.224Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1188.xml</loc>
-    <lastmod>2022-02-13T19:04:19.255Z</lastmod>
+    <lastmod>2023-01-12T08:30:02.027Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1186.xml</loc>
-    <lastmod>2022-02-13T18:59:21.811Z</lastmod>
+    <lastmod>2023-01-12T08:31:00.375Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1184.xml</loc>
-    <lastmod>2022-08-11T01:32:00.405Z</lastmod>
+    <lastmod>2023-01-12T08:32:00.578Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1189.xml</loc>
-    <lastmod>2022-02-09T04:38:00.317Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.430Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1190.xml</loc>
-    <lastmod>2022-02-12T13:56:18.998Z</lastmod>
+    <lastmod>2023-01-12T08:30:01.669Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1020.xml</loc>
-    <lastmod>2022-02-13T19:08:04.511Z</lastmod>
+    <lastmod>2023-01-12T12:56:01.940Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1035.xml</loc>
-    <lastmod>2022-02-13T19:07:06.777Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.284Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -7023,529 +7023,529 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1193.xml</loc>
-    <lastmod>2022-02-09T02:42:01.914Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.385Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1197.xml</loc>
-    <lastmod>2022-02-12T13:56:19.599Z</lastmod>
+    <lastmod>2023-01-12T08:26:01.310Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1194.xml</loc>
-    <lastmod>2022-02-13T19:02:28.187Z</lastmod>
+    <lastmod>2023-01-12T08:28:00.358Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1195.xml</loc>
-    <lastmod>2022-02-12T13:58:04.567Z</lastmod>
+    <lastmod>2023-01-12T08:30:01.800Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1191.xml</loc>
-    <lastmod>2022-02-12T13:56:19.844Z</lastmod>
+    <lastmod>2023-01-12T08:30:00.803Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1192.xml</loc>
-    <lastmod>2022-02-13T19:09:33.352Z</lastmod>
+    <lastmod>2023-01-12T08:28:00.211Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1196.xml</loc>
-    <lastmod>2022-02-13T19:00:31.780Z</lastmod>
+    <lastmod>2023-01-12T08:30:02.141Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1092.xml</loc>
-    <lastmod>2022-08-11T01:24:00.218Z</lastmod>
+    <lastmod>2023-01-12T10:50:01.135Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1199.xml</loc>
-    <lastmod>2022-02-13T19:10:03.526Z</lastmod>
+    <lastmod>2023-01-12T08:27:01.101Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1198.xml</loc>
-    <lastmod>2022-02-12T13:56:21.848Z</lastmod>
+    <lastmod>2023-01-12T08:27:00.446Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1202.xml</loc>
-    <lastmod>2022-02-12T17:40:00.897Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.342Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1203.xml</loc>
-    <lastmod>2022-02-12T13:56:25.786Z</lastmod>
+    <lastmod>2023-01-12T08:28:00.314Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1201.xml</loc>
-    <lastmod>2022-02-12T13:56:26.788Z</lastmod>
+    <lastmod>2023-01-12T08:26:01.148Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1200.xml</loc>
-    <lastmod>2022-02-13T19:08:17.299Z</lastmod>
+    <lastmod>2023-01-12T08:27:00.281Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1204.xml</loc>
-    <lastmod>2022-02-13T19:01:13.087Z</lastmod>
+    <lastmod>2023-01-12T08:30:01.437Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1205.xml</loc>
-    <lastmod>2022-02-12T13:56:24.185Z</lastmod>
+    <lastmod>2023-01-12T08:30:01.922Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1206.xml</loc>
-    <lastmod>2022-02-13T19:03:05.272Z</lastmod>
+    <lastmod>2023-01-12T08:27:01.156Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1207.xml</loc>
-    <lastmod>2022-02-13T19:05:36.210Z</lastmod>
+    <lastmod>2023-01-12T08:28:00.270Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1208.xml</loc>
-    <lastmod>2022-02-12T13:56:28.451Z</lastmod>
+    <lastmod>2023-01-12T08:29:00.184Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1209.xml</loc>
-    <lastmod>2022-02-12T13:56:24.648Z</lastmod>
+    <lastmod>2023-01-12T08:28:00.403Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1211.xml</loc>
-    <lastmod>2022-02-09T04:23:01.704Z</lastmod>
+    <lastmod>2023-01-12T08:03:01.072Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1210.xml</loc>
-    <lastmod>2022-08-11T01:21:00.611Z</lastmod>
+    <lastmod>2023-01-12T08:04:00.681Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1036.xml</loc>
-    <lastmod>2022-02-12T13:55:12.515Z</lastmod>
+    <lastmod>2023-01-12T11:37:00.611Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1051.xml</loc>
-    <lastmod>2022-02-12T13:55:12.893Z</lastmod>
+    <lastmod>2023-01-12T11:35:01.959Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1218.xml</loc>
-    <lastmod>2022-02-12T13:57:04.314Z</lastmod>
+    <lastmod>2023-01-12T08:02:00.251Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1214.xml</loc>
-    <lastmod>2022-02-12T13:56:36.034Z</lastmod>
+    <lastmod>2023-01-12T08:02:00.475Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1213.xml</loc>
-    <lastmod>2022-02-12T13:57:04.156Z</lastmod>
+    <lastmod>2023-01-12T08:01:00.912Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1219.xml</loc>
-    <lastmod>2022-02-12T13:57:04.021Z</lastmod>
+    <lastmod>2023-01-12T08:02:00.433Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1216.xml</loc>
-    <lastmod>2022-02-12T13:56:35.783Z</lastmod>
+    <lastmod>2023-01-12T08:01:00.955Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1215.xml</loc>
-    <lastmod>2022-02-12T13:56:35.754Z</lastmod>
+    <lastmod>2023-01-12T08:04:00.634Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1217.xml</loc>
-    <lastmod>2022-02-12T16:31:01.231Z</lastmod>
+    <lastmod>2023-01-12T08:03:01.496Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1212.xml</loc>
-    <lastmod>2022-02-12T13:57:03.118Z</lastmod>
+    <lastmod>2023-01-12T08:02:00.298Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1223.xml</loc>
-    <lastmod>2022-02-13T19:02:19.177Z</lastmod>
+    <lastmod>2023-01-12T08:03:01.441Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1221.xml</loc>
-    <lastmod>2022-02-12T13:57:04.998Z</lastmod>
+    <lastmod>2023-01-12T08:00:03.006Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1222.xml</loc>
-    <lastmod>2022-02-12T13:57:22.475Z</lastmod>
+    <lastmod>2023-01-12T08:03:01.116Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1220.xml</loc>
-    <lastmod>2022-02-12T15:47:00.872Z</lastmod>
+    <lastmod>2023-01-12T08:01:00.442Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1032.xml</loc>
-    <lastmod>2022-08-11T01:48:00.756Z</lastmod>
+    <lastmod>2023-01-12T12:59:01.026Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1225.xml</loc>
-    <lastmod>2022-02-13T19:04:07.676Z</lastmod>
+    <lastmod>2023-01-12T08:02:00.204Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1226.xml</loc>
-    <lastmod>2022-02-12T13:57:05.747Z</lastmod>
+    <lastmod>2023-01-12T08:03:01.275Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1224.xml</loc>
-    <lastmod>2022-08-11T01:09:01.730Z</lastmod>
+    <lastmod>2023-01-12T08:01:00.525Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1227.xml</loc>
-    <lastmod>2022-02-13T19:00:36.526Z</lastmod>
+    <lastmod>2023-01-12T08:02:00.390Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1231.xml</loc>
-    <lastmod>2022-02-13T19:03:15.067Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.678Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1230.xml</loc>
-    <lastmod>2022-02-12T13:57:05.949Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.488Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1232.xml</loc>
-    <lastmod>2022-02-12T13:57:05.892Z</lastmod>
+    <lastmod>2023-01-12T08:00:00.672Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1229.xml</loc>
-    <lastmod>2022-02-12T15:52:00.886Z</lastmod>
+    <lastmod>2023-01-12T08:01:00.867Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1228.xml</loc>
-    <lastmod>2022-02-12T13:57:07.365Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.636Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1233.xml</loc>
-    <lastmod>2022-02-12T13:57:07.989Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.399Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1235.xml</loc>
-    <lastmod>2022-02-09T01:14:00.506Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.441Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1234.xml</loc>
-    <lastmod>2022-02-12T13:57:05.920Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.613Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1239.xml</loc>
-    <lastmod>2022-02-12T13:57:07.606Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.509Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1240.xml</loc>
-    <lastmod>2022-02-12T13:57:07.228Z</lastmod>
+    <lastmod>2023-01-12T08:00:02.612Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1236.xml</loc>
-    <lastmod>2022-02-12T13:57:09.057Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.594Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1238.xml</loc>
-    <lastmod>2022-02-09T00:36:00.418Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.652Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1237.xml</loc>
-    <lastmod>2022-02-12T13:57:08.018Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.157Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1241.xml</loc>
-    <lastmod>2022-02-12T17:18:00.280Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.696Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1242.xml</loc>
-    <lastmod>2022-02-12T13:57:06.549Z</lastmod>
+    <lastmod>2023-01-12T07:59:00.353Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1243.xml</loc>
-    <lastmod>2022-02-09T02:49:01.112Z</lastmod>
+    <lastmod>2023-01-12T07:58:00.381Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1246.xml</loc>
-    <lastmod>2022-02-12T13:57:10.476Z</lastmod>
+    <lastmod>2023-01-12T07:12:00.218Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1245.xml</loc>
-    <lastmod>2022-02-09T00:45:01.973Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.619Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1244.xml</loc>
-    <lastmod>2022-08-11T01:48:01.336Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.663Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1247.xml</loc>
-    <lastmod>2022-02-12T13:57:09.812Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.751Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1249.xml</loc>
-    <lastmod>2022-02-12T15:10:01.111Z</lastmod>
+    <lastmod>2023-01-12T07:12:00.124Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1248.xml</loc>
-    <lastmod>2022-02-12T13:57:10.337Z</lastmod>
+    <lastmod>2023-01-12T07:12:00.315Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1250.xml</loc>
-    <lastmod>2022-02-09T01:21:02.197Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.500Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1251.xml</loc>
-    <lastmod>2022-02-12T13:57:09.677Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.456Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1252.xml</loc>
-    <lastmod>2022-02-13T19:00:31.751Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.578Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1253.xml</loc>
-    <lastmod>2022-08-11T03:00:00.150Z</lastmod>
+    <lastmod>2023-01-12T07:14:00.587Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1255.xml</loc>
-    <lastmod>2022-02-12T13:58:06.229Z</lastmod>
+    <lastmod>2023-01-12T07:11:00.283Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1254.xml</loc>
-    <lastmod>2022-02-13T19:09:27.035Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.711Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1258.xml</loc>
-    <lastmod>2022-02-09T00:36:00.449Z</lastmod>
+    <lastmod>2023-01-12T07:12:00.410Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1259.xml</loc>
-    <lastmod>2022-02-12T13:57:13.536Z</lastmod>
+    <lastmod>2023-01-12T07:11:00.386Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1256.xml</loc>
-    <lastmod>2022-02-12T13:57:12.690Z</lastmod>
+    <lastmod>2023-01-12T07:12:00.361Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1257.xml</loc>
-    <lastmod>2022-02-12T13:58:31.276Z</lastmod>
+    <lastmod>2023-01-12T07:11:00.332Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1260.xml</loc>
-    <lastmod>2022-02-13T19:09:22.571Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.247Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1261.xml</loc>
-    <lastmod>2022-02-12T13:57:13.288Z</lastmod>
+    <lastmod>2023-01-12T07:10:00.220Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1262.xml</loc>
-    <lastmod>2022-02-13T19:01:18.221Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.417Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1265.xml</loc>
-    <lastmod>2022-03-03T16:52:00.017Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.794Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1264.xml</loc>
-    <lastmod>2022-02-12T13:57:12.078Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.331Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1263.xml</loc>
-    <lastmod>2022-02-12T13:57:11.726Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.541Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1039.xml</loc>
-    <lastmod>2022-02-12T13:55:12.145Z</lastmod>
+    <lastmod>2023-01-12T11:40:01.076Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1266.xml</loc>
-    <lastmod>2022-02-13T19:08:26.520Z</lastmod>
+    <lastmod>2023-01-12T07:13:00.375Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1267.xml</loc>
-    <lastmod>2022-02-09T02:42:02.298Z</lastmod>
+    <lastmod>2023-01-12T07:09:00.481Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1269.xml</loc>
-    <lastmod>2022-02-12T13:57:14.109Z</lastmod>
+    <lastmod>2023-01-12T07:08:01.346Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1268.xml</loc>
-    <lastmod>2022-02-12T13:57:15.930Z</lastmod>
+    <lastmod>2023-01-12T07:09:00.695Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1270.xml</loc>
-    <lastmod>2022-02-12T17:31:00.404Z</lastmod>
+    <lastmod>2023-01-12T07:08:01.488Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1271.xml</loc>
-    <lastmod>2022-08-11T03:03:00.541Z</lastmod>
+    <lastmod>2023-01-12T07:08:01.431Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1272.xml</loc>
-    <lastmod>2022-02-09T01:59:00.327Z</lastmod>
+    <lastmod>2023-01-12T07:09:00.268Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1273.xml</loc>
-    <lastmod>2022-02-13T19:00:44.883Z</lastmod>
+    <lastmod>2023-01-12T07:09:00.744Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -7563,55 +7563,55 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1021.xml</loc>
-    <lastmod>2022-02-12T13:57:27.335Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.624Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1058.xml</loc>
-    <lastmod>2022-02-13T19:03:29.274Z</lastmod>
+    <lastmod>2023-01-12T11:35:01.415Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1038.xml</loc>
-    <lastmod>2022-02-09T05:07:01.599Z</lastmod>
+    <lastmod>2023-01-12T11:40:00.451Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1019.xml</loc>
-    <lastmod>2022-08-11T01:59:00.522Z</lastmod>
+    <lastmod>2023-01-12T12:57:02.506Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1014.xml</loc>
-    <lastmod>2022-02-09T03:03:06.988Z</lastmod>
+    <lastmod>2023-01-12T12:57:02.092Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1010.xml</loc>
-    <lastmod>2022-02-09T02:59:03.404Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.445Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1009.xml</loc>
-    <lastmod>2022-02-12T13:55:12.188Z</lastmod>
+    <lastmod>2023-01-12T12:56:01.884Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1027.xml</loc>
-    <lastmod>2022-02-12T13:55:11.934Z</lastmod>
+    <lastmod>2023-01-12T12:56:01.835Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1055.xml</loc>
-    <lastmod>2022-02-13T18:59:29.614Z</lastmod>
+    <lastmod>2023-01-12T11:34:01.068Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -7623,19 +7623,19 @@
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1026.xml</loc>
-    <lastmod>2022-02-12T13:55:12.276Z</lastmod>
+    <lastmod>2023-01-12T12:59:01.070Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1015.xml</loc>
-    <lastmod>2022-02-13T19:06:18.245Z</lastmod>
+    <lastmod>2023-01-12T12:56:02.135Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/116/hres/BILLSTATUS-116hres1031.xml</loc>
-    <lastmod>2022-02-12T14:45:00.590Z</lastmod>
+    <lastmod>2023-01-12T12:58:01.581Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>

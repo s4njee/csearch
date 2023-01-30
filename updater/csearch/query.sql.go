@@ -30,7 +30,7 @@ type InsertBillParams struct {
 	Actions       pqtype.NullRawMessage
 	Sponsors      pqtype.NullRawMessage
 	Cosponsors    pqtype.NullRawMessage
-	Statusat      sql.NullString
+	Statusat      string
 	Shorttitle    sql.NullString
 	Officialtitle sql.NullString
 }
@@ -49,6 +49,63 @@ func (q *Queries) InsertBill(ctx context.Context, arg InsertBillParams) error {
 		arg.Statusat,
 		arg.Shorttitle,
 		arg.Officialtitle,
+	)
+	return err
+}
+
+const insertVote = `-- name: InsertVote :exec
+INSERT INTO votes (
+    bill,
+    congress,
+    votenumber,
+    votedate,
+    question,
+    result,
+    yea,
+    nay,
+    present,
+    notvoting,
+    chamber,
+    source_url,
+    votetype,
+    voteid) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+         ) ON CONFLICT DO NOTHING
+`
+
+type InsertVoteParams struct {
+	Bill       pqtype.NullRawMessage
+	Congress   sql.NullString
+	Votenumber sql.NullString
+	Votedate   sql.NullString
+	Question   sql.NullString
+	Result     sql.NullString
+	Yea        pqtype.NullRawMessage
+	Nay        pqtype.NullRawMessage
+	Present    pqtype.NullRawMessage
+	Notvoting  pqtype.NullRawMessage
+	Chamber    sql.NullString
+	SourceUrl  sql.NullString
+	Votetype   sql.NullString
+	Voteid     string
+}
+
+func (q *Queries) InsertVote(ctx context.Context, arg InsertVoteParams) error {
+	_, err := q.db.ExecContext(ctx, insertVote,
+		arg.Bill,
+		arg.Congress,
+		arg.Votenumber,
+		arg.Votedate,
+		arg.Question,
+		arg.Result,
+		arg.Yea,
+		arg.Nay,
+		arg.Present,
+		arg.Notvoting,
+		arg.Chamber,
+		arg.SourceUrl,
+		arg.Votetype,
+		arg.Voteid,
 	)
 	return err
 }

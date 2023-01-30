@@ -1,9 +1,9 @@
 package main
 
 import (
+	"app/csearch/csearch"
 	"bufio"
 	"context"
-	"app/csearch/csearch"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/gob"
@@ -11,9 +11,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgtype"
-	"github.com/jackc/pgx/v4"
-	_ "github.com/lib/pq"
 	"io"
 	"io/ioutil"
 	"log"
@@ -23,6 +20,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v4"
+	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 )
 
@@ -569,37 +570,8 @@ func main() {
 			fmt.Printf("Processing Congress %d; Type: %s, Number of Bills: %d \n", i, table, len(files))
 			for z, f := range files {
 				path := fmt.Sprintf(congressdir+"data/%s/bills/%s/", strconv.Itoa(i), table) + f.Name()
-				var xmlcheck = path + "/fdsys_billstatus.xml"
-				if _, err := os.Stat(xmlcheck); err == nil {
-					go func(z int) {
-						f, err := os.Open(xmlcheck)
-						if err != nil {
-							log.Fatal(err)
-						}
-						fileHash := sha256.New()
-						if _, err := io.Copy(fileHash, f); err != nil {
-							log.Fatal(err)
-						}
-						var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
-						f.Close()
-
-						fileHashesMutex.Lock()
-						hash := fileHashes[xmlcheck]
-						fileHashesMutex.Unlock()
-						if hash != fileHashString {
-							fileHashesMutex.Lock()
-							fileHashes[xmlcheck] = fileHashString
-							fileHashesMutex.Unlock()
-							sem <- struct{}{}
-							// mutex.Lock()
-							bills[z] = parse_bill_xml(xmlcheck, i)
-							//res2B, _ := json.Marshal(bills[z])
-							//println(res2B)
-							defer func() { <-sem }()
-							defer wg.Done()
-						}
-					}(z)
-				} else if errors.Is(err, os.ErrNotExist) {
+				var jsoncheck = path + "/data.json"
+				if _, err := os.Stat(jsoncheck); err == nil {
 					path += "/data.json"
 
 					go func(z int) {
@@ -626,6 +598,37 @@ func main() {
 							var bjs = parse_bill(path)
 							// mutex.Lock()
 							bills[z] = bjs
+							defer func() { <-sem }()
+							defer wg.Done()
+						}
+					}(z)
+					
+				} else if errors.Is(err, os.ErrNotExist) {
+					go func(z int) {
+						xmlcheck := path + "/fdsys_billstatus.xml"
+						f, err := os.Open(xmlcheck)
+						if err != nil {
+							log.Fatal(err)
+						}
+						fileHash := sha256.New()
+						if _, err := io.Copy(fileHash, f); err != nil {
+							log.Fatal(err)
+						}
+						var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
+						f.Close()
+
+						fileHashesMutex.Lock()
+						hash := fileHashes[xmlcheck]
+						fileHashesMutex.Unlock()
+						if hash != fileHashString {
+							fileHashesMutex.Lock()
+							fileHashes[xmlcheck] = fileHashString
+							fileHashesMutex.Unlock()
+							sem <- struct{}{}
+							// mutex.Lock()
+							bills[z] = parse_bill_xml(xmlcheck, i)
+							//res2B, _ := json.Marshal(bills[z])
+							//println(res2B)
 							defer func() { <-sem }()
 							defer wg.Done()
 						}
@@ -684,6 +687,23 @@ func update_bills() {
 
 	// Latest bills only (if above fails)
 	cmd = exec.Command(congressdir+ "congress/run.py", "govinfo", "--bulkdata=BILLSTATUS", "--congress=118")
+	stdout, err = cmd.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
+	stderr, err = cmd.StderrPipe()
+	if err != nil {
+		panic(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+	go copyOutput(stdout)
+	go copyOutput(stderr)
+	cmd.Wait()
+
+	cmd = exec.Command(congressdir+ "congress/run.py", "bills")
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		panic(err)
