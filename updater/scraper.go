@@ -11,9 +11,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	_ "github.com/lib/pq"
-	"github.com/spf13/viper"
-	"github.com/tabbed/pqtype"
 	"io"
 	"io/ioutil"
 	"log"
@@ -24,6 +21,9 @@ import (
 	"strings"
 	"sync"
 
+	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
+	"github.com/tabbed/pqtype"
 )
 
 var Tables = [8]string{"s", "hr", "hconres", "hjres", "hres", "sconres", "sjres", "sres"}
@@ -87,6 +87,7 @@ type BillXML struct {
 	Number       string        `xml:"billNumber"`
 	BillType     string        `xml:"billType"`
 	IntroducedAt string        `xml:"introducedDate"`
+	UpdateDate   string			`xml:"updateDate"`
 	Congress     string        `xml:"congress"`
 	Summary      XMLSummaries  `xml:"summaries"`
 	Actions      ActionsXML    `xml:"actions"`
@@ -270,7 +271,7 @@ func parse_bill(path string) csearch.InsertBillParams {
 		Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
 		Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
 		Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
-		Statusat:      sql.NullString{String: billjs.StatusAt, Valid: true},
+		Statusat:      billjs.StatusAt,
 		Shorttitle:    sql.NullString{String: billjs.ShortTitle, Valid: true},
 		Officialtitle: sql.NullString{String: billjs.OfficialTitle, Valid: true},
 	}
@@ -392,7 +393,7 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 			Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
 			Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
 			Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
-			Statusat:      sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
+			Statusat:      billxml.BillXML.IntroducedAt,
 			Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 			Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true}}
 		if billxml.BillXML.BillType == "" {
@@ -501,7 +502,7 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 			Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
 			Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
 			Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
-			Statusat:      sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
+			Statusat:      billxml.BillXML.IntroducedAt,
 			Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 			Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
 		}
@@ -528,8 +529,8 @@ func main() {
 	postgresURI := viper.GetString("POSTGRESURI")
 	fileHashes := make(map[string]string)
 	fileHashesMutex := sync.RWMutex{}
-	fileHashesPath := congressdir+"./fileHashes.gob"
-
+	fileHashesPath := congressdir + "./fileHashes.gob"
+	processVotes()
 	if _, err := os.Stat(fileHashesPath); err == nil {
 		decodeFile, err := os.Open(fileHashesPath)
 		if err != nil {
@@ -600,7 +601,7 @@ func main() {
 							fileHashesMutex.Unlock()
 							sem <- struct{}{}
 							// mutex.Lock()
-							bills[z] = parse_bill_xml(xmlcheck, i)
+							bills = append(bills, parse_bill_xml(xmlcheck, i))
 							//res2B, _ := json.Marshal(bills[z])
 							//println(res2B)
 
@@ -633,8 +634,7 @@ func main() {
 							sem <- struct{}{}
 							var bjs = parse_bill(path)
 							// mutex.Lock()
-							bills[z] = bjs
-
+							bills = append(bills, bjs)
 						}
 						defer func() { <-sem }()
 						defer wg.Done()
@@ -658,6 +658,19 @@ func main() {
 		}
 
 	}
+	encodeFile, err := os.Create(fileHashesPath)
+	if err != nil {
+		panic(err)
+	}
+
+	// Since this is a binary format large parts of it will be unreadable
+	encoder := gob.NewEncoder(encodeFile)
+
+	// Write to the file
+	if err := encoder.Encode(fileHashes); err != nil {
+		panic(err)
+	}
+	encodeFile.Close()
 	close(sem)
 	if err != nil {
 		panic(err)
@@ -668,6 +681,7 @@ func updateBills() {
 	var congressdir = viper.GetString("CONGRESSDIR")
 	os.Chdir(congressdir)
 	// Update Congress Bills
+	
 	cmd := exec.Command(congressdir+"congress/run.py", "govinfo", "--bulkdata=BILLSTATUS")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -687,6 +701,23 @@ func updateBills() {
 
 	// Latest bills only (if above fails)
 	cmd = exec.Command("./congress/run.py", "govinfo", "--bulkdata=BILLSTATUS", "--congress=118")
+	stdout, err = cmd.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
+	stderr, err = cmd.StderrPipe()
+	if err != nil {
+		panic(err)
+	}
+	err = cmd.Start()
+	if err != nil {
+		panic(err)
+	}
+	go copyOutput(stdout)
+	go copyOutput(stderr)
+	cmd.Wait()
+
+	cmd = exec.Command("./congress/run.py", "bills")
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		panic(err)

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LOCKSS system has permission to collect, preserve, and serve this Archival Unit -->
+
+<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">  <url>
+    <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/118/sconres/BILLSTATUS-118sconres1.xml</loc>
+    <lastmod>2023-01-29T17:32:00.631Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.govinfo.gov/bulkdata/BILLSTATUS/118/sconres/BILLSTATUS-118sconres2.xml</loc>
+    <lastmod>2023-01-29T17:42:00.390Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
