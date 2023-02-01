@@ -10894,6 +10894,7 @@ CREATE TABLE votes(
     votedate text,
     question text,
     result text,
+    votesession text,
     yea jsonb,
     nay jsonb,
     present jsonb,

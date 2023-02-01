@@ -2,7 +2,6 @@ package main
 
 import (
 	"app/csearch/csearch"
-	"bufio"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -577,10 +576,10 @@ func main() {
 			fmt.Printf("Processing Congress %d; Type: %s, Number of Bills: %d \n", i, table, len(files))
 			for z, f := range files {
 				path := fmt.Sprintf(congressdir+"data/%s/bills/%s/", strconv.Itoa(i), table) + f.Name()
-				var xmlcheck = path + "/fdsys_billstatus.xml"
-				if _, err := os.Stat(xmlcheck); err == nil {
+				var jcheck = path + "/data.json"
+				if _, err := os.Stat(jcheck);err == nil{
 					go func(z int) {
-						f, err := os.Open(xmlcheck)
+						f, err := os.Open(jcheck)
 						if err != nil {
 							log.Fatal(err)
 						}
@@ -592,16 +591,16 @@ func main() {
 						f.Close()
 						// defer mutex.Unlock()
 						fileHashesMutex.Lock()
-						hash := fileHashes[xmlcheck]
+						hash := fileHashes[jcheck]
 						fileHashesMutex.Unlock()
 						if hash != fileHashString {
 							fileHashesMutex.Lock()
-							fileHashes[xmlcheck] = fileHashString
+							fileHashes[jcheck] = fileHashString
 
 							fileHashesMutex.Unlock()
 							sem <- struct{}{}
 							// mutex.Lock()
-							bills = append(bills, parse_bill_xml(xmlcheck, i))
+							bills = append(bills, parse_bill_xml(jcheck, i))
 							//res2B, _ := json.Marshal(bills[z])
 							//println(res2B)
 
@@ -610,7 +609,7 @@ func main() {
 						defer wg.Done()
 					}(z)
 				} else if errors.Is(err, os.ErrNotExist) {
-					path += "/data.json"
+					path += "/fdsys_billstatus.xml"
 
 					go func(z int) {
 						f, err := os.Open(path)
@@ -648,12 +647,12 @@ func main() {
 				//_ = queries.InsertBill(ctx, bills)
 				for _, bill := range bills {
 					_ = queries.InsertBill(ctx, bill)
-					fmt.Printf("Congress %s, BillType %s, Bill %s", bill.Congress, bill.Billtype, bill.Billnumber)
+					// fmt.Printf("Congress %s, BillType %s, Bill %s", bill.Congress, bill.Billtype, bill.Billnumber)
 					if err != nil {
 						panic(err)
 					}
 				}
-				fmt.Printf("Table %s Inserted", table)
+				// fmt.Printf("Table %s Inserted", table)
 			}
 		}
 
@@ -736,9 +735,3 @@ func updateBills() {
 
 }
 
-func copyOutput(r io.Reader) {
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-	}
-}

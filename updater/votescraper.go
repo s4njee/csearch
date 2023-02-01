@@ -2,6 +2,7 @@ package main
 
 import (
 	"app/csearch/csearch"
+	"bufio"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -30,14 +31,15 @@ type VoteJSON struct {
 		Number 		string `json:"number"`
 		Type 		string `json:"type"`
 	}
-	Number    string
+	Number    int	`json:"number"`
 	BillType  string `json:"bill_type"`
 	Date      string
-	Congress  string
+	Congress  int	 `json:"congress"`
 	Question  string
 	Result    string
-	Chamber   string
+	Chamber   string `json:"chamber"`
 	Votedate  string `json:"date"`
+	Session	string `json:"session"`
 	SourceURL string `json:"source_url"`
 	Votetype  string `json:"type"`
 	VoteID    string `json:"vote_id"`
@@ -66,6 +68,18 @@ type VoteJSON struct {
 			Party        string `json:"party"`
 			State        string `json:"state"`
 		} `json:"Yea"`
+		Aye []struct {
+			Display_name string `json:"display_name"`
+			Id           string `json:"id"`
+			Party        string `json:"party"`
+			State        string `json:"state"`
+		} `json:"Aye"`
+		No []struct {
+			Display_name string `json:"display_name"`
+			Id           string `json:"id"`
+			Party        string `json:"party"`
+			State        string `json:"state"`
+		} `json:"No"`
 	}
 }
 
@@ -86,14 +100,29 @@ func parse_vote(path string) csearch.InsertVoteParams {
 	}
 
 	json.Unmarshal(byteValue, &votejs)
-	yeas, err := json.Marshal(votejs.Votes.Yea)
-	if err != nil {
-		panic(err)
+
+	var yeas []byte
+	var nays []byte
+	if len(votejs.Votes.Aye) == 0  && len(votejs.Votes.No) == 0 {
+		yeas, err = json.Marshal(votejs.Votes.Yea)
+		if err != nil {
+			panic(err)
+		}
+		nays, err = json.Marshal(votejs.Votes.Nay)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		yeas, err = json.Marshal(votejs.Votes.Aye)
+		if err != nil {
+			panic(err)
+		}
+		nays, err = json.Marshal(votejs.Votes.No)
+		if err != nil {
+			panic(err)
+		}
 	}
-	nays, err := json.Marshal(votejs.Votes.Nay)
-	if err != nil {
-		panic(err)
-	}
+	
 	presents, err := json.Marshal(votejs.Votes.Present)
 	if err != nil {
 		panic(err)
@@ -106,10 +135,12 @@ func parse_vote(path string) csearch.InsertVoteParams {
 	var vote = csearch.InsertVoteParams{
 		Bill:		pqtype.NullRawMessage{RawMessage: bill, Valid: true},	
 		Voteid:     votejs.VoteID,
-		Votenumber: sql.NullString{String: votejs.Number, Valid: true},
+		Chamber:	sql.NullString{String: votejs.Chamber, Valid: true},
+		Votenumber: sql.NullString{String: strconv.Itoa(votejs.Number), Valid: true},
 		Votetype:   sql.NullString{String: votejs.Votetype, Valid: true},
 		Question:   sql.NullString{String: votejs.Question, Valid: true},
-		Congress:   sql.NullString{String: votejs.Congress, Valid: true},
+		Congress:   sql.NullString{String: strconv.Itoa(votejs.Congress), Valid: true},
+		Votesession:	sql.NullString{String: votejs.Session, Valid:true},
 		Yea:        pqtype.NullRawMessage{RawMessage: yeas, Valid: true},
 		Nay:        pqtype.NullRawMessage{RawMessage: nays, Valid: true},
 		Present:    pqtype.NullRawMessage{RawMessage: presents, Valid: true},
@@ -158,11 +189,11 @@ func processVotes() {
 		println("Hashes Loaded")
 	}
 	// Runs unitedstates/congress run script to update bill xmls
-	//updateVotes()
+	updateVotes()
 
 	ctx := context.Background()
 	//db, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres-service:5432/csearch?sslmode=disable")
-	db, err := sql.Open("postgres", "host="+postgresURI+" user=sanjee dbname=csearch sslmode=disable")
+	db, err := sql.Open("postgres", "host="+postgresURI+" user=postgres password=postgres dbname=csearch sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
@@ -260,8 +291,8 @@ func updateVotes() {
 	var congressdir = viper.GetString("CONGRESSDIR")
 	os.Chdir(congressdir)
 	// Update Congress Bills
-	for i := 101; i <= 118; i++ {
-		cmd := exec.Command(congressdir+"congress/run.py", "votes", "--congress="+strconv.Itoa(i))
+
+		cmd := exec.Command(congressdir+"congress/run.py", "votes", "--congress=118")
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			panic(err)
@@ -277,5 +308,12 @@ func updateVotes() {
 		go copyOutput(stdout)
 		go copyOutput(stderr)
 		cmd.Wait()
+	
+}
+
+func copyOutput(r io.Reader) {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
 	}
 }
