@@ -1322,18 +1322,19 @@ type Bills2028 struct {
 }
 
 type Vote struct {
-	Bill       pqtype.NullRawMessage
-	Congress   sql.NullString
-	Votenumber sql.NullString
-	Votedate   sql.NullString
-	Question   sql.NullString
-	Result     sql.NullString
-	Yea        pqtype.NullRawMessage
-	Nay        pqtype.NullRawMessage
-	Present    pqtype.NullRawMessage
-	Notvoting  pqtype.NullRawMessage
-	Chamber    sql.NullString
-	SourceUrl  sql.NullString
-	Votetype   sql.NullString
-	Voteid     string
+	Bill        pqtype.NullRawMessage
+	Congress    sql.NullString
+	Votenumber  sql.NullString
+	Votedate    sql.NullString
+	Question    sql.NullString
+	Result      sql.NullString
+	Votesession sql.NullString
+	Yea         pqtype.NullRawMessage
+	Nay         pqtype.NullRawMessage
+	Present     pqtype.NullRawMessage
+	Notvoting   pqtype.NullRawMessage
+	Chamber     sql.NullString
+	SourceUrl   sql.NullString
+	Votetype    sql.NullString
+	Voteid      string
 }
