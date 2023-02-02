@@ -10885,3 +10885,27 @@ ALTER INDEX public.bills_statusat_idx ATTACH PARTITION public.bills2028_statusat
 -- PostgreSQL database dump complete
 --
 
+
+
+CREATE TABLE votes(
+    bill jsonb,
+    congress text,
+    votenumber text,
+    votedate text,
+    question text,
+    result text,
+    votesession text,
+    yea jsonb,
+    nay jsonb,
+    present jsonb,
+    notvoting jsonb,
+    chamber text,
+    source_url text,
+    votetype text,
+    voteid text PRIMARY KEY
+);
+
+CREATE INDEX on votes (votedate);
+CREATE INDEX on votes (voteid);
+CREATE INDEX on votes (chamber);
+CREATE INDEX on votes (congress);

@@ -10887,7 +10887,7 @@ ALTER INDEX public.bills_statusat_idx ATTACH PARTITION public.bills2028_statusat
 
 
 
-CREATE TABLE votes(
+CREATE TABLE public.votes(
     bill jsonb,
     congress text,
     votenumber text,
