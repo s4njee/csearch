@@ -548,7 +548,7 @@ func main() {
 		println("Hashes Loaded")
 	}
 	// Runs unitedstates/congress run script to update bill xmls
-	//updateBills()
+	updateBills()
 
 	ctx := context.Background()
 	//db, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres-service:5432/csearch?sslmode=disable")
@@ -596,11 +596,12 @@ func main() {
 						if hash != fileHashString {
 							fileHashesMutex.Lock()
 							fileHashes[jcheck] = fileHashString
-
 							fileHashesMutex.Unlock()
+							var bjs = parse_bill(jcheck)
+							// mutex.Lock()
+							bills = append(bills, bjs)
 							sem <- struct{}{}
 							// mutex.Lock()
-							bills = append(bills, parse_bill_xml(jcheck, i))
 							//res2B, _ := json.Marshal(bills[z])
 							//println(res2B)
 
@@ -630,10 +631,11 @@ func main() {
 							fileHashesMutex.Lock()
 							fileHashes[path] = fileHashString
 							fileHashesMutex.Unlock()
+							bills = append(bills, parse_bill_xml(path, i))
+
 							sem <- struct{}{}
-							var bjs = parse_bill(path)
-							// mutex.Lock()
-							bills = append(bills, bjs)
+
+
 						}
 						defer func() { <-sem }()
 						defer wg.Done()
