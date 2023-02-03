@@ -1,12 +1,13 @@
 FROM ubuntu:lunar
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
-    curl git python3-dev libxml2-dev libxslt1-dev libz-dev python3-pip wget postgresql postgresql-contrib
+    curl git python3-dev libxml2-dev libxslt1-dev libz-dev python3-pip python3-packaging wget postgresql postgresql-contrib
 
 RUN mkdir -p /opt/theunitedstates.io/
 ADD . /opt/theunitedstates.io/congress/
 WORKDIR /opt/theunitedstates.io/congress/
 
+RUN pip3 install --upgrade pip
 RUN pip3 install .
 
 
