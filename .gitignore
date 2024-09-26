@@ -1,2 +1,5 @@
 .DS_STORE
 .idea
+k8s/
+nuxt/
+archiver/
