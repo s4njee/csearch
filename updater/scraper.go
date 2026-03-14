@@ -2,6 +2,7 @@ package main
 
 import (
 	"app/csearch/csearch"
+	"bufio"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -22,12 +23,11 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
-	"github.com/tabbed/pqtype"
 )
 
 var Tables = [8]string{"s", "hr", "hconres", "hjres", "hres", "sconres", "sjres", "sres"}
 
-// var mutex = &sync.Mutex{}
+// ── XML structs ──────────────────────────────────────────────────────────────
 
 type XMLSummaries struct {
 	XMLName          xml.Name         `xml:"summaries"`
@@ -38,93 +38,187 @@ type XMLBillSummaries struct {
 	XMLName      xml.Name               `xml:"billSummaries"`
 	XMLBillItems []XMLBillSummariesItem `xml:"item"`
 }
+
 type XMLBillSummariesItem struct {
 	XMLName xml.Name `xml:"item"`
 	Date    string   `xml:"lastSummaryUpdateDate"`
 	Text    string   `xml:"text"`
 }
-type BillXMLRoot struct {
-	XMLName xml.Name `xml:"billStatus"`
-	BillXML BillXML  `xml:"bill"`
+
+type SourceSystemXML struct {
+	Code string `xml:"code"`
+	Name string `xml:"name"`
 }
-type BillXMLRootnew struct {
-	XMLName xml.Name   `xml:"billStatus"`
-	BillXML BillXMLnew `xml:"bill"`
-}
+
 type ItemXML struct {
-	XMLName xml.Name `xml:"item"`
-	ActedAt string   `xml:"actionDate"`
-	Text    string   `xml:"text"`
-	Type    string   `xml:"type"`
+	XMLName      xml.Name        `xml:"item"`
+	ActedAt      string          `xml:"actionDate"`
+	Text         string          `xml:"text"`
+	Type         string          `xml:"type"`
+	ActionCode   string          `xml:"actionCode"`
+	SourceSystem SourceSystemXML `xml:"sourceSystem"`
 }
+
 type ActionsXML struct {
 	XMLName xml.Name  `xml:"actions"`
 	Actions []ItemXML `xml:"item"`
 }
+
 type SponsorXML struct {
-	XMLName  xml.Name `xml:"item"`
-	FullName string   `xml:"fullName"`
-	State    string   `xml:"state"`
-	Party    string   `xml:"party"`
+	XMLName    xml.Name `xml:"item"`
+	BioguideId string   `xml:"bioguideId"`
+	FullName   string   `xml:"fullName"`
+	State      string   `xml:"state"`
+	Party      string   `xml:"party"`
 }
+
 type SponsorsXML struct {
 	XMLName  xml.Name     `xml:"sponsors"`
 	Sponsors []SponsorXML `xml:"item"`
 }
+
 type CosponsorXML struct {
-	XMLName  xml.Name `xml:"item"`
-	FullName string   `xml:"fullName"`
-	State    string   `xml:"state"`
-	Party    string   `xml:"party"`
+	XMLName             xml.Name `xml:"item"`
+	BioguideId          string   `xml:"bioguideId"`
+	FullName            string   `xml:"fullName"`
+	State               string   `xml:"state"`
+	Party               string   `xml:"party"`
+	SponsorshipDate     string   `xml:"sponsorshipDate"`
+	IsOriginalCosponsor string   `xml:"isOriginalCosponsor"`
 }
+
 type CosponsorsXML struct {
-	XMLName    xml.Name     `xml:"cosponsors"`
-	Cosponsors []SponsorXML `xml:"item"`
+	XMLName    xml.Name       `xml:"cosponsors"`
+	Cosponsors []CosponsorXML `xml:"item"`
 }
+
+type TitleItemXML struct {
+	XMLName   xml.Name `xml:"item"`
+	TitleType string   `xml:"titleType"`
+	Title     string   `xml:"title"`
+}
+
+type TitlesXML struct {
+	XMLName xml.Name       `xml:"titles"`
+	Items   []TitleItemXML `xml:"item"`
+}
+
+type CommitteeItemXML struct {
+	XMLName    xml.Name `xml:"item"`
+	SystemCode string   `xml:"systemCode"`
+	Name       string   `xml:"name"`
+	Chamber    string   `xml:"chamber"`
+}
+
+type BillCommitteesXML struct {
+	XMLName xml.Name           `xml:"billCommittees"`
+	Items   []CommitteeItemXML `xml:"item"`
+}
+
+type CommitteesXML struct {
+	XMLName        xml.Name          `xml:"committees"`
+	BillCommittees BillCommitteesXML `xml:"billCommittees"`
+}
+
+type SubjectItemXML struct {
+	XMLName xml.Name `xml:"item"`
+	Name    string   `xml:"name"`
+}
+
+type LegislativeSubjectsXML struct {
+	XMLName xml.Name         `xml:"legislativeSubjects"`
+	Items   []SubjectItemXML `xml:"item"`
+}
+
+type PolicyAreaXML struct {
+	XMLName xml.Name `xml:"policyArea"`
+	Name    string   `xml:"name"`
+}
+
+type BillSubjectsXML struct {
+	XMLName             xml.Name               `xml:"billSubjects"`
+	LegislativeSubjects LegislativeSubjectsXML `xml:"legislativeSubjects"`
+	PolicyArea          PolicyAreaXML          `xml:"policyArea"`
+}
+
+type SubjectsXML struct {
+	XMLName      xml.Name        `xml:"subjects"`
+	BillSubjects BillSubjectsXML `xml:"billSubjects"`
+}
+
+type LatestActionXML struct {
+	XMLName    xml.Name `xml:"latestAction"`
+	ActionDate string   `xml:"actionDate"`
+	Text       string   `xml:"text"`
+}
+
+// BillXML covers congress < 114 (uses <billNumber>, <billType>)
 type BillXML struct {
-	XMLName      xml.Name      `xml:"bill"`
-	Number       string        `xml:"billNumber"`
-	BillType     string        `xml:"billType"`
-	IntroducedAt string        `xml:"introducedDate"`
-	UpdateDate   string			`xml:"updateDate"`
-	Congress     string        `xml:"congress"`
-	Summary      XMLSummaries  `xml:"summaries"`
-	Actions      ActionsXML    `xml:"actions"`
-	Sponsors     SponsorsXML   `xml:"sponsors"`
-	Cosponsors   CosponsorsXML `xml:"cosponsors"`
-	ShortTitle   string        `xml:"title"`
-	Type         string        `xml:"type"`
+	XMLName       xml.Name        `xml:"bill"`
+	Number        string          `xml:"billNumber"`
+	BillType      string          `xml:"billType"`
+	IntroducedAt  string          `xml:"introducedDate"`
+	UpdateDate    string          `xml:"updateDate"`
+	OriginChamber string          `xml:"originChamber"`
+	Congress      string          `xml:"congress"`
+	Summary       XMLSummaries    `xml:"summaries"`
+	Actions       ActionsXML      `xml:"actions"`
+	Sponsors      SponsorsXML     `xml:"sponsors"`
+	Cosponsors    CosponsorsXML   `xml:"cosponsors"`
+	Titles        TitlesXML       `xml:"titles"`
+	Committees    CommitteesXML   `xml:"committees"`
+	Subjects      SubjectsXML     `xml:"subjects"`
+	LatestAction  LatestActionXML `xml:"latestAction"`
+	ShortTitle    string          `xml:"title"`
 }
+
+// BillXMLnew covers congress >= 114 (uses <number>, <type>)
 type BillXMLnew struct {
-	XMLName      xml.Name      `xml:"bill"`
-	Number       string        `xml:"number"`
-	BillType     string        `xml:"billType"`
-	IntroducedAt string        `xml:"introducedDate"`
-	Congress     string        `xml:"congress"`
-	Summary      XMLSummaries  `xml:"summaries"`
-	Actions      ActionsXML    `xml:"actions"`
-	Sponsors     SponsorsXML   `xml:"sponsors"`
-	Cosponsors   CosponsorsXML `xml:"cosponsors"`
-	ShortTitle   string        `xml:"title"`
-	Type         string        `xml:"type"`
+	XMLName       xml.Name        `xml:"bill"`
+	Number        string          `xml:"number"`
+	BillType      string          `xml:"billType"`
+	Type          string          `xml:"type"`
+	IntroducedAt  string          `xml:"introducedDate"`
+	UpdateDate    string          `xml:"updateDate"`
+	OriginChamber string          `xml:"originChamber"`
+	Congress      string          `xml:"congress"`
+	Summary       XMLSummaries    `xml:"summaries"`
+	Actions       ActionsXML      `xml:"actions"`
+	Sponsors      SponsorsXML     `xml:"sponsors"`
+	Cosponsors    CosponsorsXML   `xml:"cosponsors"`
+	Titles        TitlesXML       `xml:"titles"`
+	Committees    CommitteesXML   `xml:"committees"`
+	Subjects      SubjectsXML     `xml:"subjects"`
+	LatestAction  LatestActionXML `xml:"latestAction"`
+	ShortTitle    string          `xml:"title"`
 }
+
+type BillXMLRoot struct {
+	XMLName xml.Name `xml:"billStatus"`
+	BillXML BillXML  `xml:"bill"`
+}
+
+type BillXMLRootnew struct {
+	XMLName xml.Name   `xml:"billStatus"`
+	BillXML BillXMLnew `xml:"bill"`
+}
+
 type BillXMLNN struct {
 	Number string `xml:"number"`
 }
-type Bill struct {
-	BillID        string
-	Number        string
-	BillType      string `json:"bill_type"`
-	IntroducedAt  string `json:"introduced_at"`
-	Congress      string
-	Summary       []byte
-	Actions       []byte
-	Sponsors      []byte
-	Cosponsors    []byte
-	StatusAt      string `json:"status_at""`
-	ShortTitle    string `json:"short_title"`
-	OfficialTitle string `json:"official_title"`
+
+// ── Parsed result ────────────────────────────────────────────────────────────
+
+// ParsedBill holds the bill row plus all related rows extracted from one XML file.
+type ParsedBill struct {
+	Bill       csearch.InsertBillParams
+	Actions    []csearch.InsertBillActionParams
+	Cosponsors []csearch.InsertBillCosponsorParams
+	Committees []csearch.InsertBillCommitteeParams
+	Subjects   []csearch.InsertBillSubjectParams
 }
+
+// ── Legacy JSON format (data.json) ──────────────────────────────────────────
 
 type BillJSON struct {
 	Number       string
@@ -154,13 +248,30 @@ type BillJSON struct {
 		District string `json:"district,omitempty"`
 		Party    string `json:"party,omitempty"`
 	} `json:"cosponsors,omitempty"`
-
-	StatusAt      string `json:"status_at""`
+	StatusAt      string `json:"status_at"`
 	ShortTitle    string `json:"short_title"`
 	OfficialTitle string `json:"official_title"`
 }
 
-func parse_bill(path string) csearch.InsertBillParams {
+// ── Helper ───────────────────────────────────────────────────────────────────
+
+// officialTitle extracts the official title from the <titles> list.
+func officialTitle(titles TitlesXML) string {
+	for _, t := range titles.Items {
+		if strings.HasPrefix(t.TitleType, "Official Title") {
+			return t.Title
+		}
+	}
+	return ""
+}
+
+func nullStr(s string) sql.NullString {
+	return sql.NullString{String: s, Valid: s != ""}
+}
+
+// ── Parsers ──────────────────────────────────────────────────────────────────
+
+func parse_bill(path string) ParsedBill {
 	jsonFile, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)
@@ -169,121 +280,71 @@ func parse_bill(path string) csearch.InsertBillParams {
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var billjs BillJSON
-
 	json.Unmarshal(byteValue, &billjs)
 
-	var action_structs []struct {
-		ActedAt string
-		Text    string
-		Type    string
-	}
-
-	for _, action := range billjs.Actions {
-		action_structs = append(action_structs, struct {
-			ActedAt string
-			Text    string
-			Type    string
-		}{
-			ActedAt: action.ActedAt,
-			Text:    action.Text,
-			Type:    action.Type,
-		})
-	}
-	var sponsor_structs []struct {
-		Title    string `json:"omitempty"`
-		Name     string
-		State    string
-		District string `json:"omitempty"`
-		Party    string `json:"omitempty"`
-	}
-
-	var Name string
+	var sponsorName string
 	if len(billjs.Sponsor.Title) > 0 {
-		Name = fmt.Sprintf("%s %s [%s]", billjs.Sponsor.Title, billjs.Sponsor.Name, billjs.Sponsor.State)
+		sponsorName = fmt.Sprintf("%s %s [%s]", billjs.Sponsor.Title, billjs.Sponsor.Name, billjs.Sponsor.State)
 	} else {
-		Name = fmt.Sprintf("%s [%s]", billjs.Sponsor.Name, billjs.Sponsor.State)
-	}
-	sponsor_structs = append(sponsor_structs, struct {
-		Title    string `json:"omitempty"`
-		Name     string
-		State    string
-		District string `json:"omitempty"`
-		Party    string `json:"omitempty"`
-	}{
-		Name:  Name,
-		State: billjs.Sponsor.State,
-		Party: billjs.Sponsor.Party,
-	})
-
-	var cosponsor_structs []struct {
-		Title    string `json:"omitempty"`
-		Name     string
-		State    string
-		District string `json:"omitempty"`
-		Party    string `json:"omitempty"`
+		sponsorName = fmt.Sprintf("%s [%s]", billjs.Sponsor.Name, billjs.Sponsor.State)
 	}
 
-	for _, cosponsor := range billjs.Cosponsors {
-		var Name string
-		if len(cosponsor.Title) > 0 {
-			Name = fmt.Sprintf("%s %s [%s]", cosponsor.Title, cosponsor.Name, cosponsor.State)
-		} else {
-			Name = fmt.Sprintf("%s [%s]", cosponsor.Name, cosponsor.State)
-		}
-		cosponsor_structs = append(cosponsor_structs, struct {
-			Title    string `json:"omitempty"`
-			Name     string
-			State    string
-			District string `json:"omitempty"`
-			Party    string `json:"omitempty"`
-		}{
-			Name:  Name,
-			State: cosponsor.State,
-			Party: cosponsor.Party,
+	billID := fmt.Sprintf("%s-%s-%s", billjs.Congress, billjs.BillType, billjs.Number)
+	bill := csearch.InsertBillParams{
+		Billid:        nullStr(billID),
+		Billnumber:    billjs.Number,
+		Billtype:      strings.ToLower(billjs.BillType),
+		Introducedat:  nullStr(billjs.IntroducedAt),
+		Congress:      billjs.Congress,
+		SummaryDate:   nullStr(billjs.Summary.Date),
+		SummaryText:   nullStr(billjs.Summary.Text),
+		SponsorName:   nullStr(sponsorName),
+		SponsorState:  nullStr(billjs.Sponsor.State),
+		SponsorParty:  nullStr(billjs.Sponsor.Party),
+		Statusat:      billjs.StatusAt,
+		Shorttitle:    nullStr(billjs.ShortTitle),
+		Officialtitle: nullStr(billjs.OfficialTitle),
+	}
+
+	var actions []csearch.InsertBillActionParams
+	for _, a := range billjs.Actions {
+		actions = append(actions, csearch.InsertBillActionParams{
+			Billtype:   strings.ToLower(billjs.BillType),
+			Billnumber: billjs.Number,
+			Congress:   billjs.Congress,
+			ActedAt:    a.ActedAt,
+			ActionText: nullStr(a.Text),
+			ActionType: nullStr(a.Type),
 		})
 	}
-	summaryjs, err := json.Marshal(billjs.Summary)
-	if err != nil {
-		panic(err)
-	}
-	actionsjs, err := json.Marshal(action_structs)
-	if err != nil {
-		panic(err)
-	}
-	sponsorsjs, err := json.Marshal(sponsor_structs)
-	if err != nil {
-		panic(err)
-	}
-	cosponsorsjs, err := json.Marshal(cosponsor_structs)
-	if err != nil {
-		panic(err)
-	}
-	billID := fmt.Sprintf("%s-%s-%s", billjs.Congress, billjs.BillType, billjs.Number)
-	// Create Bill Struct, same fields as BillJSON
-	var bill = csearch.InsertBillParams{
-		Billid:        sql.NullString{String: billID, Valid: true},
-		Billnumber:    billjs.Number,
-		Billtype:      billjs.BillType,
-		Introducedat:  sql.NullString{String: billjs.IntroducedAt, Valid: true},
-		Congress:      billjs.Congress,
-		Summary:       pqtype.NullRawMessage{RawMessage: summaryjs, Valid: true},
-		Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
-		Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
-		Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
-		Statusat:      billjs.StatusAt,
-		Shorttitle:    sql.NullString{String: billjs.ShortTitle, Valid: true},
-		Officialtitle: sql.NullString{String: billjs.OfficialTitle, Valid: true},
-	}
-	// ctx := context.Background()
-	// _, err = db.NewInsert().Model(&bill).Exec(ctx)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	return bill
 
+	var cosponsors []csearch.InsertBillCosponsorParams
+	for _, c := range billjs.Cosponsors {
+		var name string
+		if len(c.Title) > 0 {
+			name = fmt.Sprintf("%s %s [%s]", c.Title, c.Name, c.State)
+		} else {
+			name = fmt.Sprintf("%s [%s]", c.Name, c.State)
+		}
+		// data.json has no bioguide_id; skip rows without a usable key
+		if name == "" {
+			continue
+		}
+		cosponsors = append(cosponsors, csearch.InsertBillCosponsorParams{
+			Billtype:   strings.ToLower(billjs.BillType),
+			Billnumber: billjs.Number,
+			Congress:   billjs.Congress,
+			BioguideId: name, // best available key in legacy format
+			FullName:   nullStr(name),
+			State:      nullStr(c.State),
+			Party:      nullStr(c.Party),
+		})
+	}
+
+	return ParsedBill{Bill: bill, Actions: actions, Cosponsors: cosponsors}
 }
 
-func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
+func parse_bill_xml(path string, congress int) ParsedBill {
 	xmlFile, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)
@@ -291,231 +352,213 @@ func parse_bill_xml(path string, congress int) csearch.InsertBillParams {
 	defer xmlFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(xmlFile)
+
 	if congress < 114 {
-		var billxml BillXMLRoot
-		xml.Unmarshal(byteValue, &billxml)
-		var action_structs []struct {
-			ActedAt string
-			Text    string
-			Type    string
-		}
-
-		for _, action := range billxml.BillXML.Actions.Actions {
-			action_structs = append(action_structs, struct {
-				ActedAt string
-				Text    string
-				Type    string
-			}{
-				ActedAt: action.ActedAt,
-				Text:    action.Text,
-				Type:    action.Type,
-			})
-		}
-		var sponsor_structs []struct {
-			Title    string `json:"omitempty"`
-			Name     string
-			State    string
-			District string `json:"omitempty"`
-			Party    string `json:"omitempty"`
-		}
-
-		for _, sponsor := range billxml.BillXML.Sponsors.Sponsors {
-			sponsor_structs = append(sponsor_structs, struct {
-				Title    string `json:"omitempty"`
-				Name     string
-				State    string
-				District string `json:"omitempty"`
-				Party    string `json:"omitempty"`
-			}{
-				Name:  sponsor.FullName,
-				State: sponsor.State,
-			})
-		}
-		var cosponsor_structs []struct {
-			Title    string `json:"omitempty"`
-			Name     string
-			State    string
-			District string `json:"omitempty"`
-			Party    string `json:"omitempty"`
-		}
-
-		for _, cosponsor := range billxml.BillXML.Cosponsors.Cosponsors {
-			cosponsor_structs = append(cosponsor_structs, struct {
-				Title    string `json:"omitempty"`
-				Name     string
-				State    string
-				District string `json:"omitempty"`
-				Party    string `json:"omitempty"`
-			}{
-				Name:  cosponsor.FullName,
-				State: cosponsor.State,
-			})
-		}
-		var Date string
-		var Text string
-		if billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems != nil {
-			Date = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Date
-			Text = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Text
-		}
-		summary := struct {
-			Date string
-			Text string
-		}{
-			Date: Date,
-			Text: Text,
-		}
-		billID := fmt.Sprintf("%s-%s-%s", billxml.BillXML.Congress, billxml.BillXML.BillType, billxml.BillXML.Number)
-		summaryjs, err := json.Marshal(summary)
-		if err != nil {
-			panic(err)
-		}
-		actionsjs, err := json.Marshal(action_structs)
-		if err != nil {
-			panic(err)
-		}
-		sponsorsjs, err := json.Marshal(sponsor_structs)
-		if err != nil {
-			panic(err)
-		}
-		cosponsorsjs, err := json.Marshal(cosponsor_structs)
-		if err != nil {
-			panic(err)
-		}
-		// Create Bill Struct, same fields as BillJSON
-		var bill = csearch.InsertBillParams{
-			Billid:        sql.NullString{String: billID, Valid: true},
-			Billnumber:    billxml.BillXML.Number,
-			Billtype:      strings.ToLower(billxml.BillXML.BillType),
-			Introducedat:  sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
-			Congress:      billxml.BillXML.Congress,
-			Summary:       pqtype.NullRawMessage{RawMessage: summaryjs, Valid: true},
-			Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
-			Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
-			Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
-			Statusat:      billxml.BillXML.IntroducedAt,
-			Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
-			Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true}}
-		if billxml.BillXML.BillType == "" {
-			fmt.Printf("%s %s %s", bill.Billid, bill.Congress, bill.Billnumber)
-		}
-		return bill
-
-	} else if congress >= 114 {
-		var billxml BillXMLRootnew
-		xml.Unmarshal(byteValue, &billxml)
-		var action_structs []struct {
-			ActedAt string
-			Text    string
-			Type    string
-		}
-
-		for _, action := range billxml.BillXML.Actions.Actions {
-			action_structs = append(action_structs, struct {
-				ActedAt string
-				Text    string
-				Type    string
-			}{
-				ActedAt: action.ActedAt,
-				Text:    action.Text,
-				Type:    action.Type,
-			})
-		}
-		var sponsor_structs []struct {
-			Title    string `json:"omitempty"`
-			Name     string
-			State    string
-			District string `json:"omitempty"`
-			Party    string `json:"omitempty"`
-		}
-
-		for _, sponsor := range billxml.BillXML.Sponsors.Sponsors {
-			sponsor_structs = append(sponsor_structs, struct {
-				Title    string `json:"omitempty"`
-				Name     string
-				State    string
-				District string `json:"omitempty"`
-				Party    string `json:"omitempty"`
-			}{
-				Name:  sponsor.FullName,
-				State: sponsor.State,
-			})
-		}
-		var cosponsor_structs []struct {
-			Title    string `json:"omitempty"`
-			Name     string
-			State    string
-			District string `json:"omitempty"`
-			Party    string `json:"omitempty"`
-		}
-
-		for _, cosponsor := range billxml.BillXML.Cosponsors.Cosponsors {
-			cosponsor_structs = append(cosponsor_structs, struct {
-				Title    string `json:"omitempty"`
-				Name     string
-				State    string
-				District string `json:"omitempty"`
-				Party    string `json:"omitempty"`
-			}{
-				Name:  cosponsor.FullName,
-				State: cosponsor.State,
-			})
-		}
-		var Date string
-		var Text string
-		if billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems != nil {
-			Date = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Date
-			Text = billxml.BillXML.Summary.XMLBillSummaries.XMLBillItems[0].Text
-		}
-		summary := struct {
-			Date string
-			Text string
-		}{
-			Date: Date,
-			Text: Text,
-		}
-		billID := fmt.Sprintf("%s-%s-%s", billxml.BillXML.Congress, billxml.BillXML.BillType, billxml.BillXML.Number)
-		summaryjs, err := json.Marshal(summary)
-		if err != nil {
-			panic(err)
-		}
-		actionsjs, err := json.Marshal(action_structs)
-		if err != nil {
-			panic(err)
-		}
-		sponsorsjs, err := json.Marshal(sponsor_structs)
-		if err != nil {
-			panic(err)
-		}
-		cosponsorsjs, err := json.Marshal(cosponsor_structs)
-		if err != nil {
-			panic(err)
-		}
-
-		var bill = csearch.InsertBillParams{
-			Billid:        sql.NullString{String: billID, Valid: true},
-			Billnumber:    billxml.BillXML.Number,
-			Billtype:      strings.ToLower(billxml.BillXML.Type),
-			Introducedat:  sql.NullString{String: billxml.BillXML.IntroducedAt, Valid: true},
-			Congress:      billxml.BillXML.Congress,
-			Summary:       pqtype.NullRawMessage{RawMessage: summaryjs, Valid: true},
-			Actions:       pqtype.NullRawMessage{RawMessage: actionsjs, Valid: true},
-			Sponsors:      pqtype.NullRawMessage{RawMessage: sponsorsjs, Valid: true},
-			Cosponsors:    pqtype.NullRawMessage{RawMessage: cosponsorsjs, Valid: true},
-			Statusat:      billxml.BillXML.IntroducedAt,
-			Shorttitle:    sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
-			Officialtitle: sql.NullString{String: billxml.BillXML.ShortTitle, Valid: true},
-		}
-
-		return bill
+		var root BillXMLRoot
+		xml.Unmarshal(byteValue, &root)
+		b := root.BillXML
+		billtype := strings.ToLower(b.BillType)
+		return buildParsedBill(
+			b.Number, billtype, b.IntroducedAt, b.UpdateDate, b.OriginChamber,
+			b.Congress, b.ShortTitle, b.LatestAction.ActionDate,
+			b.Summary, b.Actions, b.Sponsors, b.Cosponsors,
+			b.Titles, b.Committees, b.Subjects,
+		)
 	}
 
-	// ctx := context.Background()
-	// _, err = db.NewInsert().Model(&bill).Exec(ctx)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	return csearch.InsertBillParams{}
+	var root BillXMLRootnew
+	xml.Unmarshal(byteValue, &root)
+	b := root.BillXML
+	// <type> is the canonical field for congress >= 114; fall back to <billType>
+	billtype := strings.ToLower(b.Type)
+	if billtype == "" {
+		billtype = strings.ToLower(b.BillType)
+	}
+	return buildParsedBill(
+		b.Number, billtype, b.IntroducedAt, b.UpdateDate, b.OriginChamber,
+		b.Congress, b.ShortTitle, b.LatestAction.ActionDate,
+		b.Summary, b.Actions, b.Sponsors, b.Cosponsors,
+		b.Titles, b.Committees, b.Subjects,
+	)
 }
+
+func buildParsedBill(
+	number, billtype, introducedAt, updateDate, originChamber, congress, shortTitle, latestActionDate string,
+	summary XMLSummaries,
+	actions ActionsXML,
+	sponsors SponsorsXML,
+	cosponsors CosponsorsXML,
+	titles TitlesXML,
+	committees CommitteesXML,
+	subjects SubjectsXML,
+) ParsedBill {
+	billID := fmt.Sprintf("%s-%s-%s", congress, strings.ToUpper(billtype), number)
+
+	// Summary — use first item
+	var summaryDate, summaryText string
+	if len(summary.XMLBillSummaries.XMLBillItems) > 0 {
+		summaryDate = summary.XMLBillSummaries.XMLBillItems[0].Date
+		summaryText = summary.XMLBillSummaries.XMLBillItems[0].Text
+	}
+
+	// Sponsor — always exactly one
+	var sponsorBioguideId, sponsorName, sponsorState, sponsorParty string
+	if len(sponsors.Sponsors) > 0 {
+		s := sponsors.Sponsors[0]
+		sponsorBioguideId = s.BioguideId
+		sponsorName = s.FullName
+		sponsorState = s.State
+		sponsorParty = s.Party
+	}
+
+	// Official title from <titles> list
+	official := officialTitle(titles)
+	if official == "" {
+		official = shortTitle
+	}
+
+	// statusat: use latestAction date; fall back to introducedAt
+	statusAt := latestActionDate
+	if statusAt == "" {
+		statusAt = introducedAt
+	}
+
+	// Policy area (also stored at bill level, subjects table gets legislativeSubjects)
+	policyArea := subjects.BillSubjects.PolicyArea.Name
+
+	bill := csearch.InsertBillParams{
+		Billid:             nullStr(billID),
+		Billnumber:         number,
+		Billtype:           billtype,
+		Introducedat:       nullStr(introducedAt),
+		Congress:           congress,
+		SummaryDate:        nullStr(summaryDate),
+		SummaryText:        nullStr(summaryText),
+		SponsorBioguideId:  nullStr(sponsorBioguideId),
+		SponsorName:        nullStr(sponsorName),
+		SponsorState:       nullStr(sponsorState),
+		SponsorParty:       nullStr(sponsorParty),
+		OriginChamber:      nullStr(originChamber),
+		PolicyArea:         nullStr(policyArea),
+		UpdateDate:         nullStr(updateDate),
+		Statusat:           statusAt,
+		Shorttitle:         nullStr(shortTitle),
+		Officialtitle:      nullStr(official),
+	}
+
+	// Actions
+	var parsedActions []csearch.InsertBillActionParams
+	for _, a := range actions.Actions {
+		if a.ActedAt == "" {
+			continue
+		}
+		parsedActions = append(parsedActions, csearch.InsertBillActionParams{
+			Billtype:         billtype,
+			Billnumber:       number,
+			Congress:         congress,
+			ActedAt:          a.ActedAt,
+			ActionText:       nullStr(a.Text),
+			ActionType:       nullStr(a.Type),
+			ActionCode:       nullStr(a.ActionCode),
+			SourceSystemCode: nullStr(a.SourceSystem.Code),
+		})
+	}
+
+	// Cosponsors
+	var parsedCosponsors []csearch.InsertBillCosponsorParams
+	for _, c := range cosponsors.Cosponsors {
+		if c.BioguideId == "" {
+			continue
+		}
+		isOriginal := sql.NullBool{Bool: strings.EqualFold(c.IsOriginalCosponsor, "true"), Valid: c.IsOriginalCosponsor != ""}
+		parsedCosponsors = append(parsedCosponsors, csearch.InsertBillCosponsorParams{
+			Billtype:            billtype,
+			Billnumber:          number,
+			Congress:            congress,
+			BioguideId:          c.BioguideId,
+			FullName:            nullStr(c.FullName),
+			State:               nullStr(c.State),
+			Party:               nullStr(c.Party),
+			SponsorshipDate:     nullStr(c.SponsorshipDate),
+			IsOriginalCosponsor: isOriginal,
+		})
+	}
+
+	// Committees
+	var parsedCommittees []csearch.InsertBillCommitteeParams
+	for _, c := range committees.BillCommittees.Items {
+		if c.SystemCode == "" {
+			continue
+		}
+		parsedCommittees = append(parsedCommittees, csearch.InsertBillCommitteeParams{
+			Billtype:      billtype,
+			Billnumber:    number,
+			Congress:      congress,
+			CommitteeCode: c.SystemCode,
+			CommitteeName: nullStr(c.Name),
+			Chamber:       nullStr(c.Chamber),
+		})
+	}
+
+	// Subjects
+	var parsedSubjects []csearch.InsertBillSubjectParams
+	for _, s := range subjects.BillSubjects.LegislativeSubjects.Items {
+		if s.Name == "" {
+			continue
+		}
+		parsedSubjects = append(parsedSubjects, csearch.InsertBillSubjectParams{
+			Billtype:   billtype,
+			Billnumber: number,
+			Congress:   congress,
+			Subject:    s.Name,
+		})
+	}
+
+	return ParsedBill{
+		Bill:       bill,
+		Actions:    parsedActions,
+		Cosponsors: parsedCosponsors,
+		Committees: parsedCommittees,
+		Subjects:   parsedSubjects,
+	}
+}
+
+// ── DB insertion ─────────────────────────────────────────────────────────────
+
+func insertParsedBill(ctx context.Context, queries *csearch.Queries, pb ParsedBill) {
+	err := queries.InsertBill(ctx, pb.Bill)
+	if err != nil {
+		fmt.Printf("InsertBill error: %v\n", err)
+		return
+	}
+
+	key := csearch.DeleteBillActionsParams{
+		Billtype:   pb.Bill.Billtype,
+		Billnumber: pb.Bill.Billnumber,
+		Congress:   pb.Bill.Congress,
+	}
+	queries.DeleteBillActions(ctx, key)
+	for _, a := range pb.Actions {
+		queries.InsertBillAction(ctx, a)
+	}
+
+	queries.DeleteBillCosponsors(ctx, csearch.DeleteBillCosponsorsParams(key))
+	for _, c := range pb.Cosponsors {
+		queries.InsertBillCosponsor(ctx, c)
+	}
+
+	queries.DeleteBillCommittees(ctx, csearch.DeleteBillCommitteesParams(key))
+	for _, c := range pb.Committees {
+		queries.InsertBillCommittee(ctx, c)
+	}
+
+	queries.DeleteBillSubjects(ctx, csearch.DeleteBillSubjectsParams(key))
+	for _, s := range pb.Subjects {
+		queries.InsertBillSubject(ctx, s)
+	}
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 func main() {
 	viper.SetConfigFile(".env")
@@ -536,30 +579,19 @@ func main() {
 			panic(err)
 		}
 		defer decodeFile.Close()
-
-		// Create a decoder
 		decoder := gob.NewDecoder(decodeFile)
-
-		// Place to decode into
 		fileHashes = make(map[string]string)
-
-		// Decode -- We need to pass a pointer otherwise accounts2 isn't modified
 		decoder.Decode(&fileHashes)
 		println("Hashes Loaded")
 	}
-	// Runs unitedstates/congress run script to update bill xmls
 	updateBills()
 
 	ctx := context.Background()
-	//db, err := pgx.Connect(context.Background(), "postgres://postgres:postgres@postgres-service:5432/csearch?sslmode=disable")
 	db, err := sql.Open("postgres", "host="+postgresURI+" user=postgres password=postgres dbname=csearch sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
 	queries := csearch.New(db)
-	if err != nil {
-		panic(err)
-	}
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 64)
@@ -571,118 +603,94 @@ func main() {
 				debug.PrintStack()
 				continue
 			}
-			var bills []csearch.InsertBillParams
+			var parsedBills []ParsedBill
+			var mu sync.Mutex
 			wg.Add(len(files))
 			fmt.Printf("Processing Congress %d; Type: %s, Number of Bills: %d \n", i, table, len(files))
-			for z, f := range files {
+			for _, f := range files {
 				path := fmt.Sprintf(congressdir+"data/%s/bills/%s/", strconv.Itoa(i), table) + f.Name()
-				var jcheck = path + "/data.json"
-				if _, err := os.Stat(jcheck);err == nil{
-					go func(z int) {
+				jcheck := path + "/data.json"
+				if _, err := os.Stat(jcheck); err == nil {
+					go func() {
+						defer wg.Done()
+						defer func() { <-sem }()
+						sem <- struct{}{}
 						f, err := os.Open(jcheck)
 						if err != nil {
 							log.Fatal(err)
 						}
 						fileHash := sha256.New()
-						if _, err := io.Copy(fileHash, f); err != nil {
-							log.Fatal(err)
-						}
-						var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
+						io.Copy(fileHash, f)
+						hashStr := fmt.Sprintf("%x", fileHash.Sum(nil))
 						f.Close()
-						// defer mutex.Unlock()
 						fileHashesMutex.Lock()
-						hash := fileHashes[jcheck]
+						prev := fileHashes[jcheck]
 						fileHashesMutex.Unlock()
-						if hash != fileHashString {
+						if prev != hashStr {
 							fileHashesMutex.Lock()
-							fileHashes[jcheck] = fileHashString
+							fileHashes[jcheck] = hashStr
 							fileHashesMutex.Unlock()
-							var bjs = parse_bill(jcheck)
-							// mutex.Lock()
-							bills = append(bills, bjs)
-							sem <- struct{}{}
-							// mutex.Lock()
-							//res2B, _ := json.Marshal(bills[z])
-							//println(res2B)
-
+							pb := parse_bill(jcheck)
+							mu.Lock()
+							parsedBills = append(parsedBills, pb)
+							mu.Unlock()
 						}
-						defer func() { <-sem }()
-						defer wg.Done()
-					}(z)
+					}()
 				} else if errors.Is(err, os.ErrNotExist) {
-					path += "/fdsys_billstatus.xml"
-
-					go func(z int) {
-						f, err := os.Open(path)
+					xmlpath := path + "/fdsys_billstatus.xml"
+					go func() {
+						defer wg.Done()
+						defer func() { <-sem }()
+						sem <- struct{}{}
+						f, err := os.Open(xmlpath)
 						if err != nil {
 							log.Fatal(err)
 						}
-
 						fileHash := sha256.New()
-						if _, err := io.Copy(fileHash, f); err != nil {
-							log.Fatal(err)
-						}
-						var fileHashString = fmt.Sprintf("%x", fileHash.Sum(nil))
+						io.Copy(fileHash, f)
+						hashStr := fmt.Sprintf("%x", fileHash.Sum(nil))
 						f.Close()
 						fileHashesMutex.Lock()
-						hash := fileHashes[path]
+						prev := fileHashes[xmlpath]
 						fileHashesMutex.Unlock()
-						if hash != fileHashString {
+						if prev != hashStr {
 							fileHashesMutex.Lock()
-							fileHashes[path] = fileHashString
+							fileHashes[xmlpath] = hashStr
 							fileHashesMutex.Unlock()
-							bills = append(bills, parse_bill_xml(path, i))
-
-							sem <- struct{}{}
-
-
+							pb := parse_bill_xml(xmlpath, i)
+							mu.Lock()
+							parsedBills = append(parsedBills, pb)
+							mu.Unlock()
 						}
-						defer func() { <-sem }()
-						defer wg.Done()
-					}(z)
+					}()
+				} else {
+					wg.Done()
 				}
 			}
-
 			wg.Wait()
 
-			if len(bills) > 0 {
-				//_ = queries.InsertBill(ctx, bills)
-				for _, bill := range bills {
-					_ = queries.InsertBill(ctx, bill)
-					// fmt.Printf("Congress %s, BillType %s, Bill %s", bill.Congress, bill.Billtype, bill.Billnumber)
-					if err != nil {
-						panic(err)
-					}
-				}
-				// fmt.Printf("Table %s Inserted", table)
+			for _, pb := range parsedBills {
+				insertParsedBill(ctx, queries, pb)
 			}
 		}
-
 	}
+
 	encodeFile, err := os.Create(fileHashesPath)
 	if err != nil {
 		panic(err)
 	}
-
-	// Since this is a binary format large parts of it will be unreadable
 	encoder := gob.NewEncoder(encodeFile)
-
-	// Write to the file
 	if err := encoder.Encode(fileHashes); err != nil {
 		panic(err)
 	}
 	encodeFile.Close()
 	close(sem)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func updateBills() {
 	var congressdir = viper.GetString("CONGRESSDIR")
 	os.Chdir(congressdir)
-	// Update Congress Bills
-	
+
 	cmd := exec.Command(congressdir+"congress/run.py", "govinfo", "--bulkdata=BILLSTATUS")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -700,7 +708,6 @@ func updateBills() {
 	go copyOutput(stderr)
 	cmd.Wait()
 
-	// Latest bills only (if above fails)
 	cmd = exec.Command("./congress/run.py", "govinfo", "--bulkdata=BILLSTATUS", "--congress=118")
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
@@ -734,6 +741,11 @@ func updateBills() {
 	go copyOutput(stdout)
 	go copyOutput(stderr)
 	cmd.Wait()
-
 }
 
+func copyOutput(r io.Reader) {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+}
