@@ -6,1335 +6,155 @@ package csearch
 
 import (
 	"database/sql"
-
-	"github.com/tabbed/pqtype"
 )
 
-type Bill struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
+// billFields is the shared set of columns for the bills table and all
+// per-year partition structs (Bills1973 … Bills2028).
+type billFields struct {
+	Billid             sql.NullString
+	Billnumber         string
+	Billtype           string
+	Introducedat       sql.NullString
+	Congress           string
+	SummaryDate        sql.NullString
+	SummaryText        sql.NullString
+	SponsorBioguideId  sql.NullString
+	SponsorName        sql.NullString
+	SponsorState       sql.NullString
+	SponsorParty       sql.NullString
+	OriginChamber      sql.NullString
+	PolicyArea         sql.NullString
+	UpdateDate         sql.NullString
+	Statusat           string
+	Shorttitle         sql.NullString
+	Officialtitle      sql.NullString
+	STs                interface{}
+	HrTs               interface{}
+	HconresTs          interface{}
+	HjresTs            interface{}
+	HresTs             interface{}
+	SconresTs          interface{}
+	SjresTs            interface{}
+	SresTs             interface{}
 }
 
-type Bills1973 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
+type Bill struct{ billFields }
+type Bills1973 struct{ billFields }
+type Bills1974 struct{ billFields }
+type Bills1975 struct{ billFields }
+type Bills1976 struct{ billFields }
+type Bills1977 struct{ billFields }
+type Bills1978 struct{ billFields }
+type Bills1979 struct{ billFields }
+type Bills1980 struct{ billFields }
+type Bills1981 struct{ billFields }
+type Bills1982 struct{ billFields }
+type Bills1983 struct{ billFields }
+type Bills1984 struct{ billFields }
+type Bills1985 struct{ billFields }
+type Bills1986 struct{ billFields }
+type Bills1987 struct{ billFields }
+type Bills1988 struct{ billFields }
+type Bills1989 struct{ billFields }
+type Bills1990 struct{ billFields }
+type Bills1991 struct{ billFields }
+type Bills1992 struct{ billFields }
+type Bills1993 struct{ billFields }
+type Bills1994 struct{ billFields }
+type Bills1995 struct{ billFields }
+type Bills1996 struct{ billFields }
+type Bills1997 struct{ billFields }
+type Bills1998 struct{ billFields }
+type Bills1999 struct{ billFields }
+type Bills2000 struct{ billFields }
+type Bills2001 struct{ billFields }
+type Bills2002 struct{ billFields }
+type Bills2003 struct{ billFields }
+type Bills2004 struct{ billFields }
+type Bills2005 struct{ billFields }
+type Bills2006 struct{ billFields }
+type Bills2007 struct{ billFields }
+type Bills2008 struct{ billFields }
+type Bills2009 struct{ billFields }
+type Bills2010 struct{ billFields }
+type Bills2011 struct{ billFields }
+type Bills2012 struct{ billFields }
+type Bills2013 struct{ billFields }
+type Bills2014 struct{ billFields }
+type Bills2015 struct{ billFields }
+type Bills2016 struct{ billFields }
+type Bills2017 struct{ billFields }
+type Bills2018 struct{ billFields }
+type Bills2019 struct{ billFields }
+type Bills2020 struct{ billFields }
+type Bills2021 struct{ billFields }
+type Bills2022 struct{ billFields }
+type Bills2023 struct{ billFields }
+type Bills2024 struct{ billFields }
+type Bills2025 struct{ billFields }
+type Bills2026 struct{ billFields }
+type Bills2027 struct{ billFields }
+type Bills2028 struct{ billFields }
+
+type BillAction struct {
+	Billtype          string
+	Billnumber        string
+	Congress          string
+	ActedAt           string
+	ActionText        sql.NullString
+	ActionType        sql.NullString
+	ActionCode        sql.NullString
+	SourceSystemCode  sql.NullString
 }
 
-type Bills1974 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
+type BillCosponsor struct {
+	Billtype             string
+	Billnumber           string
+	Congress             string
+	BioguideId           string
+	FullName             sql.NullString
+	State                sql.NullString
+	Party                sql.NullString
+	SponsorshipDate      sql.NullString
+	IsOriginalCosponsor  sql.NullBool
 }
 
-type Bills1975 struct {
-	Billid        sql.NullString
-	Billnumber    string
+type BillCommittee struct {
 	Billtype      string
-	Introducedat  sql.NullString
+	Billnumber    string
 	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
+	CommitteeCode string
+	CommitteeName sql.NullString
+	Chamber       sql.NullString
 }
 
-type Bills1976 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1977 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1978 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1979 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1980 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1981 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1982 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1983 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1984 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1985 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1986 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1987 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1988 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1989 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1990 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1991 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1992 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1993 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1994 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1995 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1996 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1997 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1998 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills1999 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2000 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2001 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2002 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2003 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2004 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2005 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2006 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2007 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2008 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2009 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2010 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2011 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2012 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2013 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2014 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2015 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2016 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2017 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2018 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2019 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2020 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2021 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2022 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2023 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2024 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2025 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2026 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2027 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
-}
-
-type Bills2028 struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
-	STs           interface{}
-	HrTs          interface{}
-	HconresTs     interface{}
-	HjresTs       interface{}
-	HresTs        interface{}
-	SconresTs     interface{}
-	SjresTs       interface{}
-	SresTs        interface{}
+type BillSubject struct {
+	Billtype   string
+	Billnumber string
+	Congress   string
+	Subject    string
 }
 
 type Vote struct {
-	Bill        pqtype.NullRawMessage
+	Voteid      string
+	BillType    sql.NullString
+	BillNumber  sql.NullString
 	Congress    sql.NullString
 	Votenumber  sql.NullString
 	Votedate    sql.NullString
 	Question    sql.NullString
 	Result      sql.NullString
 	Votesession sql.NullString
-	Yea         pqtype.NullRawMessage
-	Nay         pqtype.NullRawMessage
-	Present     pqtype.NullRawMessage
-	Notvoting   pqtype.NullRawMessage
 	Chamber     sql.NullString
 	SourceUrl   sql.NullString
 	Votetype    sql.NullString
+}
+
+type VoteMember struct {
 	Voteid      string
+	BioguideId  string
+	DisplayName sql.NullString
+	Party       sql.NullString
+	State       sql.NullString
+	Position    string
 }

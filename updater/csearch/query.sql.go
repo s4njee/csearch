@@ -8,31 +8,51 @@ package csearch
 import (
 	"context"
 	"database/sql"
-
-	"github.com/tabbed/pqtype"
 )
 
 const insertBill = `-- name: InsertBill :exec
-INSERT INTO bills (billid, billnumber, billtype, introducedat, congress, summary, actions, sponsors, cosponsors, statusat, shorttitle, officialtitle
+INSERT INTO bills (
+    billid, billnumber, billtype, introducedat, congress,
+    summary_date, summary_text,
+    sponsor_bioguide_id, sponsor_name, sponsor_state, sponsor_party,
+    origin_chamber, policy_area, update_date,
+    statusat, shorttitle, officialtitle
 ) VALUES (
-             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-         ) ON CONFLICT ON CONSTRAINT bill_pkey DO UPDATE SET summary=excluded.summary, actions=excluded.actions, sponsors=excluded.sponsors, cosponsors=excluded.cosponsors, statusat=excluded.statusat, shorttitle=excluded.shorttitle, officialtitle=excluded.officialtitle
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+) ON CONFLICT ON CONSTRAINT bill_pkey DO UPDATE SET
+    summary_date        = excluded.summary_date,
+    summary_text        = excluded.summary_text,
+    sponsor_bioguide_id = excluded.sponsor_bioguide_id,
+    sponsor_name        = excluded.sponsor_name,
+    sponsor_state       = excluded.sponsor_state,
+    sponsor_party       = excluded.sponsor_party,
+    origin_chamber      = excluded.origin_chamber,
+    policy_area         = excluded.policy_area,
+    update_date         = excluded.update_date,
+    statusat            = excluded.statusat,
+    shorttitle          = excluded.shorttitle,
+    officialtitle       = excluded.officialtitle
 WHERE bills.statusat IS DISTINCT FROM excluded.statusat
 `
 
 type InsertBillParams struct {
-	Billid        sql.NullString
-	Billnumber    string
-	Billtype      string
-	Introducedat  sql.NullString
-	Congress      string
-	Summary       pqtype.NullRawMessage
-	Actions       pqtype.NullRawMessage
-	Sponsors      pqtype.NullRawMessage
-	Cosponsors    pqtype.NullRawMessage
-	Statusat      string
-	Shorttitle    sql.NullString
-	Officialtitle sql.NullString
+	Billid             sql.NullString
+	Billnumber         string
+	Billtype           string
+	Introducedat       sql.NullString
+	Congress           string
+	SummaryDate        sql.NullString
+	SummaryText        sql.NullString
+	SponsorBioguideId  sql.NullString
+	SponsorName        sql.NullString
+	SponsorState       sql.NullString
+	SponsorParty       sql.NullString
+	OriginChamber      sql.NullString
+	PolicyArea         sql.NullString
+	UpdateDate         sql.NullString
+	Statusat           string
+	Shorttitle         sql.NullString
+	Officialtitle      sql.NullString
 }
 
 func (q *Queries) InsertBill(ctx context.Context, arg InsertBillParams) error {
@@ -42,10 +62,15 @@ func (q *Queries) InsertBill(ctx context.Context, arg InsertBillParams) error {
 		arg.Billtype,
 		arg.Introducedat,
 		arg.Congress,
-		arg.Summary,
-		arg.Actions,
-		arg.Sponsors,
-		arg.Cosponsors,
+		arg.SummaryDate,
+		arg.SummaryText,
+		arg.SponsorBioguideId,
+		arg.SponsorName,
+		arg.SponsorState,
+		arg.SponsorParty,
+		arg.OriginChamber,
+		arg.PolicyArea,
+		arg.UpdateDate,
 		arg.Statusat,
 		arg.Shorttitle,
 		arg.Officialtitle,
@@ -53,62 +78,254 @@ func (q *Queries) InsertBill(ctx context.Context, arg InsertBillParams) error {
 	return err
 }
 
+const deleteBillActions = `-- name: DeleteBillActions :exec
+DELETE FROM bill_actions WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+`
+
+type DeleteBillActionsParams struct {
+	Billtype   string
+	Billnumber string
+	Congress   string
+}
+
+func (q *Queries) DeleteBillActions(ctx context.Context, arg DeleteBillActionsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteBillActions, arg.Billtype, arg.Billnumber, arg.Congress)
+	return err
+}
+
+const insertBillAction = `-- name: InsertBillAction :exec
+INSERT INTO bill_actions (billtype, billnumber, congress, acted_at, action_text, action_type, action_code, source_system_code)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type InsertBillActionParams struct {
+	Billtype          string
+	Billnumber        string
+	Congress          string
+	ActedAt           string
+	ActionText        sql.NullString
+	ActionType        sql.NullString
+	ActionCode        sql.NullString
+	SourceSystemCode  sql.NullString
+}
+
+func (q *Queries) InsertBillAction(ctx context.Context, arg InsertBillActionParams) error {
+	_, err := q.db.ExecContext(ctx, insertBillAction,
+		arg.Billtype,
+		arg.Billnumber,
+		arg.Congress,
+		arg.ActedAt,
+		arg.ActionText,
+		arg.ActionType,
+		arg.ActionCode,
+		arg.SourceSystemCode,
+	)
+	return err
+}
+
+const deleteBillCosponsors = `-- name: DeleteBillCosponsors :exec
+DELETE FROM bill_cosponsors WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+`
+
+type DeleteBillCosponsorsParams struct {
+	Billtype   string
+	Billnumber string
+	Congress   string
+}
+
+func (q *Queries) DeleteBillCosponsors(ctx context.Context, arg DeleteBillCosponsorsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteBillCosponsors, arg.Billtype, arg.Billnumber, arg.Congress)
+	return err
+}
+
+const insertBillCosponsor = `-- name: InsertBillCosponsor :exec
+INSERT INTO bill_cosponsors (billtype, billnumber, congress, bioguide_id, full_name, state, party, sponsorship_date, is_original_cosponsor)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+ON CONFLICT ON CONSTRAINT bill_cosponsors_pkey DO NOTHING
+`
+
+type InsertBillCosponsorParams struct {
+	Billtype            string
+	Billnumber          string
+	Congress            string
+	BioguideId          string
+	FullName            sql.NullString
+	State               sql.NullString
+	Party               sql.NullString
+	SponsorshipDate     sql.NullString
+	IsOriginalCosponsor sql.NullBool
+}
+
+func (q *Queries) InsertBillCosponsor(ctx context.Context, arg InsertBillCosponsorParams) error {
+	_, err := q.db.ExecContext(ctx, insertBillCosponsor,
+		arg.Billtype,
+		arg.Billnumber,
+		arg.Congress,
+		arg.BioguideId,
+		arg.FullName,
+		arg.State,
+		arg.Party,
+		arg.SponsorshipDate,
+		arg.IsOriginalCosponsor,
+	)
+	return err
+}
+
+const deleteBillCommittees = `-- name: DeleteBillCommittees :exec
+DELETE FROM bill_committees WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+`
+
+type DeleteBillCommitteesParams struct {
+	Billtype   string
+	Billnumber string
+	Congress   string
+}
+
+func (q *Queries) DeleteBillCommittees(ctx context.Context, arg DeleteBillCommitteesParams) error {
+	_, err := q.db.ExecContext(ctx, deleteBillCommittees, arg.Billtype, arg.Billnumber, arg.Congress)
+	return err
+}
+
+const insertBillCommittee = `-- name: InsertBillCommittee :exec
+INSERT INTO bill_committees (billtype, billnumber, congress, committee_code, committee_name, chamber)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT ON CONSTRAINT bill_committees_pkey DO NOTHING
+`
+
+type InsertBillCommitteeParams struct {
+	Billtype      string
+	Billnumber    string
+	Congress      string
+	CommitteeCode string
+	CommitteeName sql.NullString
+	Chamber       sql.NullString
+}
+
+func (q *Queries) InsertBillCommittee(ctx context.Context, arg InsertBillCommitteeParams) error {
+	_, err := q.db.ExecContext(ctx, insertBillCommittee,
+		arg.Billtype,
+		arg.Billnumber,
+		arg.Congress,
+		arg.CommitteeCode,
+		arg.CommitteeName,
+		arg.Chamber,
+	)
+	return err
+}
+
+const deleteBillSubjects = `-- name: DeleteBillSubjects :exec
+DELETE FROM bill_subjects WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+`
+
+type DeleteBillSubjectsParams struct {
+	Billtype   string
+	Billnumber string
+	Congress   string
+}
+
+func (q *Queries) DeleteBillSubjects(ctx context.Context, arg DeleteBillSubjectsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteBillSubjects, arg.Billtype, arg.Billnumber, arg.Congress)
+	return err
+}
+
+const insertBillSubject = `-- name: InsertBillSubject :exec
+INSERT INTO bill_subjects (billtype, billnumber, congress, subject)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT ON CONSTRAINT bill_subjects_pkey DO NOTHING
+`
+
+type InsertBillSubjectParams struct {
+	Billtype   string
+	Billnumber string
+	Congress   string
+	Subject    string
+}
+
+func (q *Queries) InsertBillSubject(ctx context.Context, arg InsertBillSubjectParams) error {
+	_, err := q.db.ExecContext(ctx, insertBillSubject,
+		arg.Billtype,
+		arg.Billnumber,
+		arg.Congress,
+		arg.Subject,
+	)
+	return err
+}
+
 const insertVote = `-- name: InsertVote :exec
 INSERT INTO votes (
-    bill,
-    congress,
-    chamber,
-    votenumber,
-    votedate,
-    votesession,
-    question,
-    result,
-    yea,
-    nay,
-    present,
-    notvoting,
-    source_url,
-    votetype,
-    voteid) VALUES (
-             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15 
-         ) ON CONFLICT DO NOTHING
+    voteid, bill_type, bill_number, congress,
+    votenumber, votedate, question, result,
+    votesession, chamber, source_url, votetype
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+) ON CONFLICT DO NOTHING
 `
 
 type InsertVoteParams struct {
-	Bill        pqtype.NullRawMessage
+	Voteid      string
+	BillType    sql.NullString
+	BillNumber  sql.NullString
 	Congress    sql.NullString
-	Chamber     sql.NullString
 	Votenumber  sql.NullString
 	Votedate    sql.NullString
-	Votesession sql.NullString
 	Question    sql.NullString
 	Result      sql.NullString
-	Yea         pqtype.NullRawMessage
-	Nay         pqtype.NullRawMessage
-	Present     pqtype.NullRawMessage
-	Notvoting   pqtype.NullRawMessage
+	Votesession sql.NullString
+	Chamber     sql.NullString
 	SourceUrl   sql.NullString
 	Votetype    sql.NullString
-	Voteid      string
 }
 
 func (q *Queries) InsertVote(ctx context.Context, arg InsertVoteParams) error {
 	_, err := q.db.ExecContext(ctx, insertVote,
-		arg.Bill,
+		arg.Voteid,
+		arg.BillType,
+		arg.BillNumber,
 		arg.Congress,
-		arg.Chamber,
 		arg.Votenumber,
 		arg.Votedate,
-		arg.Votesession,
 		arg.Question,
 		arg.Result,
-		arg.Yea,
-		arg.Nay,
-		arg.Present,
-		arg.Notvoting,
+		arg.Votesession,
+		arg.Chamber,
 		arg.SourceUrl,
 		arg.Votetype,
+	)
+	return err
+}
+
+const deleteVoteMembers = `-- name: DeleteVoteMembers :exec
+DELETE FROM vote_members WHERE voteid = $1
+`
+
+func (q *Queries) DeleteVoteMembers(ctx context.Context, voteid string) error {
+	_, err := q.db.ExecContext(ctx, deleteVoteMembers, voteid)
+	return err
+}
+
+const insertVoteMember = `-- name: InsertVoteMember :exec
+INSERT INTO vote_members (voteid, bioguide_id, display_name, party, state, position)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT ON CONSTRAINT vote_members_pkey DO NOTHING
+`
+
+type InsertVoteMemberParams struct {
+	Voteid      string
+	BioguideId  string
+	DisplayName sql.NullString
+	Party       sql.NullString
+	State       sql.NullString
+	Position    string
+}
+
+func (q *Queries) InsertVoteMember(ctx context.Context, arg InsertVoteMemberParams) error {
+	_, err := q.db.ExecContext(ctx, insertVoteMember,
 		arg.Voteid,
+		arg.BioguideId,
+		arg.DisplayName,
+		arg.Party,
+		arg.State,
+		arg.Position,
 	)
 	return err
 }
