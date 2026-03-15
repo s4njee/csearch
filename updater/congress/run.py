@@ -14,6 +14,7 @@ def main():
     socket.setdefaulttimeout(10)
 
     CONGRESS_ROOT = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, os.path.dirname(CONGRESS_ROOT))
 
     # name of the task comes first
     task_name = sys.argv[1]
@@ -52,7 +53,7 @@ def main():
         logging.basicConfig(format='%(message)s', level=log_level.upper())
 
 
-    sys.path.append("/k8s/congress/congress/tasks")
+    sys.path.append(os.path.join(CONGRESS_ROOT, "tasks"))
     import utils
 
     try:

@@ -1,33 +1,44 @@
-FROM ubuntu:latest
+FROM golang:1.26-bookworm AS builder
 
-RUN apt-get update && apt-get install -y \
-    curl git python3-dev libxml2-dev libxslt1-dev libz-dev python3-pip wget
+WORKDIR /src/updater
 
-RUN mkdir -p /opt/theunitedstates.io/
-ADD . /opt/theunitedstates.io/congress/
-WORKDIR /opt/theunitedstates.io/congress/
-
-RUN pip3 install .
-
-
-RUN mkdir -p /congress
-WORKDIR /congress
-RUN ln -s /usr/bin/python3 /usr/bin/python
-## GO Installation
-
-RUN curl -OL https://go.dev/dl/go1.19.4.linux-amd64.tar.gz
-RUN tar xvf go1.19.4.linux-amd64.tar.gz
-RUN chown -R root:root ./go
-RUN mv go /usr/local
-
-ENV PATH="$PATH:/usr/local/go/bin"
-
-COPY go.mod ./
-COPY go.sum ./
+COPY updater/go.mod updater/go.sum ./
 RUN go mod download
 
-COPY . /usr/local/go/src/app
-WORKDIR /usr/local/go/src/app
+COPY updater/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -o /out/updater .
 
-RUN go build -o /scraper
-CMD ["/scraper"]
+
+FROM python:3.11-slim-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    postgresql-client \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+    beautifulsoup4 \
+    iso8601 \
+    lxml \
+    mechanize \
+    python-dateutil \
+    pytz \
+    pyyaml \
+    requests \
+    rtyaml \
+    scrapelib \
+    xmltodict
+
+COPY --from=builder /out/updater /usr/local/bin/updater
+COPY updater/congress /opt/csearch/congress
+COPY updater/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENV CONGRESSDIR=/srv/csearch
+ENV POSTGRESURI=postgres
+
+WORKDIR /srv/csearch
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/usr/local/bin/updater"]
