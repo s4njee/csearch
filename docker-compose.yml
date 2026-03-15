@@ -1,0 +1,49 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: updater/postgres/Dockerfile
+    environment:
+      POSTGRES_DB: csearch
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d csearch"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  congress_api:
+    build:
+      context: ./congress_api
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      POSTGRESURI: postgres
+      SECRET_KEY: supersecretkey
+    expose:
+      - "3000"
+
+  nginx:
+    build:
+      context: ./csearch_gui_nuxt
+      dockerfile: Dockerfile.nginx
+      args:
+        NUXT_API_SERVER: /api
+    depends_on:
+      congress_api:
+        condition: service_started
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:
