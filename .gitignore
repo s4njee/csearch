@@ -1,2 +1,23 @@
 .DS_STORE
+.DS_Store
 .idea
+.env.prod
+
+# Compiled Go binaries
+backend/scraper/goscraper
+backend/scraper/scraper
+
+# Python virtualenv and build artifacts
+**/env/
+backend/scraper/build/
+backend/scraper/cache/
+backend/scraper/*.egg-info/
+
+# Node modules
+**/node_modules/
+
+# NYC test coverage
+**/.nyc_output/
+
+# Generated at deploy time — copied from backend/scraper/explore.sql
+backend/api/sql/explore.sql

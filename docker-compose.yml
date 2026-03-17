@@ -2,7 +2,7 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: updater/postgres/Dockerfile
+      dockerfile: k8s/db/Dockerfile
     environment:
       POSTGRES_DB: csearch
       POSTGRES_USER: postgres
@@ -14,13 +14,31 @@ services:
       retries: 20
       start_period: 5s
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  congress_api:
+  scraper:
     build:
-      context: ./congress_api
+      context: .
+      dockerfile: backend/scraper/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CONGRESSDIR: /srv/csearch
+      POSTGRESURI: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: csearch
+      RUN_BILLS: "true"
+      RUN_VOTES: "true"
+    volumes:
+      - ./backend/scraper/congress:/srv/csearch/congress
+
+  api:
+    build:
+      context: ./backend/api
       dockerfile: Dockerfile
     depends_on:
       postgres:
@@ -33,14 +51,14 @@ services:
     expose:
       - "3000"
 
-  nginx:
+  frontend:
     build:
-      context: ./csearch_gui_nuxt
+      context: ./frontend
       dockerfile: Dockerfile.nginx
       args:
         NUXT_API_SERVER: /api
     depends_on:
-      congress_api:
+      api:
         condition: service_started
     ports:
       - "8080:80"

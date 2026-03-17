@@ -1,0 +1,20 @@
+# Scraped congress data — can be large and is mounted as a volume at runtime
+backend/scraper/congress/data
+backend/scraper/congress/csearch/congress/data
+
+# Congress data archives
+*.tar.zst
+*.tar.zstd
+*.tar.zst
+
+# Scraper virtualenv and cache
+backend/scraper/cache
+backend/scraper/congress/cache
+
+# Node dependencies
+backend/api/node_modules
+frontend/node_modules
+
+# Git metadata
+.git
+.gitignore

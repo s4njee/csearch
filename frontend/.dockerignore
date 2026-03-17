@@ -1,0 +1,9 @@
+.git
+.gitignore
+.idea
+.claude
+.nuxt
+.output
+dist
+node_modules
+npm-debug.log
