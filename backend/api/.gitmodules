@@ -1,0 +1,4 @@
+[submodule "k8s/postgres-operator-examples"]
+	path = k8s/postgres-operator-examples
+	url = git@github.com:s4njee/postgres-operator-examples.git
+

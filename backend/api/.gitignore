@@ -1,0 +1,14 @@
+pg_data
+scraper/data/*
+scraper/__pycache__
+.idea/*
+data/*
+nginx/*
+./node_modules/*
+.DS_Store
+scraper/updater.sh
+nginx/
+scraper/congress/data*
+scraper/server/data/*
+k8s/backup.yaml
+node_modules
