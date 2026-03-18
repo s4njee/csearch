@@ -2,6 +2,7 @@
 
 const { build: buildApplication } = require('fastify-cli/helper');
 const path = require('node:path');
+const cache = require('../utils/cache');
 
 const APP_PATH = path.join(__dirname, '..', 'app.js');
 
@@ -14,6 +15,7 @@ process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'test-cli
  * Registers automatic teardown via t.after (node:test) or t.teardown (tap).
  */
 async function build(t) {
+  cache.reset();
   const app = await buildApplication([APP_PATH], {});
 
   const cleanup = t.after || t.teardown;

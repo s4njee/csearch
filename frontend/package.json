@@ -17,5 +17,9 @@
     "tailwindcss": "^3.4.17",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
+  },
+  "dependencies": {
+    "@types/plotly.js": "^3.0.10",
+    "plotly.js-dist-min": "^3.4.0"
   }
 }

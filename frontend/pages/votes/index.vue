@@ -16,6 +16,64 @@ const filterMargin = ref<number | ''>('')
 const filterVoteType = ref('')
 const filterMonth = ref('')
 
+function getQueryStringParam(value: string | string[] | undefined | null) {
+  return typeof value === 'string' ? value : ''
+}
+
+function getQueryNumberParam(value: string | string[] | undefined | null) {
+  const raw = getQueryStringParam(value)
+  if (!raw) {
+    return ''
+  }
+
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isNaN(parsed) ? '' : parsed
+}
+
+function buildVoteQuery(query?: string, nextChamber = chamber.value) {
+  const nextQuery: Record<string, string | number> = {
+    chamber: nextChamber,
+  }
+
+  if (query) {
+    nextQuery.q = query
+  }
+
+  if (filterOutcome.value) {
+    nextQuery.outcome = filterOutcome.value
+  }
+
+  if (filterVoteType.value) {
+    nextQuery.voteType = filterVoteType.value
+  }
+
+  if (filterMonth.value) {
+    nextQuery.month = filterMonth.value
+  }
+
+  if (filterMargin.value !== '') {
+    nextQuery.maxMargin = filterMargin.value
+  }
+
+  return nextQuery
+}
+
+function syncVoteFacetsFromRoute() {
+  filterOutcome.value = getQueryStringParam(route.query.outcome)
+  filterVoteType.value = getQueryStringParam(route.query.voteType)
+  filterMonth.value = getQueryStringParam(route.query.month)
+  filterMargin.value = getQueryNumberParam(route.query.maxMargin)
+}
+
+function voteQueryMatchesRoute() {
+  return getQueryStringParam(route.query.chamber).toLowerCase() === chamber.value
+    && getQueryStringParam(route.query.q) === searchQuery.value
+    && getQueryStringParam(route.query.outcome) === filterOutcome.value
+    && getQueryStringParam(route.query.voteType) === filterVoteType.value
+    && getQueryStringParam(route.query.month) === filterMonth.value
+    && getQueryNumberParam(route.query.maxMargin) === filterMargin.value
+}
+
 const filteredVotes = computed(() => {
   return votes.value.filter(v => {
     if (filterOutcome.value === 'passed' && !isPassedResult(v.result)) return false
@@ -33,6 +91,13 @@ const filteredVotes = computed(() => {
     return true
   })
 })
+
+const activeFacetCount = computed(() => [
+  filterOutcome.value !== '',
+  filterVoteType.value !== '',
+  filterMonth.value !== '',
+  filterMargin.value !== '',
+].filter(Boolean).length)
 
 const availableVoteTypes = computed(() => {
   const types = new Set(votes.value.map(v => v.votetype).filter(Boolean))
@@ -78,7 +143,7 @@ const closestMargin = computed(() => {
 function voteRoute(nextChamber: 'house' | 'senate', nextQuery?: string) {
   return {
     path: '/votes',
-    query: nextQuery ? { chamber: nextChamber, q: nextQuery } : { chamber: nextChamber },
+    query: buildVoteQuery(nextQuery, nextChamber),
   }
 }
 
@@ -164,17 +229,29 @@ async function submitSearch() {
 }
 
 watch(
-  () => [chamber.value, searchQuery.value],
+  () => [
+    chamber.value,
+    searchQuery.value,
+    route.query.outcome,
+    route.query.voteType,
+    route.query.month,
+    route.query.maxMargin,
+  ],
   () => {
     draftQuery.value = searchQuery.value
-    filterOutcome.value = ''
-    filterMargin.value = ''
-    filterVoteType.value = ''
-    filterMonth.value = ''
+    syncVoteFacetsFromRoute()
     loadVotes()
   },
   { immediate: true },
 )
+
+watch([filterOutcome, filterVoteType, filterMonth, filterMargin], async () => {
+  if (voteQueryMatchesRoute()) {
+    return
+  }
+
+  await router.replace(voteRoute(chamber.value, searchQuery.value || undefined))
+})
 </script>
 
 <template>
@@ -203,7 +280,7 @@ watch(
         </div>
       </div>
 
-      <form class="control-grid" @submit.prevent="submitSearch">
+      <form class="control-grid control-grid--search" @submit.prevent="submitSearch">
         <label class="field field--full">
           <span>Search vote questions and procedures</span>
           <input
@@ -213,41 +290,52 @@ watch(
             placeholder="cloture, confirmation, debt ceiling, impeachment..."
           >
         </label>
-
-        <label class="field">
-          <span>Outcome</span>
-          <select v-model="filterOutcome" class="field-input">
-            <option value="">Any result</option>
-            <option value="passed">Passed / Agreed</option>
-            <option value="failed">Failed / Rejected</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Vote type</span>
-          <select v-model="filterVoteType" class="field-input">
-            <option value="">Any type</option>
-            <option v-for="vt in availableVoteTypes" :key="vt" :value="vt">{{ vt }}</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Vote month</span>
-          <select v-model="filterMonth" class="field-input">
-            <option value="">Any month...</option>
-            <option v-for="month in availableMonths" :key="month" :value="month">{{ formatMonthLabel(month) }}</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Max margin (close votes)</span>
-          <input v-model.number="filterMargin" type="number" class="field-input" placeholder="e.g. 10" min="0">
-        </label>
-
         <button class="button button--primary" style="align-self: end" type="submit">
           {{ draftQuery.trim() ? 'Run vote search' : 'Load latest votes' }}
         </button>
       </form>
+
+      <details class="facet-panel">
+        <summary class="facet-panel__summary">
+          <span>Refine results</span>
+          <span class="facet-panel__meta">
+            <span v-if="activeFacetCount">({{ activeFacetCount }} active)</span>
+            <span v-else>Optional filters</span>
+          </span>
+        </summary>
+
+        <div class="facet-panel__body">
+          <label class="field">
+            <span>Outcome</span>
+            <select v-model="filterOutcome" class="field-input">
+              <option value="">Any result</option>
+              <option value="passed">Passed / Agreed</option>
+              <option value="failed">Failed / Rejected</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Vote type</span>
+            <select v-model="filterVoteType" class="field-input">
+              <option value="">Any type</option>
+              <option v-for="vt in availableVoteTypes" :key="vt" :value="vt">{{ vt }}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Vote month</span>
+            <select v-model="filterMonth" class="field-input">
+              <option value="">Any month...</option>
+              <option v-for="month in availableMonths" :key="month" :value="month">{{ formatMonthLabel(month) }}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Max margin (close votes)</span>
+            <input v-model.number="filterMargin" type="number" class="field-input" placeholder="e.g. 10" min="0">
+          </label>
+        </div>
+      </details>
     </section>
 
     <section class="summary-strip">
@@ -287,7 +375,7 @@ watch(
           <div>
             <p class="result-card__meta">{{ chamberLabel }} · Congress {{ vote.congress || '—' }}</p>
             <h2>
-              <NuxtLink :to="`/votes/${vote.voteid}`" class="result-link" style="color: inherit; text-decoration: none;">
+              <NuxtLink :to="`/votes/${vote.voteid}`" class="link-plain">
                 {{ vote.question || 'Untitled vote' }}
               </NuxtLink>
             </h2>

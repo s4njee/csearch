@@ -13,6 +13,7 @@ const {
 } = await useAsyncData<VoteDetail>(
   `vote-${voteid}`,
   () => getVote(voteid),
+  { lazy: true }
 )
 
 const errorMessage = computed(() =>
@@ -63,6 +64,17 @@ function formatDate(value?: string | null) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
 }
 
+function formatChamber(value?: string | null) {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'senate' || normalized === 's') {
+    return 'Senate'
+  }
+  if (normalized === 'house' || normalized === 'h') {
+    return 'House'
+  }
+  return value || 'Unknown chamber'
+}
+
 function voteResultClass(result?: string | null) {
   const n = String(result || '').toLowerCase()
   if (['passed', 'agreed', 'confirmed', 'approved', 'adopted', 'ratified'].some(w => n.includes(w)))
@@ -89,7 +101,7 @@ function voteResultClass(result?: string | null) {
           <div>
             <p class="eyebrow">
               <NuxtLink to="/votes">← Votes</NuxtLink>
-              · {{ vote.chamber === 'senate' ? 'Senate' : 'House' }}
+              · {{ formatChamber(vote.chamber) }}
               · Congress {{ vote.congress }}
             </p>
             <h1>{{ vote.question || 'Untitled vote' }}</h1>
@@ -101,11 +113,11 @@ function voteResultClass(result?: string | null) {
             </p>
           </div>
 
-          <div style="display: flex; gap: 0.75rem; align-items: flex-start">
-            <span :class="voteResultClass(vote.result)">
+          <div style="display: flex; gap: 0.75rem; align-items: stretch">
+            <span :class="voteResultClass(vote.result)" style="display: flex; align-items: center; justify-content: center; padding: 0.8rem 1rem;">
               {{ vote.result || 'Unknown' }}
             </span>
-            <a v-if="vote.source_url" :href="vote.source_url" target="_blank" rel="noopener noreferrer" class="button">
+            <a v-if="vote.source_url" :href="vote.source_url" target="_blank" rel="noopener noreferrer" class="button" style="display: flex; align-items: center;">
               Source ↗
             </a>
           </div>
@@ -136,6 +148,14 @@ function voteResultClass(result?: string | null) {
           <span style="text-transform: capitalize;">{{ pos }}</span>
           <strong>{{ count }}</strong>
         </article>
+      </section>
+
+      <section v-if="vote.members?.length" class="surface" style="margin-top: 1rem;">
+        <div class="section-title">
+          <h2>Breakdown</h2>
+          <p>By position and party</p>
+        </div>
+        <VoteBreakdownChart :members="vote.members" />
       </section>
 
       <section class="surface" style="margin-top: 1rem;">
@@ -171,7 +191,7 @@ function voteResultClass(result?: string | null) {
             :key="member.bioguide_id"
             class="cosponsor-card"
           >
-            <NuxtLink :to="`/members/${member.bioguide_id}`" class="cosponsor-card__name result-link" style="color: inherit; text-decoration: none; display: block;">
+            <NuxtLink :to="`/members/${member.bioguide_id}`" class="cosponsor-card__name link-plain" style="display: block;">
               {{ member.display_name || member.bioguide_id }}
             </NuxtLink>
             <div class="cosponsor-card__meta">
@@ -179,7 +199,7 @@ function voteResultClass(result?: string | null) {
               <span>{{ member.state || '?' }}</span>
             </div>
             <div class="cosponsor-card__date" style="margin-top: 0.5rem">
-              <span class="badge" :style="member.position.toLowerCase() === 'yea' || member.position.toLowerCase() === 'aye' ? 'color: var(--accent-primary); border-color: var(--accent-primary)' : member.position.toLowerCase() === 'nay' || member.position.toLowerCase() === 'no' ? 'color: rgb(248, 113, 113); border-color: rgb(248, 113, 113)' : ''">
+              <span class="badge" :style="member.position.toLowerCase() === 'yea' || member.position.toLowerCase() === 'aye' ? 'color: var(--accent-success); border-color: var(--accent-success)' : member.position.toLowerCase() === 'nay' || member.position.toLowerCase() === 'no' ? 'color: rgb(248, 113, 113); border-color: rgb(248, 113, 113)' : ''">
                 Voted {{ member.position }}
               </span>
             </div>

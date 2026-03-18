@@ -10,7 +10,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 var billTables = []string{"s", "hr", "hconres", "hjres", "hres", "sconres", "sjres", "sres"}
@@ -186,10 +189,16 @@ type ParsedBill struct {
 	Bill             csearch.InsertBillParams
 	Actions          []csearch.InsertBillActionParams
 	Cosponsors       []csearch.InsertBillCosponsorParams
-	Committees       []csearch.InsertBillCommitteeParams
+	Committees       []ParsedCommittee
 	Subjects         []csearch.InsertBillSubjectParams
-	LatestActionDate string
+	LatestActionDate time.Time
 	LatestActionText string
+}
+
+type ParsedCommittee struct {
+	CommitteeCode string
+	CommitteeName string
+	Chamber       string
 }
 
 // BillJSON is the legacy data.json shape emitted by the older scraper path.
@@ -201,6 +210,7 @@ type BillJSON struct {
 	BillType     string `json:"bill_type"`
 	IntroducedAt string `json:"introduced_at"`
 	Congress     string
+	Status       string `json:"status"`
 	Summary      struct {
 		Date string
 		Text string
@@ -239,6 +249,63 @@ func nullStr(value string) sql.NullString {
 	return sql.NullString{String: value, Valid: value != ""}
 }
 
+func nullTime(value time.Time) sql.NullTime {
+	if value.IsZero() {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: value, Valid: true}
+}
+
+func nullInt32(value int32) sql.NullInt32 {
+	if value == 0 {
+		return sql.NullInt32{}
+	}
+	return sql.NullInt32{Int32: value, Valid: true}
+}
+
+func parseDateValue(value string) (time.Time, error) {
+	if value == "" {
+		return time.Time{}, nil
+	}
+
+	layouts := []string{
+		"2006-01-02",
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+	}
+	for _, layout := range layouts {
+		if parsed, err := time.Parse(layout, value); err == nil {
+			return parsed.UTC(), nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("invalid date %q", value)
+}
+
+func mustParseDateValue(value string) time.Time {
+	parsed, err := parseDateValue(value)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
+}
+
+func parseInt32Value(value string) (int32, error) {
+	parsed, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(parsed), nil
+}
+
+func mustParseInt32Value(value string) int32 {
+	parsed, err := parseInt32Value(value)
+	if err != nil {
+		return 0
+	}
+	return parsed
+}
+
 func officialTitle(titles TitlesXML) string {
 	for _, title := range titles.Items {
 		if strings.HasPrefix(title.TitleType, "Official Title") {
@@ -265,6 +332,71 @@ func latestJSONAction(actions []struct {
 		}
 	}
 	return latestDate, latestText
+}
+
+func deriveBillStatus(latestActionText string) string {
+	text := strings.ToLower(latestActionText)
+	switch {
+	case text == "":
+		return "introduced"
+	case strings.Contains(text, "enact"):
+		return "enacted"
+	case strings.Contains(text, "veto"):
+		return "vetoed"
+	case strings.Contains(text, "pass"):
+		return "passed"
+	case strings.Contains(text, "report"):
+		return "reported"
+	case strings.Contains(text, "refer"):
+		return "referred"
+	case strings.Contains(text, "introduc"):
+		return "introduced"
+	default:
+		return "active"
+	}
+}
+
+func normalizeBillStatus(rawStatus, latestActionText string) string {
+	status := strings.ToLower(strings.TrimSpace(rawStatus))
+	switch {
+	case status == "":
+		return deriveBillStatus(latestActionText)
+	case strings.Contains(status, "enact"):
+		return "enacted"
+	case strings.Contains(status, "veto"):
+		return "vetoed"
+	case strings.Contains(status, "pass"):
+		return "passed"
+	case strings.Contains(status, "report"):
+		return "reported"
+	case strings.Contains(status, "refer"):
+		return "referred"
+	case strings.Contains(status, "introduc"):
+		return "introduced"
+	case strings.Contains(status, "active"):
+		return "active"
+	default:
+		return deriveBillStatus(latestActionText)
+	}
+}
+
+func billStatusFromSidecar(path string) string {
+	sidecarPath := filepath.Join(filepath.Dir(path), "data.json")
+	if !fileExists(sidecarPath) {
+		return ""
+	}
+
+	data, err := os.ReadFile(sidecarPath)
+	if err != nil {
+		return ""
+	}
+
+	var billJSON BillJSON
+	if err := json.Unmarshal(data, &billJSON); err != nil {
+		return ""
+	}
+
+	return billJSON.Status
 }
 
 func latestXMLAction(actions ActionsXML) (string, string) {
@@ -299,40 +431,72 @@ func parseBillJSON(path string) (ParsedBill, error) {
 		sponsorName = fmt.Sprintf("%s %s [%s]", billJSON.Sponsor.Title, billJSON.Sponsor.Name, billJSON.Sponsor.State)
 	}
 
-	billID := fmt.Sprintf("%s-%s-%s", billJSON.Congress, billJSON.BillType, billJSON.Number)
+	latestActionDate, latestActionText := latestJSONAction(billJSON.Actions)
+	parsedIntroducedAt, err := parseDateValue(billJSON.IntroducedAt)
+	if err != nil {
+		return ParsedBill{}, fmt.Errorf("parse introduced date for %s: %w", path, err)
+	}
+	parsedStatusAt, err := parseDateValue(billJSON.StatusAt)
+	if err != nil {
+		return ParsedBill{}, fmt.Errorf("parse status date for %s: %w", path, err)
+	}
+	parsedLatestActionDate, err := parseDateValue(latestActionDate)
+	if err != nil {
+		return ParsedBill{}, fmt.Errorf("parse latest action date for %s: %w", path, err)
+	}
+	statusAt := parsedStatusAt
+	if statusAt.IsZero() {
+		statusAt = parsedLatestActionDate
+	}
+	if statusAt.IsZero() {
+		statusAt = parsedIntroducedAt
+	}
+	if statusAt.IsZero() {
+		return ParsedBill{}, fmt.Errorf("missing status date for %s", path)
+	}
+
+	billNumber, err := parseInt32Value(billJSON.Number)
+	if err != nil {
+		return ParsedBill{}, fmt.Errorf("parse bill number for %s: %w", path, err)
+	}
+	congress, err := parseInt32Value(billJSON.Congress)
+	if err != nil {
+		return ParsedBill{}, fmt.Errorf("parse congress for %s: %w", path, err)
+	}
+
+	billID := fmt.Sprintf("%d-%s-%d", congress, billJSON.BillType, billNumber)
 	bill := csearch.InsertBillParams{
 		Billid:        nullStr(billID),
-		Billnumber:    billJSON.Number,
+		Billnumber:    billNumber,
 		Billtype:      strings.ToLower(billJSON.BillType),
-		Introducedat:  nullStr(billJSON.IntroducedAt),
-		Congress:      billJSON.Congress,
+		Introducedat:  nullTime(parsedIntroducedAt),
+		Congress:      congress,
 		SummaryDate:   nullStr(billJSON.Summary.Date),
 		SummaryText:   nullStr(billJSON.Summary.Text),
 		SponsorName:   nullStr(sponsorName),
 		SponsorState:  nullStr(billJSON.Sponsor.State),
 		SponsorParty:  nullStr(billJSON.Sponsor.Party),
-		Statusat:      billJSON.StatusAt,
+		BillStatus:    normalizeBillStatus(billJSON.Status, latestActionText),
+		Statusat:      statusAt,
 		Shorttitle:    nullStr(billJSON.ShortTitle),
 		Officialtitle: nullStr(billJSON.OfficialTitle),
 	}
 
 	actions := make([]csearch.InsertBillActionParams, 0, len(billJSON.Actions))
 	for _, action := range billJSON.Actions {
+		actedAt, err := parseDateValue(action.ActedAt)
+		if err != nil {
+			return ParsedBill{}, fmt.Errorf("parse action date for %s: %w", path, err)
+		}
 		actions = append(actions, csearch.InsertBillActionParams{
 			Billtype:   strings.ToLower(billJSON.BillType),
-			Billnumber: billJSON.Number,
-			Congress:   billJSON.Congress,
-			ActedAt:    action.ActedAt,
+			Billnumber: billNumber,
+			Congress:   congress,
+			ActedAt:    actedAt,
 			ActionText: nullStr(action.Text),
 			ActionType: nullStr(action.Type),
 		})
 	}
-
-	latestActionDate, latestActionText := latestJSONAction(billJSON.Actions)
-	if latestActionDate == "" {
-		latestActionDate = billJSON.StatusAt
-	}
-	bill.LatestActionDate = nullStr(latestActionDate)
 
 	cosponsors := make([]csearch.InsertBillCosponsorParams, 0, len(billJSON.Cosponsors))
 	for _, cosponsor := range billJSON.Cosponsors {
@@ -346,9 +510,11 @@ func parseBillJSON(path string) (ParsedBill, error) {
 
 		cosponsors = append(cosponsors, csearch.InsertBillCosponsorParams{
 			Billtype:   strings.ToLower(billJSON.BillType),
-			Billnumber: billJSON.Number,
-			Congress:   billJSON.Congress,
-			BioguideID: name,
+			Billnumber: billNumber,
+			Congress:   congress,
+			// Legacy JSON payloads do not include a real Bioguide ID, so leave this
+			// empty rather than populating a broken member link target.
+			BioguideID: "",
 			FullName:   nullStr(name),
 			State:      nullStr(cosponsor.State),
 			Party:      nullStr(cosponsor.Party),
@@ -359,7 +525,7 @@ func parseBillJSON(path string) (ParsedBill, error) {
 		Bill:             bill,
 		Actions:          actions,
 		Cosponsors:       cosponsors,
-		LatestActionDate: latestActionDate,
+		LatestActionDate: parsedLatestActionDate,
 		LatestActionText: latestActionText,
 	}, nil
 }
@@ -389,15 +555,24 @@ func parseBillXML(path string) (ParsedBill, error) {
 	if billType == "" {
 		billType = strings.ToLower(bill.BillType)
 	}
+	billStatus := billStatusFromSidecar(path)
 
 	if bill.Number != "" {
+		billNumber, err := parseInt32Value(bill.Number)
+		if err != nil {
+			return ParsedBill{}, fmt.Errorf("parse bill number for %s: %w", path, err)
+		}
+		congress, err := parseInt32Value(bill.Congress)
+		if err != nil {
+			return ParsedBill{}, fmt.Errorf("parse congress for %s: %w", path, err)
+		}
 		return buildParsedBill(
-			bill.Number,
+			billNumber,
 			billType,
 			bill.IntroducedAt,
 			bill.UpdateDate,
 			bill.OriginChamber,
-			bill.Congress,
+			congress,
 			bill.ShortTitle,
 			bill.LatestAction.ActionDate,
 			bill.LatestAction.Text,
@@ -408,6 +583,7 @@ func parseBillXML(path string) (ParsedBill, error) {
 			bill.Titles,
 			bill.Committees,
 			bill.Subjects,
+			billStatus,
 		), nil
 	}
 
@@ -418,13 +594,21 @@ func parseBillXML(path string) (ParsedBill, error) {
 	}
 
 	legacyBill := rootLegacy.BillXML
+	legacyNumber, err := parseInt32Value(legacyBill.Number)
+	if err != nil {
+		return ParsedBill{}, fmt.Errorf("parse bill number for %s: %w", path, err)
+	}
+	legacyCongress, err := parseInt32Value(legacyBill.Congress)
+	if err != nil {
+		return ParsedBill{}, fmt.Errorf("parse congress for %s: %w", path, err)
+	}
 	return buildParsedBill(
-		legacyBill.Number,
+		legacyNumber,
 		strings.ToLower(legacyBill.BillType),
 		legacyBill.IntroducedAt,
 		legacyBill.UpdateDate,
 		legacyBill.OriginChamber,
-		legacyBill.Congress,
+		legacyCongress,
 		legacyBill.ShortTitle,
 		legacyBill.LatestAction.ActionDate,
 		legacyBill.LatestAction.Text,
@@ -435,16 +619,17 @@ func parseBillXML(path string) (ParsedBill, error) {
 		legacyBill.Titles,
 		legacyBill.Committees,
 		legacyBill.Subjects,
+		billStatus,
 	), nil
 }
 
 func buildParsedBill(
-	number string,
+	number int32,
 	billType string,
 	introducedAt string,
 	updateDate string,
 	originChamber string,
-	congress string,
+	congress int32,
 	shortTitle string,
 	latestActionDate string,
 	latestActionText string,
@@ -455,8 +640,9 @@ func buildParsedBill(
 	titles TitlesXML,
 	committees CommitteesXML,
 	subjects SubjectsXML,
+	billStatus string,
 ) ParsedBill {
-	billID := fmt.Sprintf("%s-%s-%s", congress, strings.ToUpper(billType), number)
+	billID := fmt.Sprintf("%d-%s-%d", congress, strings.ToUpper(billType), number)
 
 	derivedLatestActionDate, derivedLatestActionText := latestXMLAction(actions)
 	if latestActionDate == "" {
@@ -464,6 +650,19 @@ func buildParsedBill(
 	}
 	if latestActionText == "" {
 		latestActionText = derivedLatestActionText
+	}
+
+	parsedIntroducedAt, err := parseDateValue(introducedAt)
+	if err != nil {
+		parsedIntroducedAt = time.Time{}
+	}
+	parsedUpdateDate, err := parseDateValue(updateDate)
+	if err != nil {
+		parsedUpdateDate = time.Time{}
+	}
+	parsedLatestActionDate, err := parseDateValue(latestActionDate)
+	if err != nil {
+		parsedLatestActionDate = time.Time{}
 	}
 
 	var summaryDate string
@@ -490,16 +689,19 @@ func buildParsedBill(
 		official = shortTitle
 	}
 
-	statusAt := latestActionDate
-	if statusAt == "" {
-		statusAt = introducedAt
+	statusAt := parsedLatestActionDate
+	if statusAt.IsZero() {
+		statusAt = parsedIntroducedAt
+	}
+	if statusAt.IsZero() {
+		statusAt = mustParseDateValue(introducedAt)
 	}
 
 	bill := csearch.InsertBillParams{
 		Billid:            nullStr(billID),
 		Billnumber:        number,
 		Billtype:          billType,
-		Introducedat:      nullStr(introducedAt),
+		Introducedat:      nullTime(parsedIntroducedAt),
 		Congress:          congress,
 		SummaryDate:       nullStr(summaryDate),
 		SummaryText:       nullStr(summaryText),
@@ -507,10 +709,11 @@ func buildParsedBill(
 		SponsorName:       nullStr(sponsorName),
 		SponsorState:      nullStr(sponsorState),
 		SponsorParty:      nullStr(sponsorParty),
+		BillStatus:        normalizeBillStatus(billStatus, latestActionText),
 		OriginChamber:     nullStr(originChamber),
 		PolicyArea:        nullStr(subjects.PolicyArea.Name),
-		UpdateDate:        nullStr(updateDate),
-		LatestActionDate:  nullStr(latestActionDate),
+		UpdateDate:        nullTime(parsedUpdateDate),
+		LatestActionDate:  nullTime(parsedLatestActionDate),
 		Statusat:          statusAt,
 		Shorttitle:        nullStr(shortTitle),
 		Officialtitle:     nullStr(official),
@@ -521,12 +724,16 @@ func buildParsedBill(
 		if action.ActedAt == "" {
 			continue
 		}
+		actedAt, err := parseDateValue(action.ActedAt)
+		if err != nil {
+			continue
+		}
 
 		parsedActions = append(parsedActions, csearch.InsertBillActionParams{
 			Billtype:         billType,
 			Billnumber:       number,
 			Congress:         congress,
-			ActedAt:          action.ActedAt,
+			ActedAt:          actedAt,
 			ActionText:       nullStr(action.Text),
 			ActionType:       nullStr(action.Type),
 			ActionCode:       nullStr(action.ActionCode),
@@ -548,24 +755,21 @@ func buildParsedBill(
 			FullName:            nullStr(cosponsor.FullName),
 			State:               nullStr(cosponsor.State),
 			Party:               nullStr(cosponsor.Party),
-			SponsorshipDate:     nullStr(cosponsor.SponsorshipDate),
+			SponsorshipDate:     nullTime(mustParseDateValue(cosponsor.SponsorshipDate)),
 			IsOriginalCosponsor: sql.NullBool{Bool: strings.EqualFold(cosponsor.IsOriginalCosponsor, "true"), Valid: cosponsor.IsOriginalCosponsor != ""},
 		})
 	}
 
-	parsedCommittees := make([]csearch.InsertBillCommitteeParams, 0, len(committees.Items))
+	parsedCommittees := make([]ParsedCommittee, 0, len(committees.Items))
 	for _, committee := range committees.Items {
 		if committee.SystemCode == "" {
 			continue
 		}
 
-		parsedCommittees = append(parsedCommittees, csearch.InsertBillCommitteeParams{
-			Billtype:      billType,
-			Billnumber:    number,
-			Congress:      congress,
+		parsedCommittees = append(parsedCommittees, ParsedCommittee{
 			CommitteeCode: committee.SystemCode,
-			CommitteeName: nullStr(committee.Name),
-			Chamber:       nullStr(committee.Chamber),
+			CommitteeName: committee.Name,
+			Chamber:       committee.Chamber,
 		})
 	}
 
@@ -589,7 +793,7 @@ func buildParsedBill(
 		Cosponsors:       parsedCosponsors,
 		Committees:       parsedCommittees,
 		Subjects:         parsedSubjects,
-		LatestActionDate: latestActionDate,
+		LatestActionDate: parsedLatestActionDate,
 		LatestActionText: latestActionText,
 	}
 }
@@ -606,28 +810,40 @@ func processBills(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg
 			}
 
 			log.Printf("processing congress %d bill type %s (%d candidates)", congress, table, len(jobs))
+			var wg sync.WaitGroup
+			sem := make(chan struct{}, dbWriteConcurrency)
 			for _, job := range jobs {
-				hash, changed, err := hashes.NeedsProcessing(job.Path)
-				if err != nil {
-					log.Printf("unable to hash %s: %v", job.Path, err)
-					continue
-				}
-				if !changed {
-					continue
-				}
+				job := job
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
 
-				parsedBill, err := job.Parse(job.Path)
-				if err != nil {
-					log.Printf("unable to parse bill %s: %v", job.Display, err)
-					continue
-				}
+					sem <- struct{}{}
+					defer func() { <-sem }()
 
-				if err := insertParsedBill(ctx, db, queries, parsedBill); err != nil {
-					log.Printf("unable to insert bill %s: %v", job.Display, err)
-					continue
-				}
-				hashes.MarkProcessed(job.Path, hash)
+					hash, changed, err := hashes.NeedsProcessing(job.Path)
+					if err != nil {
+						log.Printf("unable to hash %s: %v", job.Path, err)
+						return
+					}
+					if !changed {
+						return
+					}
+
+					parsedBill, err := job.Parse(job.Path)
+					if err != nil {
+						log.Printf("unable to parse bill %s: %v", job.Display, err)
+						return
+					}
+
+					if err := insertParsedBill(ctx, db, queries, parsedBill); err != nil {
+						log.Printf("unable to insert bill %s: %v", job.Display, err)
+						return
+					}
+					hashes.MarkProcessed(job.Path, hash)
+				}()
 			}
+			wg.Wait()
 		}
 	}
 
@@ -679,23 +895,26 @@ func billJobsForTable(cfg appConfig, congress int, table string) ([]billJob, err
 // It upserts the parent bill and replaces all child records.
 func insertParsedBill(ctx context.Context, db *sql.DB, queries *csearch.Queries, parsedBill ParsedBill) error {
 	b := parsedBill.Bill
-	if b.Billnumber == "" || b.Billtype == "" {
-		return fmt.Errorf("skipping bill with empty number/type (congress=%s, id=%s) — likely XML schema mismatch", b.Congress, b.Billid.String)
+	if b.Billnumber == 0 || b.Billtype == "" {
+		return fmt.Errorf("skipping bill with empty number/type (congress=%d, id=%s) — likely XML schema mismatch", b.Congress, b.Billid.String)
 	}
-	if b.Statusat == "" {
-		return fmt.Errorf("skipping bill %s-%s-%s: statusat is empty", b.Congress, b.Billtype, b.Billnumber)
+	if b.BillStatus == "" {
+		return fmt.Errorf("skipping bill %d-%s-%d: bill_status is empty", b.Congress, b.Billtype, b.Billnumber)
+	}
+	if b.Statusat.IsZero() {
+		return fmt.Errorf("skipping bill %d-%s-%d: statusat is empty", b.Congress, b.Billtype, b.Billnumber)
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("BeginTx failed for %s-%s-%s: %w", parsedBill.Bill.Congress, parsedBill.Bill.Billtype, parsedBill.Bill.Billnumber, err)
+		return fmt.Errorf("BeginTx failed for %d-%s-%d: %w", parsedBill.Bill.Congress, parsedBill.Bill.Billtype, parsedBill.Bill.Billnumber, err)
 	}
 	defer tx.Rollback()
 
 	q := queries.WithTx(tx)
 
 	if err := q.InsertBill(ctx, parsedBill.Bill); err != nil {
-		return fmt.Errorf("InsertBill failed for %s-%s-%s: %w", parsedBill.Bill.Congress, parsedBill.Bill.Billtype, parsedBill.Bill.Billnumber, err)
+		return fmt.Errorf("InsertBill failed for %d-%s-%d: %w", parsedBill.Bill.Congress, parsedBill.Bill.Billtype, parsedBill.Bill.Billnumber, err)
 	}
 
 	key := csearch.DeleteBillActionsParams{
@@ -710,7 +929,7 @@ func insertParsedBill(ctx context.Context, db *sql.DB, queries *csearch.Queries,
 		Billtype:         key.Billtype,
 		Billnumber:       key.Billnumber,
 		Congress:         key.Congress,
-		LatestActionDate: nullStr(parsedBill.LatestActionDate),
+		LatestActionDate: nullTime(parsedBill.LatestActionDate),
 	}); err != nil {
 		return fmt.Errorf("ClearBillLatestAction failed: %w", err)
 	}
@@ -724,7 +943,7 @@ func insertParsedBill(ctx context.Context, db *sql.DB, queries *csearch.Queries,
 		if err != nil {
 			return fmt.Errorf("InsertBillAction failed: %w", err)
 		}
-		if parsedBill.LatestActionDate != "" && action.ActedAt == parsedBill.LatestActionDate {
+		if !parsedBill.LatestActionDate.IsZero() && action.ActedAt.Equal(parsedBill.LatestActionDate) {
 			if latestActionID == 0 || action.ActionText.String == parsedBill.LatestActionText {
 				latestActionID = actionID
 			}
@@ -736,7 +955,7 @@ func insertParsedBill(ctx context.Context, db *sql.DB, queries *csearch.Queries,
 			Billnumber:       key.Billnumber,
 			Congress:         key.Congress,
 			LatestActionID:   sql.NullInt64{Int64: latestActionID, Valid: true},
-			LatestActionDate: nullStr(parsedBill.LatestActionDate),
+			LatestActionDate: nullTime(parsedBill.LatestActionDate),
 		}); err != nil {
 			return fmt.Errorf("UpdateBillLatestAction failed: %w", err)
 		}
@@ -752,12 +971,27 @@ func insertParsedBill(ctx context.Context, db *sql.DB, queries *csearch.Queries,
 		}
 	}
 
+	for _, committee := range parsedBill.Committees {
+		if err := q.InsertCommittee(ctx, csearch.InsertCommitteeParams{
+			CommitteeCode: committee.CommitteeCode,
+			CommitteeName: nullStr(committee.CommitteeName),
+			Chamber:       nullStr(committee.Chamber),
+		}); err != nil {
+			return fmt.Errorf("InsertCommittee failed: %w", err)
+		}
+	}
+
 	committeeKey := csearch.DeleteBillCommitteesParams(key)
 	if err := q.DeleteBillCommittees(ctx, committeeKey); err != nil {
 		return fmt.Errorf("DeleteBillCommittees failed: %w", err)
 	}
 	for _, committee := range parsedBill.Committees {
-		if err := q.InsertBillCommittee(ctx, committee); err != nil {
+		if err := q.InsertBillCommittee(ctx, csearch.InsertBillCommitteeParams{
+			Billtype:      parsedBill.Bill.Billtype,
+			Billnumber:    parsedBill.Bill.Billnumber,
+			Congress:      parsedBill.Bill.Congress,
+			CommitteeCode: committee.CommitteeCode,
+		}); err != nil {
 			return fmt.Errorf("InsertBillCommittee failed: %w", err)
 		}
 	}
@@ -773,7 +1007,7 @@ func insertParsedBill(ctx context.Context, db *sql.DB, queries *csearch.Queries,
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("Commit failed for %s-%s-%s: %w", parsedBill.Bill.Congress, parsedBill.Bill.Billtype, parsedBill.Bill.Billnumber, err)
+		return fmt.Errorf("Commit failed for %d-%s-%d: %w", parsedBill.Bill.Congress, parsedBill.Bill.Billtype, parsedBill.Bill.Billnumber, err)
 	}
 
 	return nil

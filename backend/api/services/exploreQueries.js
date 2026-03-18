@@ -25,18 +25,20 @@ const QUERY_IDS_BY_NUMBER = {
   15: "policy-area-by-congress",
   16: "bills-with-floor-votes",
   17: "party-line-crossovers",
+  18: "active-committees-recent",
+  19: "closest-votes-recent",
 };
 
 const SEARCH_QUERY_PARAMS = {
   [SEARCH_BILLS_QUERY_ID]: [
     { name: "q", type: "string", default: "clean energy tax credit" },
     { name: "billType", type: "string", default: null },
-    { name: "congress", type: "string", default: null },
+    { name: "congress", type: "integer", default: null },
     { name: "limit", type: "integer", default: 20, min: 1, max: MAX_RESULT_LIMIT },
   ],
   [SEARCH_VOTES_QUERY_ID]: [
     { name: "q", type: "string", default: "cloture nomination" },
-    { name: "congress", type: "string", default: null },
+    { name: "congress", type: "integer", default: null },
     { name: "chamber", type: "string", default: null },
     { name: "limit", type: "integer", default: 20, min: 1, max: MAX_RESULT_LIMIT },
   ],
@@ -116,6 +118,19 @@ function normalizeOptionalText(value) {
   return String(value);
 }
 
+function normalizeOptionalInteger(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
 function normalizeLimit(value, defaultValue) {
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed)) {
@@ -146,11 +161,11 @@ function getExploreQuery(queryId) {
 function buildExecution(query, requestQuery = {}) {
   if (query.id === SEARCH_BILLS_QUERY_ID) {
     return {
-      sql: "SELECT * FROM search_bills(?, ?, ?, ?);",
-      bindings: [
+        sql: "SELECT * FROM search_bills(?, ?, ?, ?);",
+        bindings: [
         requestQuery.q || "clean energy tax credit",
         normalizeOptionalText(requestQuery.billType),
-        normalizeOptionalText(requestQuery.congress),
+        normalizeOptionalInteger(requestQuery.congress),
         normalizeLimit(requestQuery.limit, 20),
       ],
     };
@@ -161,7 +176,7 @@ function buildExecution(query, requestQuery = {}) {
       sql: "SELECT * FROM search_votes(?, ?, ?, ?);",
       bindings: [
         requestQuery.q || "cloture nomination",
-        normalizeOptionalText(requestQuery.congress),
+        normalizeOptionalInteger(requestQuery.congress),
         normalizeOptionalText(requestQuery.chamber),
         normalizeLimit(requestQuery.limit, 20),
       ],

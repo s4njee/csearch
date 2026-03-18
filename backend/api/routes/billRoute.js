@@ -24,8 +24,12 @@ module.exports = async function (fastify, opts) {
       db.knex("bills")
         .where({ billtype, congress, billnumber })
         .select(
-          "billid", "billnumber", "billtype", "congress",
+          "billid",
+          db.knex.raw("billnumber::text AS billnumber"),
+          "billtype",
+          db.knex.raw("congress::text AS congress"),
           "shorttitle", "officialtitle", "introducedat", "statusat",
+          "bill_status",
           "summary_text", "summary_date",
           "sponsor_name", "sponsor_party", "sponsor_state", "sponsor_bioguide_id",
           "origin_chamber", "policy_area", "update_date", "latest_action_date"
@@ -47,9 +51,10 @@ module.exports = async function (fastify, opts) {
         .select("voteid", "congress", "chamber", "question", "result", "votedate", "votetype")
         .orderBy("votedate", "desc"),
 
-      db.knex("bill_committees")
-        .where({ billtype, congress, billnumber })
-        .select("committee_code", "committee_name", "chamber"),
+      db.knex("bill_committees as bc")
+        .join("committees as c", "bc.committee_code", "c.committee_code")
+        .where({ "bc.billtype": billtype, "bc.congress": congress, "bc.billnumber": billnumber })
+        .select("bc.committee_code", "c.committee_name", "c.chamber"),
     ]);
 
     if (!bill) {

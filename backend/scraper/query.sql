@@ -4,9 +4,9 @@ INSERT INTO bills (
     summary_date, summary_text,
     sponsor_bioguide_id, sponsor_name, sponsor_state, sponsor_party,
     origin_chamber, policy_area, update_date,
-    latest_action_date, statusat, shorttitle, officialtitle
+    latest_action_date, bill_status, statusat, shorttitle, officialtitle
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 ) ON CONFLICT (billtype, billnumber, congress) DO UPDATE SET
     summary_date        = excluded.summary_date,
     summary_text        = excluded.summary_text,
@@ -18,6 +18,8 @@ INSERT INTO bills (
     policy_area         = excluded.policy_area,
     update_date         = excluded.update_date,
     latest_action_date  = excluded.latest_action_date,
+    bill_status         = excluded.bill_status,
+    statusat            = excluded.statusat,
     shorttitle          = excluded.shorttitle,
     officialtitle       = excluded.officialtitle;
 
@@ -56,9 +58,16 @@ ON CONFLICT ON CONSTRAINT bill_cosponsors_pkey DO NOTHING;
 -- name: DeleteBillCommittees :exec
 DELETE FROM bill_committees WHERE billtype = $1 AND billnumber = $2 AND congress = $3;
 
+-- name: InsertCommittee :exec
+INSERT INTO committees (committee_code, committee_name, chamber)
+VALUES ($1, $2, $3)
+ON CONFLICT (committee_code) DO UPDATE SET
+    committee_name = excluded.committee_name,
+    chamber = excluded.chamber;
+
 -- name: InsertBillCommittee :exec
-INSERT INTO bill_committees (billtype, billnumber, congress, committee_code, committee_name, chamber)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO bill_committees (billtype, billnumber, congress, committee_code)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT ON CONSTRAINT bill_committees_pkey DO NOTHING;
 
 -- name: DeleteBillSubjects :exec

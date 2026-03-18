@@ -19,6 +19,10 @@ import (
 // during bill and vote ingest.
 const workerLimit = 64
 
+// dbWriteConcurrency caps concurrent write transactions to match the database
+// pool size and the target cluster's available CPU.
+const dbWriteConcurrency = 4
+
 // appConfig holds the environment configuration needed by the updater to locate
 // source data and connect to the database.
 type appConfig struct {
@@ -80,6 +84,8 @@ func openQueries(cfg appConfig) (*sql.DB, *csearch.Queries, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	db.SetMaxOpenConns(dbWriteConcurrency)
+	db.SetMaxIdleConns(dbWriteConcurrency)
 
 	return db, csearch.New(db), nil
 }

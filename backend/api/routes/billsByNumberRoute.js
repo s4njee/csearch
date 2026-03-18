@@ -13,10 +13,10 @@ module.exports = async function (fastify, opts) {
 
     return db.knex("bills as b")
       .select(
-        "b.billid", "b.billtype", "b.congress", "b.billnumber",
+        "b.billid", "b.billtype", db.knex.raw("b.congress::text AS congress"), db.knex.raw("b.billnumber::text AS billnumber"),
         "b.shorttitle", "b.officialtitle", "b.introducedat",
         "b.latest_action_date", "b.sponsor_name", "b.sponsor_party",
-        "b.sponsor_state", "b.policy_area", "b.statusat"
+        "b.sponsor_state", "b.policy_area", "b.statusat", "b.bill_status"
       )
       .where("b.billnumber", number)
       .orderByRaw("b.latest_action_date DESC NULLS LAST")

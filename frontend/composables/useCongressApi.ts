@@ -41,6 +41,8 @@ export function useCongressApi() {
     latestBills: (billType: string) => apiFetch<BillRecord[]>(`/latest/${billType}`),
     searchBills: (billType: string, filter: string, query: string) =>
       apiFetch<BillRecord[]>(withQuery(`/search/${billType}/${filter}`, { query })),
+    searchAllBills: (query: string) =>
+      apiFetch<BillRecord[]>(withQuery('/search/all/relevance', { query })),
     getBill: (billType: string, congress: string, billNumber: string) =>
       apiFetch<BillDetail>(`/bills/${billType}/${congress}/${billNumber}`),
     fetchBillsByNumber: (number: string) =>
@@ -48,6 +50,8 @@ export function useCongressApi() {
     latestVotes: (chamber: string) => apiFetch<VoteRecord[]>(`/votes/${chamber}`),
     searchVotes: (query: Record<string, string | number | undefined | null>) =>
       apiFetch<ExploreQueryResponse>(withQuery('/explore/vote-search-example', query)),
+    searchVotesFuzzy: (query: string, chamber?: string) =>
+      apiFetch<VoteRecord[]>(withQuery('/votes/search', { query, chamber })),
     getMember: (bioguideId: string) => apiFetch<MemberDetail>(`/members/${bioguideId}`),
     getVote: (voteId: string) => apiFetch<VoteDetail>(`/votes/detail/${voteId}`),
     getCommittees: () => apiFetch<CommitteeRecord[]>('/committees'),

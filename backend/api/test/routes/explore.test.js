@@ -12,14 +12,14 @@ describe('GET /explore', () => {
   const originalKnex = db.knex;
   afterEach(() => { db.knex = originalKnex; });
 
-  it('returns 200 with a list of 17 explore queries', async (t) => {
+  it('returns 200 with a list of 19 explore queries', async (t) => {
     const app = await build(t);
 
     const res = await app.inject({ method: 'GET', url: '/explore' });
 
     assert.equal(res.statusCode, 200);
     const { queries } = JSON.parse(res.payload);
-    assert.equal(queries.length, 17);
+    assert.equal(queries.length, 19);
   });
 
   it('includes correct metadata for each query', async (t) => {
@@ -72,7 +72,7 @@ describe('GET /explore/:queryId', () => {
     db.knex = createMockKnex({
       raw: (sql, bindings) => {
         assert.equal(sql, 'SELECT * FROM search_bills(?, ?, ?, ?);');
-        assert.deepStrictEqual(bindings, ['solar tax', 'hr', '118', 5]);
+        assert.deepStrictEqual(bindings, ['solar tax', 'hr', 118, 5]);
         return { rows: [{ billtype: 'hr', billnumber: '1' }] };
       },
     });
@@ -88,7 +88,7 @@ describe('GET /explore/:queryId', () => {
     assert.equal(body.query.id, 'bill-search-example');
     assert.equal(body.results.length, 1);
     assert.equal(body.sql, 'SELECT * FROM search_bills(?, ?, ?, ?);');
-    assert.deepStrictEqual(body.bindings, ['solar tax', 'hr', '118', 5]);
+    assert.deepStrictEqual(body.bindings, ['solar tax', 'hr', 118, 5]);
   });
 
   it('runs the parameterized vote search query', async (t) => {
@@ -172,10 +172,10 @@ describe('explore SQL alignment', () => {
       'utf8',
     );
     const updater = fs.readFileSync(
-      path.join(__dirname, '..', '..', '..', 'updater', 'explore.sql'),
+      path.join(__dirname, '..', '..', '..', 'scraper', 'explore.sql'),
       'utf8',
     );
 
-    assert.equal(bundled, updater, 'congress_api/sql/explore.sql should match updater/explore.sql');
+    assert.equal(bundled, updater, 'backend/api/sql/explore.sql should match backend/scraper/explore.sql');
   });
 });

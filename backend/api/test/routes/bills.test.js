@@ -65,6 +65,7 @@ describe('GET /bills/:billtype/:congress/:billnumber', () => {
     const expectedKeys = [
       'billid', 'billnumber', 'billtype', 'congress',
       'shorttitle', 'officialtitle', 'introducedat', 'statusat',
+      'bill_status',
       'summary_text', 'summary_date',
       'sponsor_name', 'sponsor_party', 'sponsor_state', 'sponsor_bioguide_id',
       'origin_chamber', 'policy_area', 'update_date', 'latest_action_date',

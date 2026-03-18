@@ -19,6 +19,8 @@ export interface BillRecord {
   update_date?: string | null
   latest_action_date?: string | null
   cosponsor_count?: number | null
+  bill_status?: string | null
+  committee_codes?: string[] | null
 }
 
 // ─── Bill detail (returned by /bills/:billtype/:congress/:billnumber) ─────────
@@ -77,6 +79,8 @@ export interface VoteRecord {
   yea_count?: number | null
   nay_count?: number | null
   source_url?: string | null
+  bill_type?: string | null
+  bill_number?: string | null
 }
 
 export interface VoteMember {
@@ -249,6 +253,7 @@ export const EXPLORE_GROUPS = [
       'recent-bills',
       'top-subject-areas',
       'active-committees',
+      'active-committees-recent',
       'policy-area-by-congress',
       'bills-with-floor-votes',
     ],
@@ -271,6 +276,7 @@ export const EXPLORE_GROUPS = [
     queryIds: [
       'largest-vote-margins',
       'closest-votes',
+      'closest-votes-recent',
       'most-not-voting-members',
       'party-line-crossovers',
       'vote-search-example',
@@ -306,4 +312,6 @@ export const EXPLORE_QUERY_DESCRIPTIONS: Record<string, string> = {
   'policy-area-by-congress': 'How policy area activity changes from congress to congress.',
   'bills-with-floor-votes': 'Bills connected to recorded floor votes and outcomes.',
   'party-line-crossovers': 'Members who most often vote against their party majority.',
+  'active-committees-recent': 'Committees with the most bill referrals in the past two months.',
+  'closest-votes-recent': 'The tightest yea/nay splits from the past two months.',
 }

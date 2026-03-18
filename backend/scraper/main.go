@@ -49,12 +49,12 @@ func main() {
 
 	ctx := context.Background()
 
-	voteHashes, err := loadFileHashStore(filepath.Join(cfg.CongressDir, "congress", "voteHashes.gob"))
+	voteHashes, err := loadFileHashStore(filepath.Join(cfg.CongressDir, "data", "voteHashes.gob"))
 	if err != nil {
 		log.Fatalf("unable to load vote hash cache: %v", err)
 	}
 
-	billHashes, err := loadFileHashStore(filepath.Join(cfg.CongressDir, "congress", "fileHashes.gob"))
+	billHashes, err := loadFileHashStore(filepath.Join(cfg.CongressDir, "data", "fileHashes.gob"))
 	if err != nil {
 		log.Fatalf("unable to load bill hash cache: %v", err)
 	}

@@ -6,14 +6,15 @@ package csearch
 
 import (
 	"database/sql"
+	"time"
 )
 
 type Bill struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -22,10 +23,11 @@ type Bill struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 	SearchDocument    interface{}
@@ -34,9 +36,9 @@ type Bill struct {
 type BillAction struct {
 	ID               int64
 	Billtype         string
-	Billnumber       string
-	Congress         string
-	ActedAt          string
+	Billnumber       int32
+	Congress         int32
+	ActedAt          time.Time
 	ActionText       sql.NullString
 	ActionType       sql.NullString
 	ActionCode       sql.NullString
@@ -45,38 +47,36 @@ type BillAction struct {
 
 type BillCommittee struct {
 	Billtype      string
-	Billnumber    string
-	Congress      string
+	Billnumber    int32
+	Congress      int32
 	CommitteeCode string
-	CommitteeName sql.NullString
-	Chamber       sql.NullString
 }
 
 type BillCosponsor struct {
 	Billtype            string
-	Billnumber          string
-	Congress            string
+	Billnumber          int32
+	Congress            int32
 	BioguideID          string
 	FullName            sql.NullString
 	State               sql.NullString
 	Party               sql.NullString
-	SponsorshipDate     sql.NullString
+	SponsorshipDate     sql.NullTime
 	IsOriginalCosponsor sql.NullBool
 }
 
 type BillSubject struct {
 	Billtype   string
-	Billnumber string
-	Congress   string
+	Billnumber int32
+	Congress   int32
 	Subject    string
 }
 
 type Bills100 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -85,20 +85,21 @@ type Bills100 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills101 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -107,20 +108,21 @@ type Bills101 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills102 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -129,20 +131,21 @@ type Bills102 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills103 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -151,20 +154,21 @@ type Bills103 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills104 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -173,20 +177,21 @@ type Bills104 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills105 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -195,20 +200,21 @@ type Bills105 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills106 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -217,20 +223,21 @@ type Bills106 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills107 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -239,20 +246,21 @@ type Bills107 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills108 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -261,20 +269,21 @@ type Bills108 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills109 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -283,20 +292,21 @@ type Bills109 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills110 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -305,20 +315,21 @@ type Bills110 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills111 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -327,20 +338,21 @@ type Bills111 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills112 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -349,20 +361,21 @@ type Bills112 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills113 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -371,20 +384,21 @@ type Bills113 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills114 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -393,20 +407,21 @@ type Bills114 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills115 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -415,20 +430,21 @@ type Bills115 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills116 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -437,20 +453,21 @@ type Bills116 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills117 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -459,20 +476,21 @@ type Bills117 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills118 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -481,20 +499,21 @@ type Bills118 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills119 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -503,20 +522,21 @@ type Bills119 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills93 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -525,20 +545,21 @@ type Bills93 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills94 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -547,20 +568,21 @@ type Bills94 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills95 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -569,20 +591,21 @@ type Bills95 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills96 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -591,20 +614,21 @@ type Bills96 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills97 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -613,20 +637,21 @@ type Bills97 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills98 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -635,20 +660,21 @@ type Bills98 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type Bills99 struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -657,20 +683,21 @@ type Bills99 struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
 
 type BillsDefault struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -679,21 +706,28 @@ type BillsDefault struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
+	UpdateDate        sql.NullTime
 	LatestActionID    sql.NullInt64
-	LatestActionDate  sql.NullString
-	Statusat          string
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
+}
+
+type Committee struct {
+	CommitteeCode string
+	CommitteeName sql.NullString
+	Chamber       sql.NullString
 }
 
 type Vote struct {
 	Voteid         string
 	BillType       sql.NullString
-	BillNumber     sql.NullString
-	Congress       sql.NullString
-	Votenumber     sql.NullString
-	Votedate       sql.NullString
+	BillNumber     sql.NullInt32
+	Congress       sql.NullInt32
+	Votenumber     sql.NullInt32
+	Votedate       sql.NullTime
 	Question       sql.NullString
 	Result         sql.NullString
 	Votesession    sql.NullString

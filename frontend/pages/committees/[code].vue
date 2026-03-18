@@ -13,6 +13,7 @@ const {
 } = await useAsyncData<CommitteeDetail>(
   `committee-${committeeCode}`,
   () => getCommittee(committeeCode),
+  { lazy: true }
 )
 
 const errorMessage = computed(() =>
@@ -75,11 +76,8 @@ function summarizeText(value?: string | null, limit = 160) {
                 <p class="result-card__meta">
                   {{ bill.billtype.toUpperCase() }} {{ bill.billnumber }} · Congress {{ bill.congress }}
                 </p>
-                <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
-              </div>
-              <div class="result-card__links">
-                <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="result-link result-link--primary">
-                  Details →
+                <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="link-plain">
+                  <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
                 </NuxtLink>
               </div>
             </div>

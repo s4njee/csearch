@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: csearch-updater
     app.kubernetes.io/component: scraper
 spec:
+  timeZone: "America/Chicago"
   schedule: "0 0 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
@@ -28,6 +29,8 @@ spec:
               - name: ndots
                 value: "1"
           securityContext:
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
             seccompProfile:
               type: RuntimeDefault
           containers:

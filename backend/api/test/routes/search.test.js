@@ -31,6 +31,21 @@ describe('GET /search/:table/:filter', () => {
     assert.equal(body.length, 1);
   });
 
+  it('returns 200 for the all-bills search route', async (t) => {
+    db.knex = createMockKnex({ tables: { bills: [SAMPLE_BILL_LIST_ITEM] } });
+    const app = await build(t);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/search/all/relevance?query=infrastructure',
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.payload);
+    assert.ok(Array.isArray(body));
+    assert.equal(body.length, 1);
+  });
+
   it('returns 200 with date-sorted results', async (t) => {
     db.knex = createMockKnex({ tables: { bills: [SAMPLE_BILL_LIST_ITEM] } });
     const app = await build(t);

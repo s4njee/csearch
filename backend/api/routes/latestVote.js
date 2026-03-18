@@ -1,4 +1,5 @@
 const db = require("../controllers/db");
+const cache = require("../utils/cache");
 
 const CHAMBER_ABBREV = { house: "h", senate: "s" };
 
@@ -11,9 +12,15 @@ module.exports = async function (fastify, opts) {
       return { error: "Invalid chamber; use 'house' or 'senate'" };
     }
 
-    return db.knex
+    const cacheKey = `latest_votes_${chamber}`;
+    if (cache.has(cacheKey)) {
+      reply.header("X-Cache", "HIT");
+      return cache.get(cacheKey);
+    }
+
+    const data = await db.knex
       .select(
-        "v.congress", "v.votenumber", "v.votedate", "v.question",
+        db.knex.raw("v.congress::text AS congress"), db.knex.raw("v.votenumber::text AS votenumber"), "v.votedate", "v.question",
         "v.votesession", "v.result", "v.chamber", "v.votetype",
         "v.voteid", "v.source_url",
         db.knex.raw("COUNT(CASE WHEN vm.position = 'yea'       THEN 1 END)::int AS yea"),
@@ -31,5 +38,9 @@ module.exports = async function (fastify, opts) {
       )
       .orderBy("v.votedate", "desc")
       .limit(60);
+
+    cache.set(cacheKey, data);
+    reply.header("X-Cache", "MISS");
+    return data;
   });
 };

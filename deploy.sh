@@ -33,6 +33,15 @@ echo "==> Skip scraper: ${SKIP_SCRAPER}"
 # 0. Build and push Docker images (linux/amd64)
 # ---------------------------------------------------------------------------
 echo ""
+echo "==> Building csearch-postgres (linux/amd64)..."
+docker buildx build \
+  --platform linux/amd64 \
+  --push \
+  -t "${REGISTRY}/csearch-postgres:latest" \
+  -f k8s/db/Dockerfile \
+  .
+
+echo ""
 echo "==> Building csearch-api (linux/amd64)..."
 mkdir -p backend/api/sql
 cp backend/scraper/explore.sql backend/api/sql/explore.sql
@@ -102,13 +111,10 @@ echo "==> Waiting for API to be ready..."
 ${KUBECTL} rollout status deployment/csearch-api --timeout=120s
 
 # ---------------------------------------------------------------------------
-# 3. Scraper CronJob + PVC
+# 3. Scraper CronJob
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_SCRAPER" == "false" ]]; then
   echo ""
-  echo "==> Applying scraper PVC..."
-  ${KUBECTL} apply -f k8s/scraper/pvc.yaml
-
   echo "==> Applying scraper CronJob..."
   ${KUBECTL} apply -f k8s/scraper/cronjob.yaml
 else
