@@ -2,6 +2,7 @@ package main
 
 import (
 	"app/csearch/csearch"
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -9,7 +10,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
 )
 
@@ -37,7 +37,7 @@ type VoteJSON struct {
 	SourceURL string                       `json:"source_url"`
 	Votetype  string                       `json:"type"`
 	VoteID    string                       `json:"vote_id"`
-	Votes     map[string][]voteMemberJSON  `json:"votes"`
+	Votes     map[string][]json.RawMessage `json:"votes"`
 }
 
 // normalizePosition maps standard vote keys to canonical position strings.
@@ -92,18 +92,18 @@ func parseVote(path string) (ParsedVote, error) {
 		billType = voteJSON.BillType
 	}
 
-	var billNumber string
-	if voteJSON.Bill.Number != 0 {
-		billNumber = strconv.Itoa(voteJSON.Bill.Number)
+	votedAt, err := parseDateValue(voteJSON.Votedate)
+	if err != nil {
+		return ParsedVote{}, fmt.Errorf("parse vote date for %s: %w", path, err)
 	}
 
 	vote := csearch.InsertVoteParams{
 		Voteid:      voteJSON.VoteID,
 		BillType:    nullStr(billType),
-		BillNumber:  nullStr(billNumber),
-		Congress:    nullStr(strconv.Itoa(voteJSON.Congress)),
-		Votenumber:  nullStr(strconv.Itoa(voteJSON.Number)),
-		Votedate:    nullStr(voteJSON.Votedate),
+		BillNumber:  nullInt32(int32(voteJSON.Bill.Number)),
+		Congress:    nullInt32(int32(voteJSON.Congress)),
+		Votenumber:  nullInt32(int32(voteJSON.Number)),
+		Votedate:    nullTime(votedAt),
 		Question:    nullStr(voteJSON.Question),
 		Result:      nullStr(voteJSON.Result),
 		Votesession: nullStr(voteJSON.Session),
@@ -114,8 +114,13 @@ func parseVote(path string) (ParsedVote, error) {
 
 	members := make([]csearch.InsertVoteMemberParams, 0)
 	for key, items := range voteJSON.Votes {
+		parsedMembers, err := parseVoteMembers(items)
+		if err != nil {
+			return ParsedVote{}, fmt.Errorf("parse vote members for %s/%s: %w", path, key, err)
+		}
+
 		position := normalizePosition(key)
-		for _, item := range items {
+		for _, item := range parsedMembers {
 			if item.ID == "" {
 				continue
 			}
@@ -136,6 +141,30 @@ func parseVote(path string) (ParsedVote, error) {
 	}, nil
 }
 
+// parseVoteMembers accepts mixed legacy vote-member arrays. Some Senate
+// tiebreaker votes include string markers like "VP" alongside normal member
+// objects; those markers are ignored because they are not legislator records.
+func parseVoteMembers(items []json.RawMessage) ([]voteMemberJSON, error) {
+	members := make([]voteMemberJSON, 0, len(items))
+	for _, item := range items {
+		trimmed := bytes.TrimSpace(item)
+		if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+			continue
+		}
+		if trimmed[0] == '"' {
+			continue
+		}
+
+		var member voteMemberJSON
+		if err := json.Unmarshal(trimmed, &member); err != nil {
+			return nil, err
+		}
+		members = append(members, member)
+	}
+
+	return members, nil
+}
+
 // processVotes handles the discovery, parsing, and database insertion of all
 // roll call votes for all supported congresses.
 func processVotes(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg appConfig, hashes *fileHashStore) error {
@@ -148,13 +177,25 @@ func processVotes(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg
 
 		log.Printf("processing vote congress %d (%d candidates)", congress, len(jobs))
 		parsedVotes := collectChangedVotes(jobs, hashes)
+		var wg sync.WaitGroup
+		sem := make(chan struct{}, dbWriteConcurrency)
 		for _, parsedVote := range parsedVotes {
-			if err := insertParsedVote(ctx, db, queries, parsedVote); err != nil {
-				log.Printf("unable to insert vote %s: %v", parsedVote.Vote.Voteid, err)
-				continue
-			}
-			hashes.MarkProcessed(parsedVote.Path, parsedVote.Hash)
+			parsedVote := parsedVote
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				if err := insertParsedVote(ctx, db, queries, parsedVote); err != nil {
+					log.Printf("unable to insert vote %s: %v", parsedVote.Vote.Voteid, err)
+					return
+				}
+				hashes.MarkProcessed(parsedVote.Path, parsedVote.Hash)
+			}()
 		}
+		wg.Wait()
 	}
 
 	return nil

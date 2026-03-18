@@ -23,15 +23,21 @@ module.exports = async function (fastify, opts) {
     try {
       await request.jwtVerify();
     } catch (err) {
-      reply.send(err);
+      reply.code(401).send(err);
     }
   });
+
+  function getAuthenticatedEmail(request) {
+    return request.user && typeof request.user.email === "string"
+      ? request.user.email
+      : null;
+  }
 
   fastify.post("/login", async function (request, reply) {
     const data = request.body;
     const rows = await db.knex.raw(
       "select exists(select 1 from users where email= ? )",
-      data.email
+      [data.email]
     );
 
     if (rows.rows[0].exists === false) {
@@ -50,6 +56,12 @@ module.exports = async function (fastify, opts) {
     "/addVote",
     { onRequest: [fastify.authenticate] },
     async function (request, reply) {
+      const authEmail = getAuthenticatedEmail(request);
+      if (!authEmail) {
+        reply.code(401);
+        return { error: "Unauthorized" };
+      }
+
       const body = request.body;
       const rows = await db.knex
         .select("votes")
@@ -57,12 +69,12 @@ module.exports = async function (fastify, opts) {
         .where("billid", body.billid);
 
       const votes = rows[0]?.votes || [];
-      if (!votes.includes(body.email)) {
+      if (!votes.includes(authEmail)) {
         await db.knex.raw(
           `UPDATE bills SET votes = (
             CASE WHEN votes IS NULL THEN '[]'::JSONB ELSE votes END
           ) || ?::JSONB WHERE billid = ?;`,
-          [`["${body.email}"]`, body.billid]
+          [`["${authEmail}"]`, body.billid]
         );
         await db.knex.raw(
           `UPDATE bills SET votecount = votecount + 1 WHERE billid = ?;`,
@@ -78,16 +90,22 @@ module.exports = async function (fastify, opts) {
     "/removeVote",
     { onRequest: [fastify.authenticate] },
     async function (request, reply) {
+      const authEmail = getAuthenticatedEmail(request);
+      if (!authEmail) {
+        reply.code(401);
+        return { error: "Unauthorized" };
+      }
+
       const body = request.body;
       const rows = await db.knex("bills")
         .select("votes")
         .where("billid", body.billid);
 
       const votes = rows[0]?.votes;
-      if (votes && votes.includes(body.email)) {
+      if (votes && votes.includes(authEmail)) {
         await db.knex.raw(
           `UPDATE bills SET votes = votes - ?::text WHERE billid = ?;`,
-          [body.email, body.billid]
+          [authEmail, body.billid]
         );
         await db.knex.raw(
           `UPDATE bills SET votecount = GREATEST(votecount - 1, 0) WHERE billid = ?;`,

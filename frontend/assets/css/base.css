@@ -42,6 +42,11 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: rgba(140, 155, 175, 0.7);
 }
 
 button,

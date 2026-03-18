@@ -4,8 +4,11 @@ const path = require("path");
 const AutoLoad = require("@fastify/autoload");
 const cors = require("@fastify/cors");
 
-// Pass --options via CLI arguments in command to enable these options.
-module.exports.options = {};
+// Fastify options: trustProxy ensures we get real user IPs behind CloudFront/K8s
+// instead of blocking EVERYONE as 1 IP through the rate limiter!
+module.exports.options = {
+  trustProxy: true
+};
 
 module.exports = async function (fastify, opts) {
   // Place here your custom code!
@@ -14,9 +17,27 @@ module.exports = async function (fastify, opts) {
 
   // This loads all plugins defined in plugins
   // those should be support plugins that are reused
-  // through your application
   fastify.register(cors, {
     // put your options here
+  });
+
+  fastify.register(require('@fastify/compress'), {
+    global: true,
+    encodings: ['br', 'gzip'] // Brotli prioritized
+  });
+
+  // 1. API Rate Limiting to protect heavy PostgreSQL CPU queries
+  fastify.register(require('@fastify/rate-limit'), {
+    max: 100, // Limit each IP to 100 requests per time window
+    timeWindow: '1 minute'
+  });
+
+  // 2. Graceful Shutdown (Zero-Downtime Rollout connection draining)
+  const db = require('./controllers/db');
+  fastify.addHook('onClose', async (instance) => {
+    // When K8s sends SIGTERM, this ensures active users finish downloading their bills 
+    // and then cleanly destroys the active Knex Postgres connection pools.
+    await db.knex.destroy();
   });
 
   fastify.register(AutoLoad, {

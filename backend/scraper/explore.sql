@@ -54,13 +54,16 @@ LIMIT 30;
 
 -- 4. Most active committees by number of referred bills.
 SELECT
-    bc.committee_code,
-    MAX(bc.committee_name) AS committee_name,
+    c.committee_code,
+    c.committee_name,
+    c.chamber,
     COUNT(*) AS bill_count,
     COUNT(DISTINCT bc.congress) AS congresses_covered
 FROM bill_committees bc
-GROUP BY bc.committee_code
-ORDER BY bill_count DESC, congresses_covered DESC, bc.committee_code
+JOIN committees c
+    ON c.committee_code = bc.committee_code
+GROUP BY c.committee_code, c.committee_name, c.chamber
+ORDER BY bill_count DESC, congresses_covered DESC, c.committee_code
 LIMIT 30;
 
 -- 5. Bills with the deepest action history.
@@ -321,3 +324,45 @@ SELECT
 FROM member_crossovers
 ORDER BY crossover_pct DESC, crossover_votes DESC
 LIMIT 30;
+
+-- 18. Most active committees by bills referred in the past two months.
+SELECT
+    c.committee_code,
+    c.committee_name,
+    c.chamber,
+    COUNT(*) AS bill_count
+FROM bill_committees bc
+JOIN committees c
+    ON c.committee_code = bc.committee_code
+JOIN bills b
+    ON b.billtype = bc.billtype
+   AND b.billnumber = bc.billnumber
+   AND b.congress = bc.congress
+WHERE b.latest_action_date IS NOT NULL
+  AND b.latest_action_date::date >= (NOW() - INTERVAL '2 months')::date
+GROUP BY c.committee_code, c.committee_name, c.chamber
+ORDER BY bill_count DESC, c.committee_code
+LIMIT 20;
+
+-- 19. Closest votes in the past two months.
+SELECT
+    v.voteid,
+    v.congress,
+    v.chamber,
+    v.question,
+    v.result,
+    SUM(CASE WHEN vm.position = 'yea' THEN 1 ELSE 0 END) AS yea_count,
+    SUM(CASE WHEN vm.position = 'nay' THEN 1 ELSE 0 END) AS nay_count,
+    ABS(
+        SUM(CASE WHEN vm.position = 'yea' THEN 1 ELSE 0 END) -
+        SUM(CASE WHEN vm.position = 'nay' THEN 1 ELSE 0 END)
+    ) AS margin
+FROM votes v
+JOIN vote_members vm
+    ON vm.voteid = v.voteid
+WHERE v.votedate IS NOT NULL
+  AND v.votedate::date >= (NOW() - INTERVAL '2 months')::date
+GROUP BY v.voteid, v.congress, v.chamber, v.question, v.result
+HAVING SUM(CASE WHEN vm.position IN ('yea', 'nay') THEN 1 ELSE 0 END) > 0
+ORDER BY margin ASC, v.votedate DESC
+LIMIT 20;

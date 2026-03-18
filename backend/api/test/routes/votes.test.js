@@ -81,3 +81,38 @@ describe('GET /votes/:chamber', () => {
     assert.deepStrictEqual(JSON.parse(res.payload), []);
   });
 });
+
+describe('GET /votes/search', () => {
+  const originalKnex = db.knex;
+
+  afterEach(() => {
+    db.knex = originalKnex;
+  });
+
+  it('returns 200 with fuzzy search results', async (t) => {
+    db.knex = createMockKnex({ tables: { votes: [SAMPLE_VOTE_WITH_COUNTS] } });
+    const app = await build(t);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/votes/search?query=cloture&chamber=house',
+    });
+
+    assert.equal(res.statusCode, 200);
+    const body = JSON.parse(res.payload);
+    assert.ok(Array.isArray(body));
+    assert.equal(body.length, 1);
+  });
+
+  it('returns 400 for an invalid chamber filter', async (t) => {
+    const app = await build(t);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/votes/search?query=cloture&chamber=invalid',
+    });
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(JSON.parse(res.payload).error, "Invalid chamber; use 'house' or 'senate'");
+  });
+});

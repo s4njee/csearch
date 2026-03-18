@@ -8,6 +8,7 @@ package csearch
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const clearBillLatestAction = `-- name: ClearBillLatestAction :exec
@@ -21,9 +22,9 @@ WHERE billtype = $1
 
 type ClearBillLatestActionParams struct {
 	Billtype         string
-	Billnumber       string
-	Congress         string
-	LatestActionDate sql.NullString
+	Billnumber       int32
+	Congress         int32
+	LatestActionDate sql.NullTime
 }
 
 func (q *Queries) ClearBillLatestAction(ctx context.Context, arg ClearBillLatestActionParams) error {
@@ -42,8 +43,8 @@ DELETE FROM bill_actions WHERE billtype = $1 AND billnumber = $2 AND congress = 
 
 type DeleteBillActionsParams struct {
 	Billtype   string
-	Billnumber string
-	Congress   string
+	Billnumber int32
+	Congress   int32
 }
 
 func (q *Queries) DeleteBillActions(ctx context.Context, arg DeleteBillActionsParams) error {
@@ -57,8 +58,8 @@ DELETE FROM bill_committees WHERE billtype = $1 AND billnumber = $2 AND congress
 
 type DeleteBillCommitteesParams struct {
 	Billtype   string
-	Billnumber string
-	Congress   string
+	Billnumber int32
+	Congress   int32
 }
 
 func (q *Queries) DeleteBillCommittees(ctx context.Context, arg DeleteBillCommitteesParams) error {
@@ -72,8 +73,8 @@ DELETE FROM bill_cosponsors WHERE billtype = $1 AND billnumber = $2 AND congress
 
 type DeleteBillCosponsorsParams struct {
 	Billtype   string
-	Billnumber string
-	Congress   string
+	Billnumber int32
+	Congress   int32
 }
 
 func (q *Queries) DeleteBillCosponsors(ctx context.Context, arg DeleteBillCosponsorsParams) error {
@@ -87,8 +88,8 @@ DELETE FROM bill_subjects WHERE billtype = $1 AND billnumber = $2 AND congress =
 
 type DeleteBillSubjectsParams struct {
 	Billtype   string
-	Billnumber string
-	Congress   string
+	Billnumber int32
+	Congress   int32
 }
 
 func (q *Queries) DeleteBillSubjects(ctx context.Context, arg DeleteBillSubjectsParams) error {
@@ -111,9 +112,9 @@ INSERT INTO bills (
     summary_date, summary_text,
     sponsor_bioguide_id, sponsor_name, sponsor_state, sponsor_party,
     origin_chamber, policy_area, update_date,
-    latest_action_date, statusat, shorttitle, officialtitle
+    latest_action_date, bill_status, statusat, shorttitle, officialtitle
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 ) ON CONFLICT (billtype, billnumber, congress) DO UPDATE SET
     summary_date        = excluded.summary_date,
     summary_text        = excluded.summary_text,
@@ -125,16 +126,18 @@ INSERT INTO bills (
     policy_area         = excluded.policy_area,
     update_date         = excluded.update_date,
     latest_action_date  = excluded.latest_action_date,
+    bill_status         = excluded.bill_status,
+    statusat            = excluded.statusat,
     shorttitle          = excluded.shorttitle,
     officialtitle       = excluded.officialtitle
 `
 
 type InsertBillParams struct {
 	Billid            sql.NullString
-	Billnumber        string
+	Billnumber        int32
 	Billtype          string
-	Introducedat      sql.NullString
-	Congress          string
+	Introducedat      sql.NullTime
+	Congress          int32
 	SummaryDate       sql.NullString
 	SummaryText       sql.NullString
 	SponsorBioguideID sql.NullString
@@ -143,9 +146,10 @@ type InsertBillParams struct {
 	SponsorParty      sql.NullString
 	OriginChamber     sql.NullString
 	PolicyArea        sql.NullString
-	UpdateDate        sql.NullString
-	LatestActionDate  sql.NullString
-	Statusat          string
+	UpdateDate        sql.NullTime
+	LatestActionDate  sql.NullTime
+	BillStatus        string
+	Statusat          time.Time
 	Shorttitle        sql.NullString
 	Officialtitle     sql.NullString
 }
@@ -167,6 +171,7 @@ func (q *Queries) InsertBill(ctx context.Context, arg InsertBillParams) error {
 		arg.PolicyArea,
 		arg.UpdateDate,
 		arg.LatestActionDate,
+		arg.BillStatus,
 		arg.Statusat,
 		arg.Shorttitle,
 		arg.Officialtitle,
@@ -182,9 +187,9 @@ RETURNING id
 
 type InsertBillActionParams struct {
 	Billtype         string
-	Billnumber       string
-	Congress         string
-	ActedAt          string
+	Billnumber       int32
+	Congress         int32
+	ActedAt          time.Time
 	ActionText       sql.NullString
 	ActionType       sql.NullString
 	ActionCode       sql.NullString
@@ -208,18 +213,16 @@ func (q *Queries) InsertBillAction(ctx context.Context, arg InsertBillActionPara
 }
 
 const insertBillCommittee = `-- name: InsertBillCommittee :exec
-INSERT INTO bill_committees (billtype, billnumber, congress, committee_code, committee_name, chamber)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO bill_committees (billtype, billnumber, congress, committee_code)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT ON CONSTRAINT bill_committees_pkey DO NOTHING
 `
 
 type InsertBillCommitteeParams struct {
 	Billtype      string
-	Billnumber    string
-	Congress      string
+	Billnumber    int32
+	Congress      int32
 	CommitteeCode string
-	CommitteeName sql.NullString
-	Chamber       sql.NullString
 }
 
 func (q *Queries) InsertBillCommittee(ctx context.Context, arg InsertBillCommitteeParams) error {
@@ -228,8 +231,6 @@ func (q *Queries) InsertBillCommittee(ctx context.Context, arg InsertBillCommitt
 		arg.Billnumber,
 		arg.Congress,
 		arg.CommitteeCode,
-		arg.CommitteeName,
-		arg.Chamber,
 	)
 	return err
 }
@@ -242,13 +243,13 @@ ON CONFLICT ON CONSTRAINT bill_cosponsors_pkey DO NOTHING
 
 type InsertBillCosponsorParams struct {
 	Billtype            string
-	Billnumber          string
-	Congress            string
+	Billnumber          int32
+	Congress            int32
 	BioguideID          string
 	FullName            sql.NullString
 	State               sql.NullString
 	Party               sql.NullString
-	SponsorshipDate     sql.NullString
+	SponsorshipDate     sql.NullTime
 	IsOriginalCosponsor sql.NullBool
 }
 
@@ -275,8 +276,8 @@ ON CONFLICT ON CONSTRAINT bill_subjects_pkey DO NOTHING
 
 type InsertBillSubjectParams struct {
 	Billtype   string
-	Billnumber string
-	Congress   string
+	Billnumber int32
+	Congress   int32
 	Subject    string
 }
 
@@ -287,6 +288,25 @@ func (q *Queries) InsertBillSubject(ctx context.Context, arg InsertBillSubjectPa
 		arg.Congress,
 		arg.Subject,
 	)
+	return err
+}
+
+const insertCommittee = `-- name: InsertCommittee :exec
+INSERT INTO committees (committee_code, committee_name, chamber)
+VALUES ($1, $2, $3)
+ON CONFLICT (committee_code) DO UPDATE SET
+    committee_name = excluded.committee_name,
+    chamber = excluded.chamber
+`
+
+type InsertCommitteeParams struct {
+	CommitteeCode string
+	CommitteeName sql.NullString
+	Chamber       sql.NullString
+}
+
+func (q *Queries) InsertCommittee(ctx context.Context, arg InsertCommitteeParams) error {
+	_, err := q.db.ExecContext(ctx, insertCommittee, arg.CommitteeCode, arg.CommitteeName, arg.Chamber)
 	return err
 }
 
@@ -314,10 +334,10 @@ INSERT INTO votes (
 type InsertVoteParams struct {
 	Voteid      string
 	BillType    sql.NullString
-	BillNumber  sql.NullString
-	Congress    sql.NullString
-	Votenumber  sql.NullString
-	Votedate    sql.NullString
+	BillNumber  sql.NullInt32
+	Congress    sql.NullInt32
+	Votenumber  sql.NullInt32
+	Votedate    sql.NullTime
 	Question    sql.NullString
 	Result      sql.NullString
 	Votesession sql.NullString
@@ -382,10 +402,10 @@ WHERE billtype = $1
 
 type UpdateBillLatestActionParams struct {
 	Billtype         string
-	Billnumber       string
-	Congress         string
+	Billnumber       int32
+	Congress         int32
 	LatestActionID   sql.NullInt64
-	LatestActionDate sql.NullString
+	LatestActionDate sql.NullTime
 }
 
 func (q *Queries) UpdateBillLatestAction(ctx context.Context, arg UpdateBillLatestActionParams) error {

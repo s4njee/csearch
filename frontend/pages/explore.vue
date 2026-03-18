@@ -13,6 +13,37 @@ import type {
 
 const { listExploreQueries, runExploreQuery } = useCongressApi()
 
+const CHART_QUERIES = [
+  { id: 'active-committees-recent', label: 'Active committees — past 2 months' },
+  { id: 'closest-votes-recent', label: 'Closest votes — past 2 months' },
+] as const
+
+type ChartState = { rows: Array<Record<string, unknown>>, loading: boolean }
+const chartData = reactive<Record<string, ChartState>>(
+  Object.fromEntries(CHART_QUERIES.map(cq => [cq.id, { rows: [], loading: true }])),
+)
+
+async function loadChartData() {
+  await Promise.all(
+    CHART_QUERIES.map(async ({ id }) => {
+      try {
+        const payload = await runExploreQuery(id, {})
+        chartData[id].rows = payload.results as Array<Record<string, unknown>>
+      }
+      catch {
+        // silently fail — charts are supplementary
+      }
+      finally {
+        chartData[id].loading = false
+      }
+    }),
+  )
+}
+
+onMounted(() => {
+  loadChartData()
+})
+
 const queryHints: Record<string, string> = {
   'bill-search-example': 'Use phrases first, then narrow by bill type or congress to compare results across tracks.',
   'vote-search-example': 'Search procedural terms like cloture or confirmation to jump directly into vote clusters.',
@@ -177,6 +208,21 @@ watch(selectedQuery, async (query) => {
             <div class="stat-card__value">{{ API_FAMILIES.length }}</div>
             <div class="stat-card__label">API families</div>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Dataset snapshots</p>
+          <h2>Charts</h2>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div v-for="cq in CHART_QUERIES" :key="cq.id" class="chart-tile">
+          <p class="chart-tile__label">{{ cq.label }}</p>
+          <ExploreChart :query-id="cq.id" :rows="chartData[cq.id].rows" :loading="chartData[cq.id].loading" />
         </div>
       </div>
     </section>

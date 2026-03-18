@@ -13,9 +13,9 @@ const {
 // ---------------------------------------------------------------------------
 
 describe('getExploreQueries()', () => {
-  it('returns exactly 17 queries', () => {
+  it('returns exactly 19 queries', () => {
     const queries = getExploreQueries();
-    assert.equal(queries.length, 17);
+    assert.equal(queries.length, 19);
   });
 
   it('each query has the expected shape', () => {
@@ -30,11 +30,11 @@ describe('getExploreQueries()', () => {
     }
   });
 
-  it('queries are numbered sequentially 1..17', () => {
+  it('queries are numbered sequentially 1..19', () => {
     const queries = getExploreQueries();
     const numbers = queries.map((q) => q.number);
 
-    for (let i = 1; i <= 17; i++) {
+    for (let i = 1; i <= 19; i++) {
       assert.ok(numbers.includes(i), `should include query number ${i}`);
     }
   });
@@ -80,6 +80,7 @@ describe('getExploreQueries()', () => {
     assert.equal(q.type, 'string');
     assert.equal(billType.name, 'billType');
     assert.equal(congress.name, 'congress');
+    assert.equal(congress.type, 'integer');
     assert.equal(limit.name, 'limit');
     assert.equal(limit.type, 'integer');
     assert.equal(limit.min, 1);
@@ -167,7 +168,7 @@ describe('executeExploreQuery()', () => {
     });
 
     assert.equal(capturedSql, 'SELECT * FROM search_bills(?, ?, ?, ?);');
-    assert.deepStrictEqual(capturedBindings, ['climate', 'hr', '118', 50]);
+    assert.deepStrictEqual(capturedBindings, ['climate', 'hr', 118, 50]);
   });
 
   it('builds correct SQL and bindings for vote-search-example', async () => {
@@ -187,7 +188,7 @@ describe('executeExploreQuery()', () => {
       limit: '10',
     });
 
-    assert.deepStrictEqual(capturedBindings, ['cloture', '119', 'senate', 10]);
+    assert.deepStrictEqual(capturedBindings, ['cloture', 119, 'senate', 10]);
   });
 
   it('uses default values when parameters are omitted', async () => {

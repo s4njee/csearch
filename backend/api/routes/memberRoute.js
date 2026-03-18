@@ -39,8 +39,8 @@ module.exports = async function (fastify, opts) {
       db.knex("bills as b")
         .where({ "b.sponsor_bioguide_id": upperId })
         .select(
-            "b.billid", "b.billnumber", "b.billtype", "b.congress",
-            "b.shorttitle", "b.officialtitle", "b.introducedat", "b.statusat",
+            "b.billid", db.knex.raw("b.billnumber::text AS billnumber"), "b.billtype", db.knex.raw("b.congress::text AS congress"),
+            "b.shorttitle", "b.officialtitle", "b.introducedat", "b.statusat", "b.bill_status",
             "b.summary_text", "b.policy_area", "b.latest_action_date",
             db.knex.raw(
               "(SELECT COUNT(*)::int FROM bill_cosponsors cos WHERE cos.billtype = b.billtype AND cos.billnumber = b.billnumber AND cos.congress = b.congress) AS cosponsor_count"
@@ -53,9 +53,9 @@ module.exports = async function (fastify, opts) {
         .join("votes", "vote_members.voteid", "votes.voteid")
         .where("vote_members.bioguide_id", upperId)
         .select(
-            "votes.voteid", "votes.congress", "votes.chamber",
+            "votes.voteid", db.knex.raw("votes.congress::text AS congress"), "votes.chamber",
             "votes.question", "votes.result", "votes.votedate",
-            "votes.votetype", "votes.votenumber", "vote_members.position"
+            "votes.votetype", db.knex.raw("votes.votenumber::text AS votenumber"), "vote_members.position"
         )
         .orderBy("votes.votedate", "desc")
         .limit(50),

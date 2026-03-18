@@ -13,6 +13,7 @@ const {
 } = await useAsyncData<MemberDetail>(
   `member-${bioguideId}`,
   () => getMember(bioguideId),
+  { lazy: true }
 )
 
 const errorMessage = computed(() =>
@@ -42,6 +43,17 @@ function formatDate(value?: string | null) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
+}
+
+function formatChamber(value?: string | null) {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'senate' || normalized === 's') {
+    return 'Senate'
+  }
+  if (normalized === 'house' || normalized === 'h') {
+    return 'House'
+  }
+  return value || 'Unknown chamber'
 }
 
 function summarizeText(value?: string | null, limit = 160) {
@@ -102,11 +114,8 @@ function summarizeText(value?: string | null, limit = 160) {
                 <p class="result-card__meta">
                   {{ bill.billtype.toUpperCase() }} {{ bill.billnumber }} · Congress {{ bill.congress }}
                 </p>
-                <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
-              </div>
-              <div class="result-card__links">
-                <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="result-link result-link--primary">
-                  Details →
+                <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="link-plain">
+                  <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
                 </NuxtLink>
               </div>
             </div>
@@ -151,12 +160,14 @@ function summarizeText(value?: string | null, limit = 160) {
           <article v-for="vote in member.recentVotes" :key="vote.voteid" class="result-card">
             <div class="result-card__header">
               <div>
-                <p class="result-card__meta">{{ vote.chamber === 'senate' ? 'Senate' : 'House' }} · Congress {{ vote.congress }}</p>
-                <h3>{{ vote.question || 'Untitled vote' }}</h3>
+                <p class="result-card__meta">{{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}</p>
+                <NuxtLink :to="`/votes/${vote.voteid}`" class="link-plain">
+                  <h3>{{ vote.question || 'Untitled vote' }}</h3>
+                </NuxtLink>
               </div>
               <div style="display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end;">
                 <span :class="voteResultClass(vote.result)">{{ vote.result || 'Unknown' }}</span>
-                <span class="badge" :style="(vote as any).position?.toLowerCase() === 'yea' || (vote as any).position?.toLowerCase() === 'aye' ? 'color: var(--accent-primary); border-color: var(--accent-primary)' : (vote as any).position?.toLowerCase() === 'nay' || (vote as any).position?.toLowerCase() === 'no' ? 'color: rgb(248, 113, 113); border-color: rgb(248, 113, 113)' : ''">
+                <span class="badge" :style="(vote as any).position?.toLowerCase() === 'yea' || (vote as any).position?.toLowerCase() === 'aye' ? 'color: var(--accent-success); border-color: var(--accent-success)' : (vote as any).position?.toLowerCase() === 'nay' || (vote as any).position?.toLowerCase() === 'no' ? 'color: rgb(248, 113, 113); border-color: rgb(248, 113, 113)' : ''">
                   Voted {{ (vote as any).position || 'Unknown' }}
                 </span>
               </div>

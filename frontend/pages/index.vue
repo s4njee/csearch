@@ -2,7 +2,7 @@
 import { API_FAMILIES, BILL_TYPE_OPTIONS, VOTE_CHAMBER_OPTIONS } from '~/types/congress'
 
 const router = useRouter()
-const { fetchBillsByNumber } = useCongressApi()
+const { fetchBillsByNumber, searchAllBills, searchVotesFuzzy } = useCongressApi()
 
 const selectedBillType = ref('hr')
 const selectedSort = ref('relevance')
@@ -11,6 +11,124 @@ const selectedVoteChamber = ref<'house' | 'senate'>('senate')
 const voteQuery = ref('')
 const numberResults = ref<any[] | null>(null)
 const numberLoading = ref(false)
+
+// Fuzzy finder
+const BILL_CODES = BILL_TYPE_OPTIONS.map(o => o.code)
+// Matches: "hr1", "hr 1", "s.382", "hjres 5" etc.
+const BILL_REF_RE = new RegExp(`^(${BILL_CODES.join('|')})\\.?\\s*(\\d*)$`, 'i')
+
+const suggestions = ref<any[]>([])
+const showSuggestions = ref(false)
+const suggestLoading = ref(false)
+let suggestTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(billQuery, (val) => {
+  if (suggestTimer) clearTimeout(suggestTimer)
+  const trimmed = val.trim()
+
+  if (trimmed.length < 2) {
+    showSuggestions.value = false
+    suggestions.value = []
+    return
+  }
+
+  const refMatch = BILL_REF_RE.exec(trimmed)
+
+  suggestTimer = setTimeout(async () => {
+    suggestLoading.value = true
+    showSuggestions.value = true
+    try {
+      if (refMatch) {
+        const typeCode = refMatch[1].toLowerCase()
+        const number = refMatch[2]
+
+        if (!number) {
+          // Just a bill type code — show category option
+          const opt = BILL_TYPE_OPTIONS.find(o => o.code === typeCode)
+          suggestions.value = opt ? [{ _kind: 'category', opt }] : []
+        }
+        else {
+          // Bill type + number — fetch by number, filter and sort
+          const results = await fetchBillsByNumber(number)
+          suggestions.value = (results as any[])
+            .filter(b => b.billtype === typeCode)
+            .sort((a, b) => Number(b.congress) - Number(a.congress))
+        }
+      }
+      else {
+        // Free text — full-text search across all bill types
+        suggestions.value = await searchAllBills(trimmed) as any[]
+      }
+      showSuggestions.value = suggestions.value.length > 0
+    }
+    catch {
+      suggestions.value = []
+      showSuggestions.value = false
+    }
+    finally {
+      suggestLoading.value = false
+    }
+  }, 300)
+})
+
+function hideSuggestions() {
+  setTimeout(() => { showSuggestions.value = false }, 150)
+}
+
+function selectCategory(code: string) {
+  showSuggestions.value = false
+  billQuery.value = ''
+  router.push(`/bills/${code}`)
+}
+
+function selectBill(bill: any) {
+  showSuggestions.value = false
+  billQuery.value = ''
+  router.push(`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`)
+}
+
+// Vote fuzzy finder
+const voteSuggestions = ref<any[]>([])
+const showVoteSuggestions = ref(false)
+const voteSuggestLoading = ref(false)
+let votesSuggestTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(voteQuery, (val) => {
+  if (votesSuggestTimer) clearTimeout(votesSuggestTimer)
+  const trimmed = val.trim()
+
+  if (trimmed.length < 2) {
+    showVoteSuggestions.value = false
+    voteSuggestions.value = []
+    return
+  }
+
+  votesSuggestTimer = setTimeout(async () => {
+    voteSuggestLoading.value = true
+    showVoteSuggestions.value = true
+    try {
+      voteSuggestions.value = await searchVotesFuzzy(trimmed, selectedVoteChamber.value) as any[]
+      showVoteSuggestions.value = voteSuggestions.value.length > 0
+    }
+    catch {
+      voteSuggestions.value = []
+      showVoteSuggestions.value = false
+    }
+    finally {
+      voteSuggestLoading.value = false
+    }
+  }, 300)
+})
+
+function hideVoteSuggestions() {
+  setTimeout(() => { showVoteSuggestions.value = false }, 150)
+}
+
+function selectVote(vote: any) {
+  showVoteSuggestions.value = false
+  voteQuery.value = ''
+  router.push(`/votes/${vote.voteid}`)
+}
 
 const billGroups = computed(() => {
   return [
@@ -24,12 +142,6 @@ const billGroups = computed(() => {
     },
   ]
 })
-
-const highlightStats = computed(() => [
-  { label: 'Bill categories', value: String(BILL_TYPE_OPTIONS.length) },
-  { label: 'Vote chambers', value: String(VOTE_CHAMBER_OPTIONS.length) },
-  { label: 'API route families', value: String(API_FAMILIES.length) },
-])
 
 function openBillType(code: string) {
   router.push(`/bills/${code}`)
@@ -62,6 +174,17 @@ function submitVoteSearch() {
     query: query ? { chamber: selectedVoteChamber.value, q: query } : { chamber: selectedVoteChamber.value },
   })
 }
+
+function formatChamber(value?: string | null) {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'senate' || normalized === 's') {
+    return 'Senate'
+  }
+  if (normalized === 'house' || normalized === 'h') {
+    return 'House'
+  }
+  return value || 'Unknown chamber'
+}
 </script>
 
 <template>
@@ -74,18 +197,12 @@ function submitVoteSearch() {
           Explore the latest legislation, track roll-call votes, dive deep into committee workflows, and discover detailed insights into the actions of the U.S. Congress.
         </p>
 
-        <div class="stat-grid">
-          <article v-for="stat in highlightStats" :key="stat.label" class="stat-card">
-            <div class="stat-card__value">{{ stat.value }}</div>
-            <div class="stat-card__label">{{ stat.label }}</div>
-          </article>
-        </div>
       </article>
 
       <article class="hero-panel">
         <div class="section-title">
-          <h2>Jump into bill search</h2>
-          <p>Backed by `/latest/:billtype` and `/search/:table/:filter`.</p>
+          <h2>Bill search</h2>
+          <p>Search by keyword or enter a bill number to find legislation directly.</p>
         </div>
 
         <form class="control-grid" @submit.prevent="submitBillSearch">
@@ -106,15 +223,36 @@ function submitVoteSearch() {
             </select>
           </label>
 
-          <label class="field field--full">
+          <div class="field field--full" style="position: relative;">
             <span>Search terms</span>
             <input
               v-model="billQuery"
               class="field-input"
               type="search"
-              placeholder="climate, farm bill, veterans, budget..."
+              placeholder="climate, farm bill, veterans... or try hr 1"
+              autocomplete="off"
+              @blur="hideSuggestions"
             >
-          </label>
+            <div v-if="showSuggestions || suggestLoading" class="bill-suggest">
+              <div v-if="suggestLoading" class="bill-suggest__loading">Searching…</div>
+              <template v-else-if="!suggestions.length">
+                <div class="bill-suggest__loading">No results</div>
+              </template>
+              <template v-else>
+                <button
+                  v-for="item in suggestions"
+                  :key="item._kind === 'category' ? item.opt.code : item.billid"
+                  type="button"
+                  class="bill-suggest__item"
+                  @mousedown.prevent="item._kind === 'category' ? selectCategory(item.opt.code) : selectBill(item)"
+                >
+                  <span class="bill-suggest__code">{{ item._kind === 'category' ? item.opt.shortLabel : `${item.billtype.toUpperCase()} ${item.billnumber}` }}</span>
+                  <span class="bill-suggest__meta">{{ item._kind === 'category' ? item.opt.longLabel : `Congress ${item.congress}` }}</span>
+                  <span v-if="item._kind !== 'category' && (item.shorttitle || item.officialtitle)" class="bill-suggest__title">{{ item.shorttitle || item.officialtitle }}</span>
+                </button>
+              </template>
+            </div>
+          </div>
 
           <button class="button button--primary" type="submit">
             {{ billQuery.trim() ? 'Search bills' : 'Browse latest bills' }}
@@ -141,8 +279,8 @@ function submitVoteSearch() {
     <section class="overview-grid">
       <article class="surface">
         <div class="section-title">
-          <h2>API families in the UI</h2>
-          <p>Each section maps cleanly to a `congress_api` route family.</p>
+          <h2>Endpoints</h2>
+          <p>Each section maps to a available API endpoint.</p>
         </div>
 
         <div class="family-grid">
@@ -157,7 +295,7 @@ function submitVoteSearch() {
       <article class="surface">
         <div class="section-title">
           <h2>Vote search</h2>
-          <p>Use the recent chamber feed or the parameterized vote search helper.</p>
+          <p>Search or browse recent roll-call votes by chamber.</p>
         </div>
 
         <form class="control-grid" @submit.prevent="submitVoteSearch">
@@ -170,15 +308,36 @@ function submitVoteSearch() {
             </select>
           </label>
 
-          <label class="field field--full">
+          <div class="field field--full" style="position: relative;">
             <span>Search terms</span>
             <input
               v-model="voteQuery"
               class="field-input"
               type="search"
-              placeholder="cloture, nomination, impeachment, continuing resolution..."
+              placeholder="cloture, nomination, impeachment..."
+              autocomplete="off"
+              @blur="hideVoteSuggestions"
             >
-          </label>
+            <div v-if="showVoteSuggestions || voteSuggestLoading" class="bill-suggest">
+              <div v-if="voteSuggestLoading" class="bill-suggest__loading">Searching…</div>
+              <template v-else-if="!voteSuggestions.length">
+                <div class="bill-suggest__loading">No results</div>
+              </template>
+              <template v-else>
+                <button
+                  v-for="vote in voteSuggestions"
+                  :key="vote.voteid"
+                  type="button"
+                  class="bill-suggest__item"
+                  @mousedown.prevent="selectVote(vote)"
+                >
+                  <span class="bill-suggest__code">{{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}</span>
+                  <span class="bill-suggest__meta">{{ vote.votedate }}</span>
+                  <span class="bill-suggest__title">{{ vote.question || vote.voteid }}</span>
+                </button>
+              </template>
+            </div>
+          </div>
 
           <button class="button button--primary" type="submit">
             {{ voteQuery.trim() ? 'Search votes' : 'Browse recent votes' }}

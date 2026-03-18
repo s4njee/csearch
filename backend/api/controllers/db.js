@@ -16,6 +16,11 @@ const knex = require("knex")({
     database,
     ssl: false,
   },
+  pool: {
+    min: 2,
+    max: 20,
+    acquireTimeoutMillis: 30000,
+  },
 });
 
 module.exports = { knex };

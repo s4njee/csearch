@@ -10,9 +10,6 @@ const congress = route.params.congress as string
 const billnumber = route.params.number as string
 
 const categoryMeta = computed(() => BILL_TYPE_OPTIONS.find(opt => opt.code === billtype))
-const govTrackUrl = computed(() =>
-  `https://www.govtrack.us/congress/bills/${congress}/${billtype}${billnumber}`,
-)
 
 const {
   data: bill,
@@ -21,6 +18,7 @@ const {
 } = await useAsyncData<BillDetail>(
   `bill-${billtype}-${congress}-${billnumber}`,
   () => getBill(billtype, congress, billnumber),
+  { lazy: true }
 )
 
 const errorMessage = computed(() =>
@@ -53,6 +51,21 @@ function voteResultClass(result?: string | null) {
     return 'vote-badge vote-badge--negative'
   return 'vote-badge'
 }
+
+function formatChamber(value?: string | null) {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'senate' || normalized === 's') {
+    return 'Senate'
+  }
+  if (normalized === 'house' || normalized === 'h') {
+    return 'House'
+  }
+  return value || 'Unknown chamber'
+}
+
+function hasBioguideId(value?: string | null) {
+  return typeof value === 'string' && /^[A-Z0-9]+$/i.test(value)
+}
 </script>
 
 <template>
@@ -82,9 +95,6 @@ function voteResultClass(result?: string | null) {
             </p>
           </div>
 
-          <a :href="govTrackUrl" target="_blank" rel="noopener noreferrer" class="button">
-            GovTrack ↗
-          </a>
         </div>
 
         <dl class="detail-grid detail-grid--wide">
@@ -119,7 +129,7 @@ function voteResultClass(result?: string | null) {
           <div>
             <dt>Sponsor</dt>
             <dd>
-              <NuxtLink v-if="bill.sponsor_bioguide_id" :to="`/members/${bill.sponsor_bioguide_id}`" class="result-link" style="color: inherit;">
+              <NuxtLink v-if="bill.sponsor_bioguide_id" :to="`/members/${bill.sponsor_bioguide_id}`" class="link-plain">
                 {{ bill.sponsor_name }}
               </NuxtLink>
               <template v-else>
@@ -138,7 +148,7 @@ function voteResultClass(result?: string | null) {
           <div v-if="bill.committees && bill.committees.length">
             <dt>Committees</dt>
             <dd style="display: flex; flex-direction: column; gap: 0.25rem;">
-              <NuxtLink v-for="committee in bill.committees" :key="committee.committee_code" :to="`/committees/${committee.committee_code}`" class="result-link" style="color: inherit; text-decoration: none;">
+              <NuxtLink v-for="committee in bill.committees" :key="committee.committee_code" :to="`/committees/${committee.committee_code}`" class="link-plain">
                 {{ committee.committee_name || committee.committee_code }}
               </NuxtLink>
             </dd>
@@ -193,12 +203,20 @@ function voteResultClass(result?: string | null) {
         <div v-else class="cosponsor-grid">
           <article
             v-for="cosponsor in bill.cosponsors"
-            :key="cosponsor.bioguide_id"
+            :key="cosponsor.bioguide_id || `${cosponsor.full_name || 'cosponsor'}-${cosponsor.sponsorship_date || 'unknown'}`"
             class="cosponsor-card"
           >
-            <NuxtLink :to="`/members/${cosponsor.bioguide_id}`" class="cosponsor-card__name result-link" style="color: inherit; text-decoration: none; display: block;">
+            <NuxtLink
+              v-if="hasBioguideId(cosponsor.bioguide_id)"
+              :to="`/members/${cosponsor.bioguide_id}`"
+              class="cosponsor-card__name link-plain"
+              style="display: block;"
+            >
               {{ cosponsor.full_name || cosponsor.bioguide_id }}
             </NuxtLink>
+            <span v-else class="cosponsor-card__name" style="display: block;">
+              {{ cosponsor.full_name || 'Unknown cosponsor' }}
+            </span>
             <div class="cosponsor-card__meta">
               <span>{{ cosponsor.party || '?' }}</span>
               <span>{{ cosponsor.state || '?' }}</span>
@@ -227,9 +245,13 @@ function voteResultClass(result?: string | null) {
             <div class="result-card__header">
               <div>
                 <p class="result-card__meta">
-                  {{ vote.chamber }} · Congress {{ vote.congress }}
+                  {{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}
                 </p>
-                <h3>{{ vote.question || 'Vote' }}</h3>
+                <h3>
+                  <NuxtLink :to="`/votes/${vote.voteid}`" class="link-plain">
+                    {{ vote.question || 'Vote' }}
+                  </NuxtLink>
+                </h3>
               </div>
               <span :class="voteResultClass(vote.result)">{{ vote.result || 'Unknown' }}</span>
             </div>

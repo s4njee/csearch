@@ -1,0 +1,64 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Enterprise PostgreSQL Cluster Architecture (CloudNativePG Operator)
+# 
+# PREREQUISITE:
+# You must install the CNPG Operator natively before applying this file:
+# kubectl apply --server-side -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.22/releases/cnpg-1.22.1.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-cluster
+  namespace: default
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database-ha
+spec:
+  # The Enterprise High-Availability Pattern
+  # 1 Primary node, 1 Hot-Standby Replica.
+  # If the primary crashes, CNPG detects it instantly and promotes the replica 
+  # safely to Primary with zero data loss within milliseconds.
+  instances: 2
+  
+  # Standard PostgreSQL image built specifically with CNPG failover hooks
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.8
+  
+  # Storage layout
+  storage:
+    size: 30Gi
+    storageClass: local-path
+
+  # Bootstrapping the database precisely how your native config map defines it
+  bootstrap:
+    initdb:
+      database: csearch
+      owner: postgres
+      secret:
+        name: postgres-auth # Pulls our existing POSTGRES_PASSWORD secret
+
+  # Postgres Configuration
+  postgresql:
+    parameters:
+      # These parameters are tuned for read-heavy analytical workloads (like CSearch)
+      max_connections: "100"
+      shared_buffers: "256MB"
+      work_mem: "16MB"
+      maintenance_work_mem: "64MB"
+      effective_cache_size: "512MB"
+
+  # Optional but highly recommended!
+  # Un-comment this block later to enable automatic daily backups to S3.
+  # backup:
+  #   barmanObjectStore:
+  #     destinationPath: "s3://my-backup-bucket/csearch/"
+  #     endpointURL: "https://s3.amazonaws.com"
+  #     s3Credentials:
+  #       accessKeyId:
+  #         name: aws-credentials
+  #         key: AWS_ACCESS_KEY_ID
+  #       secretAccessKey:
+  #         name: aws-credentials
+  #         key: AWS_SECRET_ACCESS_KEY
+  #     wal:
+  #       compression: gzip

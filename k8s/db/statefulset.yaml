@@ -27,7 +27,7 @@ spec:
       containers:
         - name: postgres
           image: registry.s8njee.com/csearch-postgres:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

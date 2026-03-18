@@ -19,13 +19,60 @@ ALTER TABLE bill_cosponsors DROP CONSTRAINT bill_cosponsors_bill_fkey;
 ALTER TABLE bill_committees DROP CONSTRAINT bill_committees_bill_fkey;
 ALTER TABLE bill_subjects   DROP CONSTRAINT bill_subjects_bill_fkey;
 
+-- ─── 2b. Align child-table key types with the new parent schema ─────────────
+ALTER TABLE bill_actions
+    ALTER COLUMN billnumber TYPE integer USING billnumber::integer,
+    ALTER COLUMN congress TYPE integer USING congress::integer,
+    ALTER COLUMN acted_at TYPE date USING acted_at::date;
+
+ALTER TABLE bill_cosponsors
+    ALTER COLUMN billnumber TYPE integer USING billnumber::integer,
+    ALTER COLUMN congress TYPE integer USING congress::integer,
+    ALTER COLUMN sponsorship_date TYPE date USING sponsorship_date::date;
+
+ALTER TABLE bill_committees
+    ALTER COLUMN billnumber TYPE integer USING billnumber::integer,
+    ALTER COLUMN congress TYPE integer USING congress::integer;
+
+ALTER TABLE bill_subjects
+    ALTER COLUMN billnumber TYPE integer USING billnumber::integer,
+    ALTER COLUMN congress TYPE integer USING congress::integer;
+
+ALTER TABLE votes
+    ALTER COLUMN bill_number TYPE integer USING bill_number::integer,
+    ALTER COLUMN congress TYPE integer USING congress::integer,
+    ALTER COLUMN votenumber TYPE integer USING votenumber::integer,
+    ALTER COLUMN votedate TYPE date USING votedate::date;
+
+-- ─── 2c. Normalize committee metadata into its own table ───────────────────
+CREATE TABLE committees (
+    committee_code text PRIMARY KEY,
+    committee_name text,
+    chamber        text
+);
+
+INSERT INTO committees (committee_code, committee_name, chamber)
+SELECT DISTINCT ON (committee_code)
+    committee_code,
+    committee_name,
+    chamber
+FROM bill_committees
+ORDER BY committee_code, committee_name NULLS LAST, chamber NULLS LAST;
+
+CREATE INDEX committees_chamber_idx
+    ON committees (chamber);
+
+ALTER TABLE bill_committees
+    DROP COLUMN committee_name,
+    DROP COLUMN chamber;
+
 -- ─── 3. Build the replacement table (non-generated columns only) ─────────────
 CREATE TABLE bills_new (
     billid              text,
-    billnumber          text NOT NULL,
+    billnumber          integer NOT NULL,
     billtype            text NOT NULL,
-    introducedat        text,
-    congress            text NOT NULL,
+    introducedat        date,
+    congress            integer NOT NULL,
     summary_date        text,
     summary_text        text,
     sponsor_bioguide_id text,
@@ -34,43 +81,44 @@ CREATE TABLE bills_new (
     sponsor_party       text,
     origin_chamber      text,
     policy_area         text,
-    update_date         text,
+    update_date         date,
     latest_action_id    bigint,
-    latest_action_date  text,
-    statusat            text NOT NULL,
+    latest_action_date  date,
+    bill_status         text NOT NULL,
+    statusat            date NOT NULL,
     shorttitle          text,
     officialtitle       text,
     CONSTRAINT bill_new_pkey PRIMARY KEY (billtype, billnumber, congress)
 ) PARTITION BY LIST (congress);
 
 -- ─── 4. Congress partitions 93–119 + default ────────────────────────────────
-CREATE TABLE bills_93  PARTITION OF bills_new FOR VALUES IN ('93');
-CREATE TABLE bills_94  PARTITION OF bills_new FOR VALUES IN ('94');
-CREATE TABLE bills_95  PARTITION OF bills_new FOR VALUES IN ('95');
-CREATE TABLE bills_96  PARTITION OF bills_new FOR VALUES IN ('96');
-CREATE TABLE bills_97  PARTITION OF bills_new FOR VALUES IN ('97');
-CREATE TABLE bills_98  PARTITION OF bills_new FOR VALUES IN ('98');
-CREATE TABLE bills_99  PARTITION OF bills_new FOR VALUES IN ('99');
-CREATE TABLE bills_100 PARTITION OF bills_new FOR VALUES IN ('100');
-CREATE TABLE bills_101 PARTITION OF bills_new FOR VALUES IN ('101');
-CREATE TABLE bills_102 PARTITION OF bills_new FOR VALUES IN ('102');
-CREATE TABLE bills_103 PARTITION OF bills_new FOR VALUES IN ('103');
-CREATE TABLE bills_104 PARTITION OF bills_new FOR VALUES IN ('104');
-CREATE TABLE bills_105 PARTITION OF bills_new FOR VALUES IN ('105');
-CREATE TABLE bills_106 PARTITION OF bills_new FOR VALUES IN ('106');
-CREATE TABLE bills_107 PARTITION OF bills_new FOR VALUES IN ('107');
-CREATE TABLE bills_108 PARTITION OF bills_new FOR VALUES IN ('108');
-CREATE TABLE bills_109 PARTITION OF bills_new FOR VALUES IN ('109');
-CREATE TABLE bills_110 PARTITION OF bills_new FOR VALUES IN ('110');
-CREATE TABLE bills_111 PARTITION OF bills_new FOR VALUES IN ('111');
-CREATE TABLE bills_112 PARTITION OF bills_new FOR VALUES IN ('112');
-CREATE TABLE bills_113 PARTITION OF bills_new FOR VALUES IN ('113');
-CREATE TABLE bills_114 PARTITION OF bills_new FOR VALUES IN ('114');
-CREATE TABLE bills_115 PARTITION OF bills_new FOR VALUES IN ('115');
-CREATE TABLE bills_116 PARTITION OF bills_new FOR VALUES IN ('116');
-CREATE TABLE bills_117 PARTITION OF bills_new FOR VALUES IN ('117');
-CREATE TABLE bills_118 PARTITION OF bills_new FOR VALUES IN ('118');
-CREATE TABLE bills_119 PARTITION OF bills_new FOR VALUES IN ('119');
+CREATE TABLE bills_93  PARTITION OF bills_new FOR VALUES IN (93);
+CREATE TABLE bills_94  PARTITION OF bills_new FOR VALUES IN (94);
+CREATE TABLE bills_95  PARTITION OF bills_new FOR VALUES IN (95);
+CREATE TABLE bills_96  PARTITION OF bills_new FOR VALUES IN (96);
+CREATE TABLE bills_97  PARTITION OF bills_new FOR VALUES IN (97);
+CREATE TABLE bills_98  PARTITION OF bills_new FOR VALUES IN (98);
+CREATE TABLE bills_99  PARTITION OF bills_new FOR VALUES IN (99);
+CREATE TABLE bills_100 PARTITION OF bills_new FOR VALUES IN (100);
+CREATE TABLE bills_101 PARTITION OF bills_new FOR VALUES IN (101);
+CREATE TABLE bills_102 PARTITION OF bills_new FOR VALUES IN (102);
+CREATE TABLE bills_103 PARTITION OF bills_new FOR VALUES IN (103);
+CREATE TABLE bills_104 PARTITION OF bills_new FOR VALUES IN (104);
+CREATE TABLE bills_105 PARTITION OF bills_new FOR VALUES IN (105);
+CREATE TABLE bills_106 PARTITION OF bills_new FOR VALUES IN (106);
+CREATE TABLE bills_107 PARTITION OF bills_new FOR VALUES IN (107);
+CREATE TABLE bills_108 PARTITION OF bills_new FOR VALUES IN (108);
+CREATE TABLE bills_109 PARTITION OF bills_new FOR VALUES IN (109);
+CREATE TABLE bills_110 PARTITION OF bills_new FOR VALUES IN (110);
+CREATE TABLE bills_111 PARTITION OF bills_new FOR VALUES IN (111);
+CREATE TABLE bills_112 PARTITION OF bills_new FOR VALUES IN (112);
+CREATE TABLE bills_113 PARTITION OF bills_new FOR VALUES IN (113);
+CREATE TABLE bills_114 PARTITION OF bills_new FOR VALUES IN (114);
+CREATE TABLE bills_115 PARTITION OF bills_new FOR VALUES IN (115);
+CREATE TABLE bills_116 PARTITION OF bills_new FOR VALUES IN (116);
+CREATE TABLE bills_117 PARTITION OF bills_new FOR VALUES IN (117);
+CREATE TABLE bills_118 PARTITION OF bills_new FOR VALUES IN (118);
+CREATE TABLE bills_119 PARTITION OF bills_new FOR VALUES IN (119);
 CREATE TABLE bills_default PARTITION OF bills_new DEFAULT;
 
 -- ─── 5. Generated tsvector columns ──────────────────────────────────────────
@@ -111,14 +159,14 @@ INSERT INTO bills_new (
     billid, billnumber, billtype, introducedat, congress,
     summary_date, summary_text, sponsor_bioguide_id, sponsor_name,
     sponsor_state, sponsor_party, origin_chamber, policy_area,
-    update_date, latest_action_id, latest_action_date, statusat,
+    update_date, latest_action_id, latest_action_date, bill_status, statusat,
     shorttitle, officialtitle
 )
 SELECT
     billid, billnumber, billtype, introducedat, congress,
     summary_date, summary_text, sponsor_bioguide_id, sponsor_name,
     sponsor_state, sponsor_party, origin_chamber, policy_area,
-    update_date, latest_action_id, latest_action_date, statusat,
+    update_date, latest_action_id, latest_action_date, bill_status, statusat,
     shorttitle, officialtitle
 FROM bills;
 
@@ -183,6 +231,12 @@ ALTER TABLE bill_committees
     ADD CONSTRAINT bill_committees_bill_fkey
         FOREIGN KEY (billtype, billnumber, congress)
         REFERENCES bills (billtype, billnumber, congress)
+        ON DELETE CASCADE;
+
+ALTER TABLE bill_committees
+    ADD CONSTRAINT bill_committees_committee_fkey
+        FOREIGN KEY (committee_code)
+        REFERENCES committees (committee_code)
         ON DELETE CASCADE;
 
 ALTER TABLE bill_subjects

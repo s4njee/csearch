@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { BILL_FILTER_OPTIONS, BILL_TYPE_OPTIONS } from '~/types/congress'
-import type { BillRecord } from '~/types/congress'
+import type { BillRecord, CommitteeRecord } from '~/types/congress'
 
 const route = useRoute()
 const router = useRouter()
-const { latestBills, searchBills } = useCongressApi()
+const { latestBills, searchBills, getCommittees } = useCongressApi()
+const { data: loadedCommittees } = await useAsyncData(
+  'bill-committee-options',
+  () => getCommittees(),
+)
 
 const PAGE_SIZE = 100
 
@@ -14,11 +18,114 @@ const bills = ref<BillRecord[]>([])
 const draftQuery = ref('')
 const sortDesc = ref(true)
 const currentPage = ref(1)
+const isUpdatingBillRoute = ref(false)
 
+const selectedCongress = ref('')
+const selectedChamber = ref<'house' | 'senate'>(
+  (getBillTypeChamber(typeof route.params.category === 'string' ? route.params.category : 'hr') || 'house') as 'house' | 'senate',
+)
+const selectedStatus = ref('')
+const selectedSponsorParty = ref('')
+const selectedCommittee = ref('')
 const filterPolicyArea = ref('')
-const filterParty = ref('')
 const filterMonth = ref('')
 const filterMinCosponsors = ref<number | ''>('')
+const committeeOptions = computed<CommitteeRecord[]>(() => loadedCommittees.value || [])
+
+function getQueryStringParam(value: unknown) {
+  return typeof value === 'string' ? value : ''
+}
+
+function getQueryNumberParam(value: unknown) {
+  const raw = getQueryStringParam(value)
+  if (!raw) {
+    return ''
+  }
+
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isNaN(parsed) ? '' : parsed
+}
+
+function getBillTypeChamber(code: string) {
+  return BILL_TYPE_OPTIONS.find(option => option.code === code)?.chamber || 'house'
+}
+
+function firstBillTypeForChamber(chamber: 'house' | 'senate') {
+  return chamber === 'senate' ? 's' : 'hr'
+}
+
+function normalizeStatus(value: unknown) {
+  return getQueryStringParam(value).toLowerCase()
+}
+
+function buildBillQuery(query?: string, sort?: string) {
+  const nextQuery: Record<string, string | number> = {}
+
+  if (query) {
+    nextQuery.query = query
+  }
+
+  if (sort) {
+    nextQuery.sort = sort
+  }
+
+  if (selectedCongress.value) {
+    nextQuery.congress = selectedCongress.value
+  }
+  nextQuery.chamber = selectedChamber.value
+
+  if (filterPolicyArea.value) {
+    nextQuery.policyArea = filterPolicyArea.value
+  }
+
+  if (selectedStatus.value) {
+    nextQuery.status = selectedStatus.value
+  }
+
+  if (selectedSponsorParty.value) {
+    nextQuery.party = selectedSponsorParty.value
+  }
+
+  if (selectedCommittee.value) {
+    nextQuery.committee = selectedCommittee.value
+  }
+
+  if (filterMonth.value) {
+    nextQuery.month = filterMonth.value
+  }
+
+  if (filterMinCosponsors.value !== '') {
+    nextQuery.minCosponsors = filterMinCosponsors.value
+  }
+
+  return nextQuery
+}
+
+function billQueryMatchesRoute() {
+  return getQueryStringParam(route.query.policyArea) === filterPolicyArea.value
+    && getQueryStringParam(route.query.party) === selectedSponsorParty.value
+    && getQueryStringParam(route.query.congress) === selectedCongress.value
+    && getQueryStringParam(route.query.chamber) === selectedChamber.value
+    && getQueryStringParam(route.query.status).toLowerCase() === selectedStatus.value
+    && getQueryStringParam(route.query.committee) === selectedCommittee.value
+    && getQueryStringParam(route.query.month) === filterMonth.value
+    && getQueryNumberParam(route.query.minCosponsors) === filterMinCosponsors.value
+    && getQueryStringParam(route.query.query) === searchQuery.value
+    && getQueryStringParam(route.query.sort) === selectedSort.value
+}
+
+function syncBillFacetsFromRoute() {
+  selectedCongress.value = getQueryStringParam(route.query.congress)
+  selectedChamber.value = (getQueryStringParam(route.query.chamber) as 'house' | 'senate')
+    || (getBillTypeChamber(selectedCategory.value) as 'house' | 'senate')
+    || 'house'
+  filterPolicyArea.value = getQueryStringParam(route.query.policyArea)
+  selectedStatus.value = normalizeStatus(route.query.status)
+  selectedSponsorParty.value = getQueryStringParam(route.query.party)
+  selectedCommittee.value = getQueryStringParam(route.query.committee)
+  filterMonth.value = getQueryStringParam(route.query.month)
+  filterMinCosponsors.value = getQueryNumberParam(route.query.minCosponsors)
+}
 
 const availablePolicyAreas = computed(() => {
   const areas = new Set(bills.value.map(b => b.policy_area).filter(Boolean))
@@ -41,15 +148,72 @@ const availableMonths = computed(() => {
   return Array.from(months).sort().reverse()
 })
 
+const availableCongresses = computed(() => {
+  const congresses = new Set<string>()
+  bills.value.forEach(b => {
+    if (b.congress) {
+      congresses.add(String(b.congress))
+    }
+  })
+  return Array.from(congresses).sort((a, b) => Number(b) - Number(a))
+})
+
+const availableStatuses = computed(() => {
+  const statuses = new Set<string>()
+  bills.value.forEach(b => {
+    if (b.bill_status) {
+      statuses.add(b.bill_status)
+    }
+  })
+  return Array.from(statuses).sort()
+})
+
+const availableBillTypeGroups = computed(() => {
+  return [
+    {
+      label: selectedChamber.value === 'house' ? 'House bills' : 'Senate bills',
+      options: BILL_TYPE_OPTIONS.filter(option => option.chamber === selectedChamber.value),
+    },
+  ]
+})
+
+const availableCommittees = computed(() => {
+  const chamberFiltered = committeeOptions.value.filter((committee) => {
+    if (!selectedChamber.value) {
+      return true
+    }
+    return String(committee.chamber || '').toLowerCase() === selectedChamber.value
+  })
+
+  return chamberFiltered
+    .slice()
+    .sort((a, b) => String(a.committee_name || a.committee_code).localeCompare(String(b.committee_name || b.committee_code)))
+})
+
 const filteredBills = computed(() => {
   return bills.value.filter(b => {
+    if (selectedCongress.value && String(b.congress) !== selectedCongress.value) return false
+    if (selectedChamber.value && getBillTypeChamber(b.billtype) !== selectedChamber.value) return false
+    if (selectedStatus.value && String(b.bill_status || '').toLowerCase() !== selectedStatus.value) return false
     if (filterPolicyArea.value && b.policy_area !== filterPolicyArea.value) return false
-    if (filterParty.value && b.sponsor_party !== filterParty.value) return false
+    if (selectedSponsorParty.value && b.sponsor_party !== selectedSponsorParty.value) return false
+    if (selectedCommittee.value && !(b.committee_codes || []).includes(selectedCommittee.value)) return false
     if (filterMonth.value && (!b.introducedat || !b.introducedat.startsWith(filterMonth.value))) return false
     if (filterMinCosponsors.value !== '' && (b.cosponsor_count || 0) < filterMinCosponsors.value) return false
     return true
   })
 })
+
+const activeFacetCount = computed(() => [
+  selectedCongress.value !== '',
+  selectedChamber.value !== '',
+  selectedStatus.value !== '',
+  filterPolicyArea.value !== '',
+  selectedSponsorParty.value !== '',
+  selectedCommittee.value !== '',
+  filterMonth.value !== '',
+  filterMinCosponsors.value !== '',
+].filter(Boolean).length)
 
 const sortedBills = computed(() =>
   sortDesc.value ? filteredBills.value : [...filteredBills.value].reverse(),
@@ -75,11 +239,17 @@ const selectedSort = computed(() => {
 
 const searchQuery = computed(() => typeof route.query.query === 'string' ? route.query.query.trim() : '')
 const categoryMeta = computed(() => BILL_TYPE_OPTIONS.find(option => option.code === selectedCategory.value) || BILL_TYPE_OPTIONS[0]!)
+const categoryShortLabel = computed(() => {
+  return categoryMeta.value.shortLabel
+})
+const categoryLabel = computed(() => {
+  return categoryMeta.value.longLabel
+})
 
 const headline = computed(() => {
   return searchQuery.value
-    ? `${categoryMeta.value.longLabel} search`
-    : `Latest ${categoryMeta.value.longLabel.toLowerCase()}`
+    ? `${categoryLabel.value} search`
+    : `Latest ${categoryLabel.value.toLowerCase()}`
 })
 
 const totalCosponsors = computed(() => {
@@ -92,8 +262,35 @@ const withPolicyArea = computed(() => filteredBills.value.filter(bill => bill.po
 function getBillRoute(code: string, query?: string, sort?: string) {
   return {
     path: `/bills/${code}`,
-    query: query ? { query, sort } : {},
+    query: buildBillQuery(query, sort),
   }
+}
+
+async function navigateBillType(code: string) {
+  isUpdatingBillRoute.value = true
+  selectedChamber.value = getBillTypeChamber(code) as 'house' | 'senate'
+
+  try {
+    await router.replace({
+      path: `/bills/${code}`,
+      query: buildBillQuery(searchQuery.value || undefined, selectedSort.value),
+    })
+  }
+  finally {
+    isUpdatingBillRoute.value = false
+  }
+}
+
+async function navigateBillChamber(chamber: 'house' | 'senate') {
+  await navigateBillType(firstBillTypeForChamber(chamber))
+}
+
+function formatStatusLabel(value: string) {
+  return value
+    .split(/[_:-]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 function formatMonthLabel(yyyyMm: string) {
@@ -127,10 +324,6 @@ function summarizeText(value?: string | null, limit = 260) {
   return value.length > limit ? `${value.slice(0, limit).trim()}...` : value
 }
 
-function billGovTrackUrl(bill: BillRecord) {
-  return `https://www.govtrack.us/congress/bills/${bill.congress}/${bill.billtype}${bill.billnumber}`
-}
-
 async function loadBills() {
   loading.value = true
   errorMessage.value = ''
@@ -155,20 +348,56 @@ async function submitSearch() {
 }
 
 watch(
-  () => [selectedCategory.value, selectedSort.value, searchQuery.value],
+  () => [
+    selectedCategory.value,
+    selectedSort.value,
+    searchQuery.value,
+    route.query.congress,
+    route.query.chamber,
+    route.query.policyArea,
+    route.query.party,
+    route.query.status,
+    route.query.committee,
+    route.query.month,
+    route.query.minCosponsors,
+  ],
   () => {
     draftQuery.value = searchQuery.value
+    syncBillFacetsFromRoute()
     currentPage.value = 1
-    filterPolicyArea.value = ''
-    filterParty.value = ''
-    filterMonth.value = ''
-    filterMinCosponsors.value = ''
     loadBills()
   },
   { immediate: true },
 )
 
-watch([sortDesc, filterPolicyArea, filterParty, filterMonth, filterMinCosponsors], () => { currentPage.value = 1 })
+watch(
+  [
+    selectedCongress,
+    selectedChamber,
+    selectedStatus,
+    selectedSponsorParty,
+    selectedCommittee,
+    filterPolicyArea,
+    filterMonth,
+    filterMinCosponsors,
+    selectedSort,
+  ],
+  async () => {
+    if (isUpdatingBillRoute.value) {
+      return
+    }
+
+    currentPage.value = 1
+    if (billQueryMatchesRoute()) {
+      return
+    }
+
+    await router.replace({
+      path: `/bills/${selectedCategory.value}`,
+      query: buildBillQuery(searchQuery.value || undefined, selectedSort.value),
+    })
+  },
+)
 </script>
 
 <template>
@@ -178,26 +407,90 @@ watch([sortDesc, filterPolicyArea, filterParty, filterMonth, filterMinCosponsors
         <div>
           <p class="eyebrow">Bill routes</p>
           <h1>{{ headline }}</h1>
-          <p class="lede">
-            This screen uses both bill endpoints from `congress_api`: `/latest/:billtype` for fresh activity and
-            `/search/:table/:filter` for ranked or date-sorted text search.
-          </p>
-        </div>
-
-        <div class="pill-row">
-          <NuxtLink
-            v-for="option in BILL_TYPE_OPTIONS"
-            :key="option.code"
-            :to="getBillRoute(option.code, searchQuery || undefined, selectedSort)"
-            class="pill"
-            :class="{ 'pill--active': option.code === selectedCategory }"
-          >
-            {{ option.shortLabel }}
-          </NuxtLink>
+          <p class="lede">Browse or search legislation by type.</p>
         </div>
       </div>
 
-      <form class="control-grid" @submit.prevent="submitSearch">
+      <div class="control-grid control-grid--selectors">
+        <label class="field field--compact">
+          <span>Congress</span>
+          <select v-model="selectedCongress" class="field-input">
+            <option value="">Any congress</option>
+            <option v-for="congress in availableCongresses" :key="congress" :value="congress">
+              {{ congress }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field field--compact">
+          <span>Chamber</span>
+          <select
+            :value="selectedChamber"
+            class="field-input"
+            @change="navigateBillChamber(($event.target as HTMLSelectElement).value as 'house' | 'senate')"
+          >
+            <option value="house">House</option>
+            <option value="senate">Senate</option>
+          </select>
+        </label>
+
+        <label class="field field--compact">
+          <span>Bill type</span>
+          <select
+            :value="selectedCategory"
+            class="field-input"
+            @change="navigateBillType(($event.target as HTMLSelectElement).value)"
+          >
+            <optgroup
+              v-for="group in availableBillTypeGroups"
+              :key="group.label"
+              :label="group.label"
+            >
+              <option v-for="option in group.options" :key="option.code" :value="option.code">
+                {{ option.shortLabel }}
+              </option>
+            </optgroup>
+          </select>
+        </label>
+
+        <label class="field field--compact">
+          <span>Policy area</span>
+          <select v-model="filterPolicyArea" class="field-input">
+            <option value="">All topics</option>
+            <option v-for="area in availablePolicyAreas" :key="area" :value="area">{{ area }}</option>
+          </select>
+        </label>
+
+        <label class="field field--compact">
+          <span>Status</span>
+          <select v-model="selectedStatus" class="field-input">
+            <option value="">Any status</option>
+            <option v-for="status in availableStatuses" :key="status" :value="status">
+              {{ formatStatusLabel(status) }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field field--compact">
+          <span>Sponsor party</span>
+          <select v-model="selectedSponsorParty" class="field-input">
+            <option value="">Any party</option>
+            <option v-for="party in availableParties" :key="party" :value="party">{{ party }}</option>
+          </select>
+        </label>
+
+        <label class="field field--compact">
+          <span>Committee</span>
+          <select v-model="selectedCommittee" class="field-input">
+            <option value="">Any committee</option>
+            <option v-for="committee in availableCommittees" :key="committee.committee_code" :value="committee.committee_code">
+              {{ committee.committee_name || committee.committee_code }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <form class="control-grid control-grid--search" @submit.prevent="submitSearch">
         <label class="field field--full">
           <span>Search within {{ categoryMeta.longLabel.toLowerCase() }}</span>
           <input
@@ -207,53 +500,49 @@ watch([sortDesc, filterPolicyArea, filterParty, filterMonth, filterMinCosponsors
             placeholder="Search titles, summaries, or legislative phrases"
           >
         </label>
-
-        <label class="field">
-          <span>Sort mode</span>
-          <select
-            :value="selectedSort"
-            class="field-input"
-            @change="router.push(getBillRoute(selectedCategory, searchQuery || undefined, ($event.target as HTMLSelectElement).value))"
-          >
-            <option v-for="option in BILL_FILTER_OPTIONS" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Policy area</span>
-          <select v-model="filterPolicyArea" class="field-input">
-            <option value="">All topics...</option>
-            <option v-for="area in availablePolicyAreas" :key="area" :value="area">{{ area }}</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Sponsor party</span>
-          <select v-model="filterParty" class="field-input">
-            <option value="">All parties...</option>
-            <option v-for="party in availableParties" :key="party" :value="party">{{ party }}</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Introduced month</span>
-          <select v-model="filterMonth" class="field-input">
-            <option value="">Any month...</option>
-            <option v-for="month in availableMonths" :key="month" :value="month">{{ formatMonthLabel(month) }}</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Min cosponsors</span>
-          <input v-model.number="filterMinCosponsors" class="field-input" type="number" placeholder="e.g. 5" min="0">
-        </label>
-
-        <button class="button button--primary" type="submit" style="align-self: end">
+        <button class="button button--primary" type="submit">
           {{ draftQuery.trim() ? 'Run bill search' : 'Load latest bills' }}
         </button>
       </form>
+
+      <details class="facet-panel">
+        <summary class="facet-panel__summary">
+          <span>Refine results</span>
+          <span class="facet-panel__meta">
+            <span v-if="activeFacetCount">({{ activeFacetCount }} active)</span>
+            <span v-else>Optional filters</span>
+          </span>
+        </summary>
+
+        <div class="facet-panel__body">
+        <label class="field">
+          <span>Sort mode</span>
+            <select
+              :value="selectedSort"
+              class="field-input"
+              @change="router.replace(getBillRoute(selectedCategory, searchQuery || undefined, ($event.target as HTMLSelectElement).value))"
+            >
+              <option v-for="option in BILL_FILTER_OPTIONS" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Introduced month</span>
+            <select v-model="filterMonth" class="field-input">
+              <option value="">Any month</option>
+              <option v-for="month in availableMonths" :key="month" :value="month">{{ formatMonthLabel(month) }}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Min cosponsors</span>
+            <input v-model.number="filterMinCosponsors" class="field-input" type="number" placeholder="e.g. 5" min="0">
+          </label>
+        </div>
+      </details>
+
     </section>
 
     <section class="summary-strip">
@@ -300,22 +589,13 @@ watch([sortDesc, filterPolicyArea, filterParty, filterMonth, filterMinCosponsors
         <div class="result-card__header">
           <div>
             <p class="result-card__meta">
-              {{ categoryMeta.shortLabel }} {{ bill.billnumber || '—' }} · Congress {{ bill.congress || '—' }}
+              {{ categoryShortLabel }} {{ bill.billnumber || '—' }} · Congress {{ bill.congress || '—' }}
             </p>
-            <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
+            <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="link-plain">
+              <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
+            </NuxtLink>
           </div>
 
-          <div class="result-card__links">
-            <NuxtLink
-              :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`"
-              class="result-link result-link--primary"
-            >
-              Details →
-            </NuxtLink>
-            <a :href="billGovTrackUrl(bill)" target="_blank" rel="noopener noreferrer" class="result-link">
-              GovTrack ↗
-            </a>
-          </div>
         </div>
 
         <p class="result-card__summary">

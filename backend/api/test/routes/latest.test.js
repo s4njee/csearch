@@ -38,7 +38,7 @@ describe('GET /latest/:billtype', () => {
       'billid', 'shorttitle', 'officialtitle', 'introducedat',
       'summary_text', 'billtype', 'congress', 'billnumber',
       'sponsor_name', 'sponsor_party', 'sponsor_state', 'sponsor_bioguide_id',
-      'statusat', 'policy_area', 'latest_action_date', 'origin_chamber',
+      'bill_status', 'statusat', 'policy_area', 'latest_action_date', 'origin_chamber',
       'cosponsor_count',
     ];
 
