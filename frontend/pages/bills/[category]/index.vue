@@ -15,9 +15,46 @@ const draftQuery = ref('')
 const sortDesc = ref(true)
 const currentPage = ref(1)
 
+const filterPolicyArea = ref('')
+const filterParty = ref('')
+const filterMonth = ref('')
+const filterMinCosponsors = ref<number | ''>('')
+
+const availablePolicyAreas = computed(() => {
+  const areas = new Set(bills.value.map(b => b.policy_area).filter(Boolean))
+  return Array.from(areas).sort() as string[]
+})
+
+const availableParties = computed(() => {
+  const parties = new Set(bills.value.map(b => b.sponsor_party).filter(Boolean))
+  return Array.from(parties).sort() as string[]
+})
+
+const availableMonths = computed(() => {
+  const months = new Set<string>()
+  bills.value.forEach(b => {
+    if (b.introducedat) {
+      const match = b.introducedat.match(/^(\d{4}-\d{2})/)
+      if (match && match[1]) months.add(match[1])
+    }
+  })
+  return Array.from(months).sort().reverse()
+})
+
+const filteredBills = computed(() => {
+  return bills.value.filter(b => {
+    if (filterPolicyArea.value && b.policy_area !== filterPolicyArea.value) return false
+    if (filterParty.value && b.sponsor_party !== filterParty.value) return false
+    if (filterMonth.value && (!b.introducedat || !b.introducedat.startsWith(filterMonth.value))) return false
+    if (filterMinCosponsors.value !== '' && (b.cosponsor_count || 0) < filterMinCosponsors.value) return false
+    return true
+  })
+})
+
 const sortedBills = computed(() =>
-  sortDesc.value ? bills.value : [...bills.value].reverse(),
+  sortDesc.value ? filteredBills.value : [...filteredBills.value].reverse(),
 )
+
 
 const totalPages = computed(() => Math.ceil(sortedBills.value.length / PAGE_SIZE))
 
@@ -37,7 +74,7 @@ const selectedSort = computed(() => {
 })
 
 const searchQuery = computed(() => typeof route.query.query === 'string' ? route.query.query.trim() : '')
-const categoryMeta = computed(() => BILL_TYPE_OPTIONS.find(option => option.code === selectedCategory.value) || BILL_TYPE_OPTIONS[0])
+const categoryMeta = computed(() => BILL_TYPE_OPTIONS.find(option => option.code === selectedCategory.value) || BILL_TYPE_OPTIONS[0]!)
 
 const headline = computed(() => {
   return searchQuery.value
@@ -46,17 +83,23 @@ const headline = computed(() => {
 })
 
 const totalCosponsors = computed(() => {
-  return bills.value.reduce((sum, bill) => sum + (bill.cosponsor_count || 0), 0)
+  return filteredBills.value.reduce((sum, bill) => sum + (bill.cosponsor_count || 0), 0)
 })
 
-const withSummaries = computed(() => bills.value.filter(bill => bill.summary_text).length)
-const withPolicyArea = computed(() => bills.value.filter(bill => bill.policy_area).length)
+const withSummaries = computed(() => filteredBills.value.filter(bill => bill.summary_text).length)
+const withPolicyArea = computed(() => filteredBills.value.filter(bill => bill.policy_area).length)
 
 function getBillRoute(code: string, query?: string, sort?: string) {
   return {
     path: `/bills/${code}`,
     query: query ? { query, sort } : {},
   }
+}
+
+function formatMonthLabel(yyyyMm: string) {
+  const [yyyy, mm] = yyyyMm.split('-')
+  const date = new Date(Number(yyyy), Number(mm) - 1, 1)
+  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date)
 }
 
 function formatDate(value?: string | null) {
@@ -116,12 +159,16 @@ watch(
   () => {
     draftQuery.value = searchQuery.value
     currentPage.value = 1
+    filterPolicyArea.value = ''
+    filterParty.value = ''
+    filterMonth.value = ''
+    filterMinCosponsors.value = ''
     loadBills()
   },
   { immediate: true },
 )
 
-watch(sortDesc, () => { currentPage.value = 1 })
+watch([sortDesc, filterPolicyArea, filterParty, filterMonth, filterMinCosponsors], () => { currentPage.value = 1 })
 </script>
 
 <template>
@@ -174,6 +221,35 @@ watch(sortDesc, () => { currentPage.value = 1 })
           </select>
         </label>
 
+        <label class="field">
+          <span>Policy area</span>
+          <select v-model="filterPolicyArea" class="field-input">
+            <option value="">All topics...</option>
+            <option v-for="area in availablePolicyAreas" :key="area" :value="area">{{ area }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Sponsor party</span>
+          <select v-model="filterParty" class="field-input">
+            <option value="">All parties...</option>
+            <option v-for="party in availableParties" :key="party" :value="party">{{ party }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Introduced month</span>
+          <select v-model="filterMonth" class="field-input">
+            <option value="">Any month...</option>
+            <option v-for="month in availableMonths" :key="month" :value="month">{{ formatMonthLabel(month) }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Min cosponsors</span>
+          <input v-model.number="filterMinCosponsors" class="field-input" type="number" placeholder="e.g. 5" min="0">
+        </label>
+
         <button class="button button--primary" type="submit" style="align-self: end">
           {{ draftQuery.trim() ? 'Run bill search' : 'Load latest bills' }}
         </button>
@@ -183,7 +259,7 @@ watch(sortDesc, () => { currentPage.value = 1 })
     <section class="summary-strip">
       <article class="summary-tile">
         <span>Rows</span>
-        <strong>{{ bills.length }}</strong>
+        <strong>{{ filteredBills.length }}</strong>
       </article>
       <article class="summary-tile">
         <span>Showing</span>

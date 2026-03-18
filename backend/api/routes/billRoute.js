@@ -20,7 +20,7 @@ module.exports = async function (fastify, opts) {
       return { error: "Invalid bill number; must be a number" };
     }
 
-    const [bill, actions, cosponsors, votes] = await Promise.all([
+    const [bill, actions, cosponsors, votes, committees] = await Promise.all([
       db.knex("bills")
         .where({ billtype, congress, billnumber })
         .select(
@@ -46,6 +46,10 @@ module.exports = async function (fastify, opts) {
         .where({ bill_type: billtype, bill_number: billnumber, congress })
         .select("voteid", "congress", "chamber", "question", "result", "votedate", "votetype")
         .orderBy("votedate", "desc"),
+
+      db.knex("bill_committees")
+        .where({ billtype, congress, billnumber })
+        .select("committee_code", "committee_name", "chamber"),
     ]);
 
     if (!bill) {
@@ -53,6 +57,6 @@ module.exports = async function (fastify, opts) {
       return { error: "Bill not found" };
     }
 
-    return { ...bill, actions, cosponsors, votes };
+    return { ...bill, actions, cosponsors, votes, committees };
   });
 };

@@ -22,6 +22,7 @@
         <NuxtLink to="/">Overview</NuxtLink>
         <NuxtLink to="/bills/hr">Bills</NuxtLink>
         <NuxtLink :to="{ path: '/votes', query: { chamber: 'senate' } }">Votes</NuxtLink>
+        <NuxtLink to="/committees">Committees</NuxtLink>
         <NuxtLink to="/explore">Explore</NuxtLink>
       </nav>
     </header>
@@ -120,7 +121,7 @@ body {
 
 .app-nav__links a.router-link-active,
 .app-nav__links a:hover {
-  color: #000;
+  color: #fff;
   border-color: var(--accent-primary);
   background: var(--accent-primary);
 }

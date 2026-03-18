@@ -38,5 +38,15 @@ export default defineNuxtConfig({
             autoprefixer: {},
         },
     },
-
+    routeRules: {
+        '/api/**': {
+            proxy: process.env.PROXY_API || 'http://localhost:3000/**'
+        }
+    },
+    nitro: {
+        prerender: {
+            crawlLinks: false,
+            routes: ['/', '/votes', '/explore', '/bills/hr', '/bills/s', '/bills/hres', '/bills/sres', '/bills/hjres', '/bills/sjres', '/bills/hconres', '/bills/sconres', '/committees'],
+        }
+    }
 })

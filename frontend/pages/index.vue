@@ -69,10 +69,9 @@ function submitVoteSearch() {
     <section class="hero-grid">
       <article class="hero-panel hero-panel--primary">
         <p class="eyebrow">ACE Research</p>
-        <h1 class="hero-title">One interface for the whole `congress_api` query surface.</h1>
+        <h1 class="hero-title">A modern lens on congressional data.</h1>
         <p class="hero-copy">
-          The app now centers every read path exposed by the backend: latest bill streams, ranked bill search,
-          latest vote feeds, and the full exploratory query catalog.
+          Explore the latest legislation, track roll-call votes, dive deep into committee workflows, and discover detailed insights into the actions of the U.S. Congress.
         </p>
 
         <div class="stat-grid">
@@ -181,7 +180,7 @@ function submitVoteSearch() {
             >
           </label>
 
-          <button class="button" type="submit">
+          <button class="button button--primary" type="submit">
             {{ voteQuery.trim() ? 'Search votes' : 'Browse recent votes' }}
           </button>
         </form>

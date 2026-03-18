@@ -1,8 +1,12 @@
 import type {
   BillDetail,
   BillRecord,
+  CommitteeDetail,
+  CommitteeRecord,
   ExploreListResponse,
   ExploreQueryResponse,
+  MemberDetail,
+  VoteDetail,
   VoteRecord,
 } from '~/types/congress'
 
@@ -44,5 +48,9 @@ export function useCongressApi() {
     latestVotes: (chamber: string) => apiFetch<VoteRecord[]>(`/votes/${chamber}`),
     searchVotes: (query: Record<string, string | number | undefined | null>) =>
       apiFetch<ExploreQueryResponse>(withQuery('/explore/vote-search-example', query)),
+    getMember: (bioguideId: string) => apiFetch<MemberDetail>(`/members/${bioguideId}`),
+    getVote: (voteId: string) => apiFetch<VoteDetail>(`/votes/detail/${voteId}`),
+    getCommittees: () => apiFetch<CommitteeRecord[]>('/committees'),
+    getCommittee: (code: string) => apiFetch<CommitteeDetail>(`/committees/${code}`),
   }
 }
