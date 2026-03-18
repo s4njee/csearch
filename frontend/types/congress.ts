@@ -54,6 +54,7 @@ export interface BillDetail extends BillRecord {
   actions: BillAction[]
   cosponsors: BillCosponsor[]
   votes: BillVote[]
+  committees: CommitteeRecord[]
 }
 
 // ─── Votes ────────────────────────────────────────────────────────────────────
@@ -76,6 +77,51 @@ export interface VoteRecord {
   yea_count?: number | null
   nay_count?: number | null
   source_url?: string | null
+}
+
+export interface VoteMember {
+  bioguide_id: string
+  display_name?: string | null
+  party?: string | null
+  state?: string | null
+  position: string
+}
+
+export interface VoteDetail extends VoteRecord {
+  members: VoteMember[]
+}
+
+// ─── Members ──────────────────────────────────────────────────────────────────
+
+export interface MemberCounts {
+  sponsored: number
+  cosponsored: number
+}
+
+export interface MemberProfile {
+  bioguide_id: string
+  name: string
+  party?: string | null
+  state?: string | null
+}
+
+export interface MemberDetail extends MemberProfile {
+  counts: MemberCounts
+  sponsoredBills: BillRecord[]
+  recentVotes: VoteRecord[]
+}
+
+// ─── Committees ───────────────────────────────────────────────────────────────
+
+export interface CommitteeRecord {
+  committee_code: string
+  committee_name?: string | null
+  chamber?: string | null
+  bill_count?: string | number
+}
+
+export interface CommitteeDetail extends CommitteeRecord {
+  bills: BillRecord[]
 }
 
 // ─── Explore ──────────────────────────────────────────────────────────────────
@@ -157,6 +203,12 @@ export const API_FAMILIES = [
     summary: 'Search bills by phrase and sort either by rank or recency.',
   },
   {
+    id: 'bills-bynumber',
+    title: 'Bill number search',
+    route: '/bills/bynumber/:number',
+    summary: 'Instant fuzzy matching for bills by cross-referencing only the numeric ID.',
+  },
+  {
     id: 'bills',
     title: 'Bill detail',
     route: '/bills/:billtype/:congress/:billnumber',
@@ -169,10 +221,22 @@ export const API_FAMILIES = [
     summary: 'Review the latest House and Senate vote activity from the recent 90-day window.',
   },
   {
-    id: 'explore',
-    title: 'Explore queries',
-    route: '/explore and /explore/:queryId',
-    summary: 'Run the full exploratory query bundle, including parameterized bill and vote search helpers.',
+    id: 'votes-detail',
+    title: 'Roll-call votes',
+    route: '/votes/detail/:voteid',
+    summary: 'Detailed roll-call results connecting the exact yea/nay positions to individual members.',
+  },
+  {
+    id: 'members',
+    title: 'Member profiles',
+    route: '/members/:bioguide_id',
+    summary: 'Legislator profiles with sponsored legislation and recent voting behavior.',
+  },
+  {
+    id: 'committees',
+    title: 'Committees',
+    route: '/committees and /committees/:code',
+    summary: 'Browse congressional committees and view the specific bills referred to their workflows.',
   },
 ] as const
 

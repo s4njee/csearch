@@ -52,11 +52,17 @@ services:
       - "3000"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.nginx
-      args:
-        NUXT_API_SERVER: /api
+    image: node:20-alpine
+    working_dir: /app
+    environment:
+      NUXT_API_SERVER: /api
+      PROXY_API: "http://api:3000/**"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.nuxt
+    command: >
+      sh -c "npm install && npx nuxt dev --host 0.0.0.0 --port 80"
     depends_on:
       api:
         condition: service_started

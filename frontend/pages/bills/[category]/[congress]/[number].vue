@@ -118,7 +118,14 @@ function voteResultClass(result?: string | null) {
           </div>
           <div>
             <dt>Sponsor</dt>
-            <dd>{{ bill.sponsor_name || '—' }}</dd>
+            <dd>
+              <NuxtLink v-if="bill.sponsor_bioguide_id" :to="`/members/${bill.sponsor_bioguide_id}`" class="result-link" style="color: inherit;">
+                {{ bill.sponsor_name }}
+              </NuxtLink>
+              <template v-else>
+                {{ bill.sponsor_name || '—' }}
+              </template>
+            </dd>
           </div>
           <div>
             <dt>Party</dt>
@@ -127,6 +134,14 @@ function voteResultClass(result?: string | null) {
           <div>
             <dt>State</dt>
             <dd>{{ bill.sponsor_state || '—' }}</dd>
+          </div>
+          <div v-if="bill.committees && bill.committees.length">
+            <dt>Committees</dt>
+            <dd style="display: flex; flex-direction: column; gap: 0.25rem;">
+              <NuxtLink v-for="committee in bill.committees" :key="committee.committee_code" :to="`/committees/${committee.committee_code}`" class="result-link" style="color: inherit; text-decoration: none;">
+                {{ committee.committee_name || committee.committee_code }}
+              </NuxtLink>
+            </dd>
           </div>
         </dl>
       </section>
@@ -181,9 +196,9 @@ function voteResultClass(result?: string | null) {
             :key="cosponsor.bioguide_id"
             class="cosponsor-card"
           >
-            <div class="cosponsor-card__name">
+            <NuxtLink :to="`/members/${cosponsor.bioguide_id}`" class="cosponsor-card__name result-link" style="color: inherit; text-decoration: none; display: block;">
               {{ cosponsor.full_name || cosponsor.bioguide_id }}
-            </div>
+            </NuxtLink>
             <div class="cosponsor-card__meta">
               <span>{{ cosponsor.party || '?' }}</span>
               <span>{{ cosponsor.state || '?' }}</span>

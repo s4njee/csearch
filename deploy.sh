@@ -17,8 +17,17 @@ REGISTRY="${REGISTRY:-registry.s8njee.com}"
 BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 VCS_REF="$(git rev-parse --short HEAD)"
 
+# Parse flags
+SKIP_SCRAPER=false
+for arg in "$@"; do
+  case "$arg" in
+    --skip-scraper) SKIP_SCRAPER=true ;;
+  esac
+done
+
 echo "==> Using kubectl context: ${KUBECTL_CONTEXT}"
 echo "==> Registry: ${REGISTRY}"
+echo "==> Skip scraper: ${SKIP_SCRAPER}"
 
 # ---------------------------------------------------------------------------
 # 0. Build and push Docker images (linux/amd64)
@@ -34,17 +43,22 @@ docker buildx build \
   -t "${REGISTRY}/csearch-api:${VCS_REF}" \
   backend/api
 
-echo ""
-echo "==> Building csearch-updater (linux/amd64)..."
-docker buildx build \
-  --platform linux/amd64 \
-  --push \
-  --build-arg BUILD_DATE="${BUILD_DATE}" \
-  --build-arg VCS_REF="${VCS_REF}" \
-  -t "${REGISTRY}/csearch-updater:latest" \
-  -t "${REGISTRY}/csearch-updater:${VCS_REF}" \
-  -f backend/scraper/Dockerfile \
-  .
+if [[ "$SKIP_SCRAPER" == "false" ]]; then
+  echo ""
+  echo "==> Building csearch-updater (linux/amd64)..."
+  docker buildx build \
+    --platform linux/amd64 \
+    --push \
+    --build-arg BUILD_DATE="${BUILD_DATE}" \
+    --build-arg VCS_REF="${VCS_REF}" \
+    -t "${REGISTRY}/csearch-updater:latest" \
+    -t "${REGISTRY}/csearch-updater:${VCS_REF}" \
+    -f backend/scraper/Dockerfile \
+    .
+else
+  echo ""
+  echo "==> Skipping csearch-updater build."
+fi
 
 # ---------------------------------------------------------------------------
 # Registry pull secret
@@ -90,12 +104,17 @@ ${KUBECTL} rollout status deployment/csearch-api --timeout=120s
 # ---------------------------------------------------------------------------
 # 3. Scraper CronJob + PVC
 # ---------------------------------------------------------------------------
-echo ""
-echo "==> Applying scraper PVC..."
-${KUBECTL} apply -f k8s/scraper/pvc.yaml
+if [[ "$SKIP_SCRAPER" == "false" ]]; then
+  echo ""
+  echo "==> Applying scraper PVC..."
+  ${KUBECTL} apply -f k8s/scraper/pvc.yaml
 
-echo "==> Applying scraper CronJob..."
-${KUBECTL} apply -f k8s/scraper/cronjob.yaml
+  echo "==> Applying scraper CronJob..."
+  ${KUBECTL} apply -f k8s/scraper/cronjob.yaml
+else
+  echo ""
+  echo "==> Skipping scraper k8s resources."
+fi
 
 # ---------------------------------------------------------------------------
 # 4. Frontend – Nuxt static build → S3 + CloudFront
