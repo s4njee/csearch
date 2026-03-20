@@ -11,7 +11,20 @@ const closeWithGrace = require('close-with-grace')
 
 // Instantiate Fastify with some config
 const app = Fastify({
-  logger: true
+  // Emit JSON logs to stdout so Kubernetes can collect them without a sidecar.
+  logger: {
+    level: process.env.LOG_LEVEL || 'info',
+    serializers: {
+      req(req) {
+        return { method: req.method, url: req.url, ip: req.ip, reqId: req.id }
+      },
+      res(res) {
+        return { statusCode: res.statusCode }
+      }
+    },
+    // Keep the admin secret out of stdout logs.
+    redact: ['req.headers.authorization']
+  }
 })
 
 // Register your application as a normal plugin.

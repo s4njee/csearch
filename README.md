@@ -106,7 +106,22 @@ cd frontend
 bash deploy.sh
 ```
 
-Builds with `nuxt generate`, syncs to S3, and invalidates CloudFront.
+Production frontend deploy builds with `nuxt generate`, defaults the API origin to `https://api.csearch.org`, syncs `.output/public` to S3, and invalidates CloudFront.
+
+For the `mars` dev cluster, the frontend is a separate nginx container deployment on k3s:
+
+```bash
+source .env.prod
+docker buildx build --platform linux/amd64 --push \
+  -t "$REGISTRY/csearch-frontend:latest" \
+  -f frontend/Dockerfile.nginx \
+  frontend
+
+kubectl --context mars apply -f k8s/frontend/mars-deployment.yaml
+kubectl --context mars apply -f k8s/frontend/dev-service.yaml
+```
+
+The `mars` manifest sets `NUXT_API_SERVER=http://192.168.1.156:3000`, while the production deploy path continues to use `https://api.csearch.org`.
 
 ### Backend (API + Scraper)
 

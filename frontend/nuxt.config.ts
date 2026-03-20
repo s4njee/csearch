@@ -25,11 +25,17 @@ export default defineNuxtConfig({
                     href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
                 },
             ],
+            script: [
+                {
+                    src: '/runtime-config.js',
+                },
+            ],
         },
     },
     runtimeConfig: {
         public: {
-            API_SERVER: process.env.NUXT_API_SERVER,
+            // This provides a server-side/default API origin for local dev and static generation.
+            API_SERVER: process.env.NUXT_API_SERVER || 'https://api.csearch.org',
         }
     },
     postcss: {

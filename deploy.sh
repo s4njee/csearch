@@ -69,6 +69,16 @@ else
   echo "==> Skipping csearch-updater build."
 fi
 
+echo ""
+echo "==> Building csearch-frontend (linux/amd64)..."
+docker buildx build \
+  --platform linux/amd64 \
+  --push \
+  -t "${REGISTRY}/csearch-frontend:latest" \
+  -t "${REGISTRY}/csearch-frontend:${VCS_REF}" \
+  -f frontend/Dockerfile.deploy \
+  frontend
+
 # ---------------------------------------------------------------------------
 # Registry pull secret
 # ---------------------------------------------------------------------------
@@ -89,6 +99,9 @@ fi
 echo ""
 echo "==> Applying database config and secrets..."
 envsubst < k8s/db/config.yaml | ${KUBECTL} apply -f -
+${KUBECTL} create configmap postgres-schema \
+  --from-file=001-schema.sql=backend/scraper/schema.sql \
+  --dry-run=client -o yaml | ${KUBECTL} apply -f -
 
 echo "==> Applying database deployment and service..."
 ${KUBECTL} apply -f k8s/db/statefulset.yaml
@@ -123,8 +136,29 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Frontend – Nuxt static build → S3 + CloudFront
+# 4. Logging shipping
 # ---------------------------------------------------------------------------
+if [[ -n "${LOG_SHIP_HTTP_HOST:-}" ]]; then
+  echo ""
+  echo "==> Applying Fluent Bit logging stack..."
+  envsubst < k8s/logging/fluent-bit-config.yaml | ${KUBECTL} apply -f -
+  ${KUBECTL} apply -f k8s/logging/fluent-bit-rbac.yaml
+  envsubst < k8s/logging/fluent-bit-daemonset.yaml | ${KUBECTL} apply -f -
+
+  echo "==> Waiting for Fluent Bit DaemonSet rollout..."
+  ${KUBECTL} rollout status daemonset/csearch-fluent-bit --timeout=120s
+else
+  echo ""
+  echo "==> Skipping Fluent Bit logging stack (LOG_SHIP_HTTP_HOST is unset)."
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Frontend – Nuxt static build → S3 + CloudFront
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> Applying frontend RBAC..."
+${KUBECTL} apply -f k8s/frontend/rbac.yaml
+
 echo ""
 echo "==> Deploying frontend..."
 bash frontend/deploy.sh

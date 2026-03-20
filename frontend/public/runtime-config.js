@@ -1,0 +1,1 @@
+window.__CSEARCH_RUNTIME_CONFIG__ = window.__CSEARCH_RUNTIME_CONFIG__ || {};

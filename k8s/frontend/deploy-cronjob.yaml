@@ -23,47 +23,14 @@ spec:
           restartPolicy: OnFailure
           # Optionally wait for the scraper job to finish using an init container if you have a way to check,
           # but a 30-minute delay is the simplest and most common Kubernetes CronJob sequencing pattern.
+          serviceAccountName: csearch-frontend-deployer
           imagePullSecrets:
             - name: registry-s8njee-pull
           containers:
             - name: deployer
-              # Remember to change REGISTRY dynamically when you deploy, or build exactly this tag:
               image: registry.s8njee.com/csearch-frontend:latest
               imagePullPolicy: Always
-              command: ["/bin/bash", "-c"]
-              args:
-                - |
-                  echo "==> Clearing Fastify LRU Cache before deployment..."
-                  # The NUXT_API_SERVER is generally available within the cluster at this URL.
-                  # It resets the 24-hour Fastify memory cache right before rebuilding!
-                  curl -X POST -H "Authorization: $SECRET_KEY" "$NUXT_API_SERVER/admin/clear-cache" || true
-
-                  echo "==> Building Nuxt for static generation..."
-                  npx nuxt generate
-
-                  echo "==> Syncing to S3 Bucket: $S3_BUCKET..."
-                  aws s3 sync .output/public/ "$S3_BUCKET" --delete
-
-                  echo "==> Invalidating CloudFront Cache for Distribution ID: $CF_DIST_CSEARCH..."
-                  aws cloudfront create-invalidation \
-                    --distribution-id "$CF_DIST_CSEARCH" \
-                    --paths "/*" \
-                    --query "Invalidation.{Id:Id,Status:Status}" \
-                    --output table
-
-                  echo "==> Deploy Successful!"
               env:
-                # Target the public URL or the internal Kubernetes Service (e.g., http://csearch-api.default.svc.cluster.local:3000)
-                - name: NUXT_API_SERVER
-                  value: "https://api.csearch.org" 
-                
-                # Secret Key to authenticate to the API admin routes
-                - name: SECRET_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: csearch-api-secrets
-                      key: SECRET_KEY
-                
                 # Fetch AWS credentials from a Kubernetes Secret (you will need to create this secret)
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:

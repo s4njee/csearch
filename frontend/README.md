@@ -1,75 +1,42 @@
-# Nuxt 3 Minimal Starter
+# Frontend
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Nuxt 4 powers the CSearch frontend. There are two deployment paths, and they intentionally behave differently.
 
-## Setup
-
-Make sure to install the dependencies:
+## Production deploy
 
 ```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
+cd frontend
+bash deploy.sh
 ```
 
-## Development Server
+This flow:
 
-Start the development server on `http://localhost:3000`:
+1. Sources `../.env.prod`
+2. Builds the static site with `npx nuxt generate`
+3. Uses `https://api.csearch.org` as the default production API origin
+4. Syncs `.output/public/` to S3
+5. Invalidates CloudFront
+
+## Dev deploy on `mars`
+
+The dev frontend runs as an nginx container on the `mars` k3s cluster instead of syncing to S3.
 
 ```bash
-# npm
-npm run dev
+source ../.env.prod
+docker buildx build --platform linux/amd64 --push \
+  -t "$REGISTRY/csearch-frontend:latest" \
+  -f Dockerfile.nginx \
+  .
 
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+kubectl --context mars apply -f ../k8s/frontend/mars-deployment.yaml
+kubectl --context mars apply -f ../k8s/frontend/dev-service.yaml
 ```
 
-## Production
+The `mars` deployment injects `NUXT_API_SERVER=http://192.168.1.156:3000` at runtime, so the dev API target lives in the manifest rather than being baked into the image.
 
-Build the application for production:
+## Local dev
 
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+cd frontend
+NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 ```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.

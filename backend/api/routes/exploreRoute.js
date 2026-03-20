@@ -14,6 +14,7 @@ module.exports = async function (fastify) {
 
   fastify.get("/explore/:queryId", async function (request, reply) {
     const { queryId } = request.params;
+    const startedAt = Date.now();
     
     // Sort query keys to ensure consistent cache keys
     const queryParamsString = Object.keys(request.query)
@@ -50,6 +51,12 @@ module.exports = async function (fastify) {
 
     cache.set(cacheKey, response);
     reply.header("X-Cache", "MISS");
+
+    const responseTime = Date.now() - startedAt;
+    if (responseTime > 500) {
+      // Slow explore queries are rare enough that they are worth keeping in the log.
+      request.log.warn({ queryId, responseTime }, 'slow explore query')
+    }
     return response;
   });
 };

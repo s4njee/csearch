@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
-# Install AWS CLI and bash
-RUN apk add --no-cache aws-cli bash
+# Install tools needed by the deploy entrypoint
+RUN apk add --no-cache aws-cli bash curl kubectl tzdata
 
 WORKDIR /app
 
@@ -12,6 +12,6 @@ RUN npm ci
 # Copy the rest of the frontend code
 COPY . .
 
-# We'll run the deployment steps directly in the cronjob, overriding CMD
-# Or we can run a modified shell script if preferred.
-CMD ["npm", "run", "generate"]
+RUN chmod +x /app/deploy-container.sh
+
+ENTRYPOINT ["/bin/bash", "/app/deploy-container.sh"]

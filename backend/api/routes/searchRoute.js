@@ -59,7 +59,7 @@ module.exports = async function (fastify, opts) {
     };
 
     if (filter === "relevance") {
-      return baseQuery(
+      const results = await baseQuery(
         `CASE WHEN b.search_document @@ websearch_to_tsquery('english', ?) THEN 1 ELSE 0 END DESC,
          ts_rank_cd(b.search_document, websearch_to_tsquery('english', ?)) DESC,
          similarity(lower(${BILL_FUZZY_SEARCH_EXPR}), lower(?)) DESC,
@@ -68,16 +68,30 @@ module.exports = async function (fastify, opts) {
          b.billnumber`,
         [searchQuery, searchQuery, searchQuery],
       );
+      request.log.info({
+        query: searchQuery,
+        table,
+        filter,
+        resultCount: results.length
+      }, 'search executed')
+      return results
     }
 
     if (filter === "date") {
-      return baseQuery(
+      const results = await baseQuery(
         `b.statusat DESC NULLS LAST,
          similarity(lower(${BILL_FUZZY_SEARCH_EXPR}), lower(?)) DESC,
          b.billtype,
          b.billnumber`,
         [searchQuery],
       );
+      request.log.info({
+        query: searchQuery,
+        table,
+        filter,
+        resultCount: results.length
+      }, 'search executed')
+      return results
     }
 
     reply.code(400);

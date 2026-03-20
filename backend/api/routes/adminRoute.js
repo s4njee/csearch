@@ -12,6 +12,7 @@ module.exports = async function (fastify, opts) {
     }
 
     cache.reset();
+    request.log.warn({ action: 'cache_clear', ip: request.ip }, 'admin cache reset')
     return { success: true, message: "Fastify memory cache successfully reset" };
   });
 };

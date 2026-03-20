@@ -23,6 +23,9 @@ module.exports = async function (fastify, opts) {
     try {
       await request.jwtVerify();
     } catch (err) {
+      // Authentication failures are still operationally useful, so keep them
+      // in the request-scoped log stream with the rest of the API telemetry.
+      request.log.error({ err }, 'jwt verification failed')
       reply.code(401).send(err);
     }
   });

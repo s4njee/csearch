@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,15 +35,31 @@ func envEnabled(name string, defaultValue bool) bool {
 }
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: configuredLogLevel(),
+	}))
+	slog.SetDefault(logger)
+
+	startedAt := time.Now()
+	runVotes := envEnabled("RUN_VOTES", true)
+	runBills := envEnabled("RUN_BILLS", true)
+	stats := &runStats{}
+
+	slog.Info("scraper run starting",
+		"run_votes", runVotes,
+		"run_bills", runBills,
+	)
+
 	cfg, err := loadConfig()
 	if err != nil {
-		log.Printf("unable to load updater config: %v", err)
-		return
+		slog.Error("unable to load updater config", "err", err)
+		os.Exit(1)
 	}
 
 	db, queries, err := openQueries(cfg)
 	if err != nil {
-		log.Fatalf("unable to connect to postgres: %v", err)
+		slog.Error("unable to connect to postgres", "err", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -51,35 +67,45 @@ func main() {
 
 	voteHashes, err := loadFileHashStore(filepath.Join(cfg.CongressDir, "data", "voteHashes.gob"))
 	if err != nil {
-		log.Fatalf("unable to load vote hash cache: %v", err)
+		slog.Error("unable to load vote hash cache", "err", err)
+		os.Exit(1)
 	}
 
 	billHashes, err := loadFileHashStore(filepath.Join(cfg.CongressDir, "data", "fileHashes.gob"))
 	if err != nil {
-		log.Fatalf("unable to load bill hash cache: %v", err)
+		slog.Error("unable to load bill hash cache", "err", err)
+		os.Exit(1)
 	}
 
-	if envEnabled("RUN_VOTES", true) {
+	if runVotes {
 		if err := updateVotes(cfg); err != nil {
-			log.Fatalf("vote sync failed: %v", err)
+			slog.Error("vote sync failed", "err", err)
+			os.Exit(1)
 		}
-		if err := processVotes(ctx, db, queries, cfg, voteHashes); err != nil {
-			log.Fatalf("vote ingest failed: %v", err)
-		}
-		if err := voteHashes.Save(); err != nil {
-			log.Fatalf("unable to persist vote hash cache: %v", err)
+		if err := processVotes(ctx, db, queries, cfg, voteHashes, stats); err != nil {
+			slog.Error("vote ingest failed", "err", err)
+			os.Exit(1)
 		}
 	}
 
-	if envEnabled("RUN_BILLS", true) {
+	if runBills {
 		if err := updateBills(cfg); err != nil {
-			log.Fatalf("bill sync failed: %v", err)
+			slog.Error("bill sync failed", "err", err)
+			os.Exit(1)
 		}
-		if err := processBills(ctx, db, queries, cfg, billHashes); err != nil {
-			log.Fatalf("bill ingest failed: %v", err)
-		}
-		if err := billHashes.Save(); err != nil {
-			log.Fatalf("unable to persist bill hash cache: %v", err)
+		if err := processBills(ctx, db, queries, cfg, billHashes, stats); err != nil {
+			slog.Error("bill ingest failed", "err", err)
+			os.Exit(1)
 		}
 	}
+
+	slog.Info("scraper run complete",
+		"bills_processed", stats.BillsProcessed,
+		"bills_skipped", stats.BillsSkipped,
+		"bills_failed", stats.BillsFailed,
+		"votes_processed", stats.VotesProcessed,
+		"votes_skipped", stats.VotesSkipped,
+		"votes_failed", stats.VotesFailed,
+		"duration_s", time.Since(startedAt).Seconds(),
+	)
 }

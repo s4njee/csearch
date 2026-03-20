@@ -16,7 +16,7 @@ The primary goal of the infrastructure is to serve massive datasets of bills and
 
 3.  **Frontend Web App (`frontend/`)**
     *   **Technologies:** Nuxt 4 (Vue 3), TailwindCSS.
-    *   **Role:** Provides the user interface. It is statically generated (SSG) via `npx nuxt generate` and deployed globally to AWS S3 & CloudFront. Client-side browser logic uses Nuxt `$fetch` as a Single Page Application (SPA), querying the REST API for searches and dynamic filters.
+    *   **Role:** Provides the user interface. Production is statically generated (SSG) via `npx nuxt generate` and deployed globally to AWS S3 & CloudFront with the default API origin set to `https://api.csearch.org`. The `mars` development deployment runs the generated app behind nginx on k3s, where the API origin is injected at runtime from the Kubernetes manifest.
 
 ---
 
@@ -41,6 +41,16 @@ Kubernetes horizontally scales the `csearch-api` Node.js pods based on traffic.
 *   **Postgres Limits:** The single underlying PostgreSQL database has a native ceiling for concurrent active connections (typically `100`).
 *   **Knex Pool:** To prevent connection exhaustion under heavy load, Knex implements a connection pool configuration (`min: 2, max: 20`). This forces Fastify to safely reuse and lease active TCP connections instead of allocating unmanageable spikes of queries directly against the database instances.
 
+### 3. Logging and Observability
+The platform uses stdout as the logging transport so Kubernetes can collect logs without any extra agents in the hot path.
+
+*   **API logging:** Fastify is configured with Pino JSON logs, request/response serializers, and redaction for the admin authorization header. A shared `onResponse` hook writes one structured completion line per request with latency, cache status, and route metadata.
+*   **API context:** Route handlers add targeted analytics and audit events for search queries, cache clears, and slow explore queries. A shared error hook keeps failures tied to the active request context.
+*   **Scraper logging:** The Go updater uses `log/slog` with JSON output to stdout. It records run start/end summaries, per-bill and per-vote ingest events, and warnings for parse/hash/insert failures.
+*   **Python subprocess output:** The Go scraper re-emits the vendored Python scraper's stdout and stderr streams as structured log entries so they remain parseable alongside native Go logs.
+*   **Log shipping:** A Fluent Bit DaemonSet tails `/var/log/containers/*.log`, enriches records with Kubernetes metadata, and forwards them to a configurable HTTP collector when `LOG_SHIP_HTTP_HOST` is set in `.env.prod`.
+*   **Operational model:** This keeps the current stack lightweight while still making `kubectl logs` usable for debugging, ad-hoc analysis, and future log shipping to a managed sink.
+
 ---
 
 ## Deployment Process
@@ -49,3 +59,5 @@ Deployments into the cluster are handled primarily through scripts or CI/CD runn
 *   **Database:** Configured through StatefulSets (`k8s/db/`)
 *   **API:** Replicated via Deployment Services (`k8s/api/`)
 *   **Scraper / Deployer:** Driven recursively by CronJobs (`k8s/scraper/` and `k8s/frontend/deploy-cronjob.yaml`)
+*   **Frontend production:** Built by `frontend/deploy.sh`, then synced to S3 and invalidated through CloudFront
+*   **Frontend dev (`mars`):** Served by the nginx container manifests in `k8s/frontend/mars-deployment.yaml` and `k8s/frontend/dev-service.yaml`

@@ -12,7 +12,7 @@ module.exports = async function (fastify, opts) {
       await db.knex.raw('SELECT 1')
       return reply.code(200).send({ status: 'ok', db: 'connected' })
     } catch (err) {
-      fastify.log.error({ err }, 'Deep health check failed - DB disconnected')
+      request.log.error({ err }, 'Deep health check failed - DB disconnected')
       return reply.code(503).send({ status: 'error', db: 'disconnected' })
     }
   })

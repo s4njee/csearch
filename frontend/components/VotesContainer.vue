@@ -152,10 +152,11 @@
 import { computed, ref, watch } from 'vue';
 import NavBar from '~/components/NavBar.vue';
 
-const config = useRuntimeConfig();
 const route = useRoute();
 const router = useRouter();
-const API_SERVER = config.public.API_SERVER;
+// Prefer the runtime-injected browser config so this static frontend image can
+// point at different API environments without a per-environment rebuild.
+const API_SERVER = useApiBase();
 
 const loading = ref(false);
 const votes = ref([]);

@@ -26,8 +26,7 @@ function withQuery(path: string, query: Record<string, string | number | undefin
 }
 
 export function useCongressApi() {
-  const config = useRuntimeConfig()
-  const apiBase = config.public.API_SERVER
+  const apiBase = useApiBase()
 
   async function apiFetch<T>(path: string): Promise<T> {
     return await $fetch<T>(`${apiBase}${path}`)
