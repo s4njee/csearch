@@ -1,16 +1,28 @@
-# Plugins Folder
+# API Plugins
 
-Plugins define behavior that is common to all the routes in your
-application. Authentication, caching, templates, and all the other cross
-cutting concerns should be handled by plugins placed in this folder.
+Files in this directory register reusable Fastify behavior that is shared across routes.
 
-Files in this folder are typically defined through the
-[`fastify-plugin`](https://github.com/fastify/fastify-plugin) module,
-making them non-encapsulated. They can define decorators and set hooks
-that will then be used in the rest of your application.
+Use plugins when the behavior is cross-cutting rather than route-specific, for example:
 
-Check out:
+- authentication helpers
+- decorators
+- shared lifecycle hooks
+- support utilities needed across the app
 
-* [The hitchhiker's guide to plugins](https://www.fastify.io/docs/latest/Guides/Plugins-Guide/)
-* [Fastify decorators](https://www.fastify.io/docs/latest/Reference/Decorators/).
-* [Fastify lifecycle](https://www.fastify.io/docs/latest/Reference/Lifecycle/).
+## Current Plugins
+
+| File | Purpose |
+| --- | --- |
+| `auth.js` | JWT support and auth-related helpers |
+| `sensible.js` | Fastify sensible plugin registration |
+| `support.js` | Shared support behavior from the Fastify scaffold |
+
+## When To Add A Plugin
+
+Add a plugin when the functionality:
+
+- is used by multiple routes
+- benefits from Fastify decorators or hooks
+- is cleaner as app-wide setup than inline route code
+
+If the code is only used by one route, keep it near that route instead of creating a plugin too early.
