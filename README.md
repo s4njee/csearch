@@ -1,79 +1,179 @@
 # CSearch
 
-Full-stack platform for searching and browsing U.S. congressional bills and votes. Ingests data from GovInfo and congress.gov, normalizes it into Postgres, and serves it through a REST API and static frontend.
+CSearch is a monorepo for ingesting, storing, querying, and presenting U.S. congressional bill and vote data.
 
-## Architecture
+At a high level:
 
-```
-  GovInfo / congress.gov
-          |
-    backend/scraper          Go + Python scraper, runs daily via k8s CronJob
-          |
-       Postgres 15           Partitioned by congress (93rd–current), full-text search
-          |
-     backend/api             Fastify REST API (Node.js)
-          |
-       frontend              Nuxt 4 static site (S3 + CloudFront)
+```text
+GovInfo + congress.gov
+        |
+        v
+backend/scraper  ->  PostgreSQL  ->  backend/api  ->  frontend
 ```
 
-## Tech Stack
+The repository is organized around three active production projects:
 
-| Layer | Technology |
-|---|---|
-| Scraper | Go 1.19, Python 3.11 (scrapelib), XML/JSON parsing |
-| Database | PostgreSQL 15, partitioned tables, GIN-indexed tsvector search |
-| API | Node.js, Fastify 4, Knex query builder, pg driver |
-| Frontend | Nuxt 4, Vue 3, Tailwind CSS, static site generation |
-| Infra | Docker, Kubernetes, S3, CloudFront |
+| Project | Path | Primary responsibility |
+| --- | --- | --- |
+| Scraper | `backend/scraper/` | Fetch raw congress data, normalize it, and upsert it into Postgres |
+| API | `backend/api/` | Serve bill, vote, member, committee, and explore data over HTTP |
+| Frontend | `frontend/` | Render the public csearch.org experience with Nuxt static generation |
 
-## Project Structure
+## Read This First
 
+If you are new to the codebase, read the docs in this order:
+
+1. This file for the repo map and day-one workflow
+2. [`docs/engineering-guide.md`](docs/engineering-guide.md) for onboarding and common tasks
+3. [`ARCHITECTURE.md`](ARCHITECTURE.md) for the runtime and deployment model
+4. The project README for the area you are changing:
+   - [`backend/scraper/README.md`](backend/scraper/README.md)
+   - [`backend/api/README.md`](backend/api/README.md)
+   - [`frontend/README.md`](frontend/README.md)
+
+## Repository Map
+
+| Path | What lives here | Notes |
+| --- | --- | --- |
+| `backend/scraper/` | Go ingest pipeline plus the vendored Python `congress` scraper | Owns schema bootstrap, SQL source, and data normalization |
+| `backend/api/` | Fastify API, Knex queries, tests | Serves the frontend and deployment warm-up traffic |
+| `frontend/` | Nuxt app, nginx runtime image, deploy scripts | Production is static output on S3 + CloudFront |
+| `k8s/` | Active Kubernetes manifests | This is the current source of truth for cluster resources |
+| `docs/` | Engineer-facing onboarding docs | Start here if you are learning the repo |
+| `archiver/` | Small utility container for archiving the congress data directory | Supporting utility, not part of the main request path |
+| `backend/api/k8s/` | Older API-scoped manifests and examples | Useful historical reference, but not the primary deploy path today |
+| `updater/` | Currently unused placeholder directory | Safe to ignore unless it becomes active again |
+
+## Folder Structure
+
+This tree is the quickest way to orient yourself in the repo:
+
+```text
+csearch-updater-root/
+├── README.md
+├── ARCHITECTURE.md
+├── docs/
+│   └── engineering-guide.md
+├── backend/
+│   ├── scraper/
+│   │   ├── main.go
+│   │   ├── runtime.go
+│   │   ├── bills.go
+│   │   ├── votes.go
+│   │   ├── hashes.go
+│   │   ├── query.sql
+│   │   ├── schema.sql
+│   │   ├── explore.sql
+│   │   ├── csearch/
+│   │   └── congress/
+│   └── api/
+│       ├── app.js
+│       ├── server.js
+│       ├── controllers/
+│       ├── routes/
+│       ├── services/
+│       ├── utils/
+│       ├── test/
+│       └── sql/
+├── frontend/
+│   ├── pages/
+│   ├── components/
+│   ├── composables/
+│   ├── assets/
+│   ├── public/
+│   ├── nuxt.config.ts
+│   ├── deploy.sh
+│   ├── Dockerfile.nginx
+│   └── Dockerfile.deploy
+├── k8s/
+│   ├── api/
+│   ├── db/
+│   ├── frontend/
+│   ├── logging/
+│   ├── scraper/
+│   └── dev/
+├── archiver/
+├── docker-compose.yml
+└── deploy.sh
 ```
-backend/
-  scraper/        Go ingest pipeline + vendored Python scraper
-  api/            Fastify REST API
-frontend/         Nuxt 4 static site
-k8s/              Kubernetes manifests
-docker-compose.yml
-deploy.sh         Cluster deployment script
-.env.prod         Production secrets (not committed)
-```
 
-## Data Coverage
+### What The Main Folders Mean
 
-- **Bills**: 93rd Congress (1973) through current, all 8 bill types (HR, S, HJRES, SJRES, HCONRES, SCONRES, HRES, SRES)
-- **Votes**: 101st Congress (1989) through current, House and Senate
-- **Normalized tables**: bills, bill_actions, bill_cosponsors, bill_committees, bill_subjects, votes, vote_members
+| Folder | Why it exists |
+| --- | --- |
+| `docs/` | Human-oriented onboarding and engineering documentation |
+| `backend/scraper/` | Data ingest pipeline, schema source, and SQL generation inputs |
+| `backend/api/` | HTTP API, route handlers, and API tests |
+| `frontend/` | Nuxt site, generated-site deploy scripts, and nginx container variants |
+| `k8s/` | Active Kubernetes manifests for the current platform |
+| `archiver/` | Utility container for archiving congress data on disk |
 
-The current congress number is computed dynamically: `(year - 1789) / 2 + 1`.
+### Subfolders You Will Use Most Often
 
-## API Endpoints
+| Path | What you usually do there |
+| --- | --- |
+| `backend/scraper/congress/` | Debug low-level source fetching only when upstream formats or download behavior change |
+| `backend/scraper/csearch/` | Read generated query types if helpful, but do not edit by hand |
+| `backend/api/routes/` | Add or change endpoints |
+| `backend/api/services/` | Shared API-side logic such as explore-query execution |
+| `backend/api/test/` | Update or add API coverage |
+| `frontend/pages/` | Change route-level UI and page data loading |
+| `frontend/components/` | Edit reusable UI building blocks |
+| `frontend/composables/` | Change API access and runtime configuration behavior |
+| `k8s/frontend/` | Frontend deployments, services, and scheduled publish jobs |
+| `k8s/scraper/` | Scraper CronJob and storage configuration |
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/latest/:billtype` | Latest 500 bills by type, sorted by most recent action |
-| GET | `/search/:table/:filter?query=` | Full-text search across bills or votes |
-| GET | `/bills/:billtype/:congress/:number` | Bill detail with actions, cosponsors, committees, and related votes |
-| GET | `/bills/bynumber/:number` | All bill types matching a bill number |
-| GET | `/votes/:chamber` | Recent votes by chamber |
-| GET | `/explore` | List of pre-built analytical queries |
-| GET | `/explore/:query` | Run a specific analytical query |
+## System Overview
+
+### Scraper
+
+The scraper runs on a daily Kubernetes CronJob. Each run:
+
+1. Calls the vendored Python scraper to pull bill status XML and vote JSON
+2. Walks the downloaded files in Go
+3. Skips unchanged files using SHA-256 hash caches
+4. Writes normalized records into Postgres
+
+### Database
+
+Postgres is the system of record. The schema is initialized from [`backend/scraper/schema.sql`](backend/scraper/schema.sql), and the scraper is responsible for keeping normalized bill and vote tables populated.
+
+### API
+
+The API reads from Postgres and exposes endpoints for:
+
+- latest bills
+- bill detail
+- bill search
+- recent votes and vote detail
+- member and committee pages
+- analytical explore queries
+
+### Frontend
+
+The frontend is a Nuxt 4 app. Production builds are generated statically, uploaded to S3, and served from CloudFront. A separate nginx-based deployment is used for the `mars` development cluster.
 
 ## Quick Start
 
-### Local dev (Docker Compose)
+### Full local stack
 
 ```bash
 docker-compose up --build
 ```
 
-This starts Postgres, the API, and an nginx proxy serving the frontend:
+This starts:
 
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:8080 |
-| API | http://localhost:3000 |
-| Postgres | localhost:5433 |
+| Service | URL / host |
+| --- | --- |
+| Frontend | [http://localhost:8080](http://localhost:8080) |
+| API | [http://localhost:3000](http://localhost:3000) |
+| Postgres | `localhost:5433` |
+| Scraper | Runs as a container in the compose stack |
+
+Notes:
+
+- The frontend proxies API calls through `/api` in local Docker development.
+- The scraper container may take a while on the first run because it needs to download and parse source data.
 
 ### Frontend only
 
@@ -87,76 +187,60 @@ NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 
 ```bash
 docker-compose up postgres api
-# API available at http://localhost:3000
 ```
 
-## Deployment
+### Scraper only
 
-### Prerequisites
+Use the compose stack if you want the easiest path. If you need to run the scraper directly, see [`backend/scraper/README.md`](backend/scraper/README.md) for the required environment variables and data directory layout.
 
-- Docker with buildx
-- AWS CLI configured (for S3/CloudFront)
-- kubectl with cluster context
-- `.env.prod` populated from `.env.prod.example`
+## Common Tasks
 
-### Frontend
+| Task | Start here |
+| --- | --- |
+| Add a bill or vote field to the system | [`backend/scraper/README.md`](backend/scraper/README.md), then [`backend/api/README.md`](backend/api/README.md), then [`frontend/README.md`](frontend/README.md) |
+| Debug missing or stale data | [`docs/engineering-guide.md`](docs/engineering-guide.md) and [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Add or change an explore query | `backend/scraper/explore.sql`, [`backend/api/README.md`](backend/api/README.md), and `frontend/pages/explore.vue` |
+| Change a deployment behavior | `deploy.sh`, `frontend/deploy.sh`, and the manifests under `k8s/` |
+| Find the live Kubernetes configuration | `k8s/` at the repo root |
+
+## Deployment Summary
+
+### Full platform deploy
+
+```bash
+bash deploy.sh
+```
+
+The root deploy script:
+
+1. Loads `.env.prod`
+2. Builds and pushes the database, API, scraper, and frontend deploy images
+3. Applies database and API manifests
+4. Applies the scraper CronJob
+5. Optionally applies Fluent Bit
+6. Runs the frontend production deploy script
+
+### Frontend production deploy only
 
 ```bash
 cd frontend
 bash deploy.sh
 ```
 
-Production frontend deploy builds with `nuxt generate`, defaults the API origin to `https://api.csearch.org`, syncs `.output/public` to S3, and invalidates CloudFront.
-
-For the `mars` dev cluster, the frontend is a separate nginx container deployment on k3s:
+### Manual scraper run on the cluster
 
 ```bash
-source .env.prod
-docker buildx build --platform linux/amd64 --push \
-  -t "$REGISTRY/csearch-frontend:latest" \
-  -f frontend/Dockerfile.nginx \
-  frontend
-
-kubectl --context mars apply -f k8s/frontend/mars-deployment.yaml
-kubectl --context mars apply -f k8s/frontend/dev-service.yaml
+kubectl create job csearch-updater-manual-$(date +%s) --from=cronjob/csearch-updater
+kubectl logs -f job/<job-name>
 ```
 
-The `mars` manifest sets `NUXT_API_SERVER=http://192.168.1.156:3000`, while the production deploy path continues to use `https://api.csearch.org`.
+## A Few Important Conventions
 
-### Backend (API + Scraper)
-
-Build and push container images, then restart deployments:
-
-```bash
-source .env.prod
-
-# API
-cd backend/api
-docker buildx build --platform linux/amd64 --push -t "$REGISTRY/csearch-api:latest" .
-kubectl rollout restart deployment/csearch-api
-
-# Scraper
-cd ../..
-docker buildx build --platform linux/amd64 --push -t "$REGISTRY/csearch-updater:latest" -f backend/scraper/Dockerfile .
-```
-
-### Full cluster deploy
-
-```bash
-bash deploy.sh
-```
-
-Applies all Kubernetes manifests (Postgres, API, scraper CronJob) in order.
-
-## Search
-
-Bill and vote search use PostgreSQL full-text search with weighted `tsvector` columns:
-
-- **Bills**: title (A), official title (A), summary (B), sponsor name (C), policy area (C)
-- **Votes**: question (A), result (B), vote type (C), chamber (D)
-
-The `bills` table is partitioned by congress number for fast per-congress queries. GIN indexes on all tsvector columns support ranked search via `ts_rank_cd`.
+- Treat `k8s/` as the active deployment manifests for the current platform.
+- Do not hand-edit `backend/scraper/csearch/*.go`; those files are generated by `sqlc`.
+- Treat `backend/scraper/explore.sql` as the source of truth for explore SQL. The root deploy script copies it into the API build context.
+- Treat `backend/scraper/congress/` as vendored upstream code. Change it only when the low-level fetch behavior needs to change.
 
 ## License
 
-See [LICENSE.txt](LICENSE.txt).
+See [`LICENSE.txt`](LICENSE.txt).

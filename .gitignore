@@ -1,7 +1,13 @@
 .DS_STORE
 .DS_Store
 .idea
+.env
+**/.env
 .env.prod
+.env.*
+**/.env.*
+!.env.prod.example
+!**/.env.example
 
 # Compiled Go binaries
 backend/scraper/goscraper

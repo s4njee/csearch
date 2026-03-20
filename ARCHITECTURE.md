@@ -1,63 +1,287 @@
 # CSearch Platform Architecture
 
-The CSearch Congressional Data Platform is built as a highly-performant, monorepo architecture divided into three main components: a data ingest scraper, a REST API, and a static frontend. 
+This document explains how the CSearch platform behaves at runtime and how its main pieces fit together.
 
-The primary goal of the infrastructure is to serve massive datasets of bills and voting data rapidly without overwhelming the central PostgreSQL database.
+If you are looking for an onboarding path, start with [`README.md`](README.md) and [`docs/engineering-guide.md`](docs/engineering-guide.md) first.
 
-## System Components
+## System Goals
 
-1.  **Backend Scraper (`backend/scraper/`)**
-    *   **Technologies:** Go, Python (scrapelib).
-    *   **Role:** Scheduled daily (via Kubernetes CronJob at `00:00 UTC`), it pulls raw XML/JSON from GovInfo and congress.gov, parses it (skipping unchanged files using SHA-256 caching), and writes updates to the normalized Postgres database.
+The platform is optimized around a simple pattern:
 
-2.  **REST API (`backend/api/`)**
-    *   **Technologies:** Node.js, Fastify, Knex.js.
-    *   **Role:** Serves optimized JSON payloads of bills, actions, cosponsors, and analytic vote queries to the frontend.
+1. Pull authoritative congressional data from public sources
+2. Normalize it once into Postgres
+3. Serve read-heavy traffic cheaply and quickly from an API and static frontend
 
-3.  **Frontend Web App (`frontend/`)**
-    *   **Technologies:** Nuxt 4 (Vue 3), TailwindCSS.
-    *   **Role:** Provides the user interface. Production is statically generated (SSG) via `npx nuxt generate` and deployed globally to AWS S3 & CloudFront with the default API origin set to `https://api.csearch.org`. The `mars` development deployment runs the generated app behind nginx on k3s, where the API origin is injected at runtime from the Kubernetes manifest.
+The codebase is organized to match those goals:
 
----
+| Layer | Runtime component | Main code |
+| --- | --- | --- |
+| Source acquisition | Python scraper subprocess | `backend/scraper/congress/` |
+| Normalization and ingest | Go updater | `backend/scraper/` |
+| Storage | PostgreSQL 15 | `k8s/db/`, `backend/scraper/schema.sql` |
+| Read API | Fastify deployment | `backend/api/` |
+| Web experience | Nuxt static site and nginx container variants | `frontend/` |
 
-## Infrastructure Optimizations
+## End-To-End Data Flow
 
-### 1. Daily LRU Cache Architecture (The Refresh Workflow)
-Because the platform's data is only updated once a day by the scraper, sending thousands of redundant queries to PostgreSQL for popular endpoints (e.g., `latest` bills, vote counting, explore queries) creates unnecessary load.
+```text
+GovInfo / congress.gov
+        |
+        v
+vendored Python congress scraper
+        |
+        v
+Go updater parses XML/JSON and upserts Postgres
+        |
+        v
+Fastify API reads Postgres and caches hot responses in memory
+        |
+        v
+Nuxt frontend consumes the API during static generation and in the browser
+```
 
-We utilize an in-memory **LRU Cache** within the Fastify Node process to hold query results for 24 hours. However, to guarantee data freshness the moment the scraper finishes updating the database, we rely on a staggered two-CronJob orchestration process:
+### Step 1: Fetch raw data
 
-#### The Deployment & Invalidation Timeline
-*   **`00:00` (Midnight):** `csearch-updater` CronJob starts. It detects XML changes on GovInfo, parses them, and commits the new records to PostgreSQL.
-*   **`01:00` AM:** `csearch-frontend-deployer` CronJob starts.
-    1.  **Cache Invalidation:** Before doing anything, it sends a `POST` request to `api.csearch.org/admin/clear-cache`. This clears the Fastify LRU Cache across the API instances.
-    2.  **SSG Generation:** It immediately runs `npx nuxt generate`. Nuxt fetches data from the Fastify API.
-    3.  **Cache Warm-up:** Because the Fastify cache is now empty, it executes the heavy SQL queries directly against the freshly updated Postgres database. Fastify saves this fresh data to its LRU memory and returns it to Nuxt.
-    4.  **S3 Sync & CloudFront Invalidation:** The static HTML is shipped to AWS S3, and the edge CDN cache is cleared.
-*   **`00:35` AM to `23:59` PM:** For the next 23.5 hours, user browsers visiting the site (acting as SPA requests) receive their JSON data instantly from Fastify's RAM (`X-Cache: HIT`), saving massive load on the Postgres database.
+The scraper uses the vendored `unitedstates/congress` Python project to download:
 
-### 2. Database Connection Pooling
-Kubernetes horizontally scales the `csearch-api` Node.js pods based on traffic. 
-*   **Postgres Limits:** The single underlying PostgreSQL database has a native ceiling for concurrent active connections (typically `100`).
-*   **Knex Pool:** To prevent connection exhaustion under heavy load, Knex implements a connection pool configuration (`min: 2, max: 20`). This forces Fastify to safely reuse and lease active TCP connections instead of allocating unmanageable spikes of queries directly against the database instances.
+- bill status XML from GovInfo
+- vote JSON from congress.gov / related data sources
 
-### 3. Logging and Observability
-The platform uses stdout as the logging transport so Kubernetes can collect logs without any extra agents in the hot path.
+The Go updater shells out to that Python code instead of reimplementing the network layer. That split keeps upstream fetch behavior available while centralizing CSearch-specific ingest logic in Go.
 
-*   **API logging:** Fastify is configured with Pino JSON logs, request/response serializers, and redaction for the admin authorization header. A shared `onResponse` hook writes one structured completion line per request with latency, cache status, and route metadata.
-*   **API context:** Route handlers add targeted analytics and audit events for search queries, cache clears, and slow explore queries. A shared error hook keeps failures tied to the active request context.
-*   **Scraper logging:** The Go updater uses `log/slog` with JSON output to stdout. It records run start/end summaries, per-bill and per-vote ingest events, and warnings for parse/hash/insert failures.
-*   **Python subprocess output:** The Go scraper re-emits the vendored Python scraper's stdout and stderr streams as structured log entries so they remain parseable alongside native Go logs.
-*   **Log shipping:** A Fluent Bit DaemonSet tails `/var/log/containers/*.log`, enriches records with Kubernetes metadata, and forwards them to a configurable HTTP collector when `LOG_SHIP_HTTP_HOST` is set in `.env.prod`.
-*   **Operational model:** This keeps the current stack lightweight while still making `kubectl logs` usable for debugging, ad-hoc analysis, and future log shipping to a managed sink.
+### Step 2: Parse and normalize
 
----
+After the raw files are available on disk, the Go updater:
 
-## Deployment Process
-Deployments into the cluster are handled primarily through scripts or CI/CD running standard `kubectl apply` commands against definitions residing in the `k8s/` configuration directory. 
+1. Scans supported congress ranges
+2. Computes SHA-256 hashes for candidate files
+3. Skips unchanged files using persisted hash caches
+4. Parses changed files into normalized bill and vote structures
+5. Writes the normalized rows into Postgres
 
-*   **Database:** Configured through StatefulSets (`k8s/db/`)
-*   **API:** Replicated via Deployment Services (`k8s/api/`)
-*   **Scraper / Deployer:** Driven recursively by CronJobs (`k8s/scraper/` and `k8s/frontend/deploy-cronjob.yaml`)
-*   **Frontend production:** Built by `frontend/deploy.sh`, then synced to S3 and invalidated through CloudFront
-*   **Frontend dev (`mars`):** Served by the nginx container manifests in `k8s/frontend/mars-deployment.yaml` and `k8s/frontend/dev-service.yaml`
+The write path is bill-level or vote-level transactional so parent and child records stay consistent.
+
+### Step 3: Serve API traffic
+
+The Fastify API reads directly from Postgres. It does not own the canonical data model; it owns:
+
+- HTTP contracts
+- search and filtering behavior
+- route-level caching
+- structured request logging
+
+Several heavy or popular endpoints cache responses in-process with an LRU cache.
+
+### Step 4: Generate and serve the frontend
+
+The frontend has two different runtime shapes:
+
+- Production website: statically generated output uploaded to S3 and served by CloudFront
+- Cluster-hosted frontend: nginx container serving generated output with the API origin injected at runtime
+
+That split is important because a change that affects `nuxt generate` does not necessarily affect the nginx runtime behavior in the same way.
+
+## Runtime Topology
+
+### Scraper
+
+The scraper runs as the `csearch-updater` CronJob defined in [`k8s/scraper/cronjob.yaml`](k8s/scraper/cronjob.yaml).
+
+Current schedule:
+
+- Time zone: `America/Chicago`
+- Cron: `0 0 * * *`
+- Meaning: every day at midnight Central Time
+
+Important runtime details:
+
+- `RUN_BILLS` and `RUN_VOTES` can independently disable bill or vote ingest
+- raw data and hash caches are stored on host-mounted paths under `/root/congress`
+- the updater waits for Postgres before it starts
+
+### Database
+
+Postgres runs as a single StatefulSet with a persistent volume claim. Schema bootstrap comes from [`backend/scraper/schema.sql`](backend/scraper/schema.sql), which is mounted into the database container on first initialization.
+
+The database is the source of truth for:
+
+- bills
+- bill actions
+- bill cosponsors
+- bill committees
+- bill subjects
+- votes
+- vote members
+- committees
+
+### API
+
+The API runs as the `csearch-api` Deployment defined in [`k8s/api/deployment.yaml`](k8s/api/deployment.yaml).
+
+Important runtime details:
+
+- 2 replicas by default
+- health checks hit `/health`
+- Knex connection pooling limits database connection pressure
+- logs are emitted as JSON to stdout
+
+### Frontend
+
+There are three frontend execution patterns in the repo:
+
+| Pattern | Purpose | Main files |
+| --- | --- | --- |
+| Local `nuxt dev` | developer workflow | `frontend/package.json`, `frontend/nuxt.config.ts` |
+| Production static deploy | public website on S3 + CloudFront | `frontend/deploy.sh` |
+| nginx container | cluster-hosted frontend builds | `frontend/Dockerfile.nginx`, `k8s/frontend/*.yaml` |
+
+There is also a deployer CronJob in [`k8s/frontend/deploy-cronjob.yaml`](k8s/frontend/deploy-cronjob.yaml) that uses the deploy-container image to rebuild and publish the static frontend on a schedule.
+
+Current deployer schedule:
+
+- Time zone: `America/Chicago`
+- Cron: `0 1 * * *`
+- Meaning: every day at 1:00 AM Central Time
+
+## Data Coverage
+
+The supported data ranges are encoded in the scraper:
+
+| Data type | Range |
+| --- | --- |
+| Bills | 93rd Congress through current |
+| Votes | 101st Congress through current |
+
+The current congress number is computed dynamically from the calendar year.
+
+## Storage Layout
+
+The scraper runtime expects a root directory with this shape:
+
+```text
+<CONGRESSDIR>/
+  congress/   # vendored Python scraper + downloaded raw source files
+  data/       # hash caches used by the Go updater
+```
+
+Within that runtime:
+
+- bill files are read from `congress/data/<congress>/bills/...`
+- vote files are read from `congress/data/<congress>/votes/...`
+- bill hash cache is stored at `data/fileHashes.gob`
+- vote hash cache is stored at `data/voteHashes.gob`
+
+This distinction matters because raw source files and ingest bookkeeping do not live in the same subdirectory.
+
+## Caching And Freshness
+
+### API cache
+
+The API uses an in-process LRU cache for selected routes such as:
+
+- latest bills
+- latest votes
+- explore queries
+
+Characteristics:
+
+- cache is per API pod, not shared across pods
+- TTL is 24 hours
+- cache resets when pods restart
+
+### Frontend freshness
+
+Frontend freshness is tied to static generation. A newly completed scraper run does not automatically update the public site until the frontend deploy flow runs.
+
+The deploy-container flow currently refreshes API pods before generating the site:
+
+1. restart the `csearch-api` deployment
+2. wait for healthy API pods
+3. run `nuxt generate`
+4. sync `.output/public` to S3
+5. invalidate CloudFront
+
+That means API cache freshness and frontend freshness are operationally linked.
+
+## Search And Explore
+
+### Search
+
+Search is implemented in Postgres and exposed by the API. Bills and votes use weighted full-text search plus fuzzy matching for short result lists.
+
+### Explore queries
+
+Explore queries are defined in [`backend/scraper/explore.sql`](backend/scraper/explore.sql) and parsed by the API at runtime through [`backend/api/services/exploreQueries.js`](backend/api/services/exploreQueries.js).
+
+Important detail:
+
+- `backend/scraper/explore.sql` is the source of truth
+- the root deploy script copies it into `backend/api/sql/explore.sql` during the API image build
+
+## Logging And Observability
+
+The platform uses stdout-first logging so Kubernetes can collect logs without extra application-side logging infrastructure.
+
+### Scraper logging
+
+- JSON logs via Go `log/slog`
+- Python subprocess stdout and stderr are re-emitted as structured log lines
+- run summaries include counts for processed, skipped, and failed items
+
+### API logging
+
+- JSON logs via Fastify / Pino
+- one completion line per request with response time, status, route, and cache status
+- errors are logged in request context
+
+### Shipping
+
+If `LOG_SHIP_HTTP_HOST` is configured, the root deployment flow applies a Fluent Bit DaemonSet from `k8s/logging/`.
+
+## Ownership Boundaries
+
+These boundaries reduce confusion when making changes:
+
+- The scraper owns how source data becomes normalized rows.
+- The API owns HTTP shapes and route-level query behavior.
+- The frontend owns presentation and client/runtime API resolution.
+- The top-level `k8s/` directory owns the live cluster definition.
+
+## Common Failure Modes
+
+### The scraper ran, but the site still shows old data
+
+Possible causes:
+
+- the frontend deploy flow has not run yet
+- API pods still serve old in-memory cache
+- the scraper skipped files because their hashes did not change
+
+### The frontend works locally but fails in a deployed nginx container
+
+Common cause:
+
+- the runtime-injected `NUXT_API_SERVER` differs from the build-time Nuxt default
+
+Check:
+
+- `frontend/docker-entrypoint.sh`
+- `frontend/composables/useApiBase.ts`
+- the manifest or environment that sets `NUXT_API_SERVER`
+
+### A change to explore SQL does not appear in production
+
+Common cause:
+
+- the change was made only to `backend/api/sql/explore.sql` and not to `backend/scraper/explore.sql`
+
+## Deployment Boundaries
+
+There are two deploy scripts engineers should understand:
+
+| Script | Purpose |
+| --- | --- |
+| `deploy.sh` | Full platform deploy for images, manifests, and frontend production publish |
+| `frontend/deploy.sh` | Frontend-only static generation and S3 + CloudFront publish |
+
+Understanding those two scripts usually answers most “how does production actually update?” questions.
