@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: csearch-fluent-bit
+  labels:
+    app.kubernetes.io/name: csearch-fluent-bit
+    app.kubernetes.io/component: logging
+spec:
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: csearch-fluent-bit
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: csearch-fluent-bit
+        app.kubernetes.io/component: logging
+    spec:
+      serviceAccountName: csearch-fluent-bit
+      terminationGracePeriodSeconds: 30
+      tolerations:
+        - operator: Exists
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: fluent-bit
+          image: cr.fluentbit.io/fluent/fluent-bit:3.1.10
+          imagePullPolicy: IfNotPresent
+          args:
+            - -c
+            - /fluent-bit/etc/fluent-bit.conf
+          env:
+            - name: FLUENT_BIT_LOG_LEVEL
+              value: info
+            - name: LOG_SHIP_HTTP_HOST
+              value: ${LOG_SHIP_HTTP_HOST}
+            - name: LOG_SHIP_HTTP_PORT
+              value: ${LOG_SHIP_HTTP_PORT}
+            - name: LOG_SHIP_HTTP_URI
+              value: ${LOG_SHIP_HTTP_URI}
+            - name: CLUSTER_NAME
+              value: csearch
+          ports:
+            - name: http-metrics
+              containerPort: 2020
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http-metrics
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http-metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 0
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: config
+              mountPath: /fluent-bit/etc/fluent-bit.conf
+              subPath: fluent-bit.conf
+              readOnly: true
+            - name: config
+              mountPath: /fluent-bit/etc/parsers.conf
+              subPath: parsers.conf
+              readOnly: true
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: state
+              mountPath: /var/fluent-bit/state
+      volumes:
+        - name: config
+          configMap:
+            name: csearch-fluent-bit-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+            type: Directory
+        - name: state
+          emptyDir: {}

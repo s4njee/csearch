@@ -42,8 +42,9 @@ import Bill from "~/components/Bill.vue";
 import { useRoute } from "vue-router";
 import { ref, watch } from "vue";
 
-const config = useRuntimeConfig();
-const API_SERVER = config.public.API_SERVER;
+// The browser can override this at runtime via /runtime-config.js, so the same
+// image can be reused across clusters without rebuilding for each API target.
+const API_SERVER = useApiBase();
 const route = useRoute();
 
 const loading = ref(false);

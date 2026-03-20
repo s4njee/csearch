@@ -127,7 +127,7 @@ docker-compose up postgres api
 ## Project 3: frontend
 
 ### What it does
-Nuxt 4 static site (SSG). Built with `nuxt generate`, synced to S3, served via CloudFront.
+Nuxt 4 static site (SSG). Production builds are generated with `nuxt generate`, synced to S3, and served via CloudFront. The dev frontend for the `mars` k3s cluster runs as an nginx container that serves the generated Nuxt output and injects its API origin at runtime.
 
 ### Key files
 - `frontend/pages/bills/[category]/index.vue` — bill list with search, sort toggle, and 100-row pagination
@@ -135,11 +135,13 @@ Nuxt 4 static site (SSG). Built with `nuxt generate`, synced to S3, served via C
 - `frontend/pages/votes/index.vue` — vote browser
 - `frontend/pages/explore.vue` — analytical query explorer
 - `frontend/assets/css/main.css` — global component styles
-- `frontend/composables/useCongressApi.ts` — API client (reads `NUXT_API_SERVER` at build time)
+- `frontend/composables/useCongressApi.ts` — API client (prefers runtime-injected `NUXT_API_SERVER`, falls back to the Nuxt default)
+- `frontend/composables/useApiBase.ts` — resolves the browser runtime API origin from `runtime-config.js`
+- `frontend/Dockerfile.nginx` — generic nginx container image for the dev frontend deployment
 - `frontend/types/congress.ts` — shared TypeScript types and bill type constants
 - `frontend/deploy.sh` — one-command build + S3 sync + CloudFront invalidation
 
-### Build and deploy
+### Production deploy
 ```bash
 cd frontend
 bash deploy.sh
@@ -147,9 +149,24 @@ bash deploy.sh
 
 `deploy.sh` does:
 1. Sources `../.env.prod` for `NUXT_API_SERVER`, `S3_BUCKET`, and `CF_DIST_CSEARCH`
-2. `NUXT_API_SERVER=... npx nuxt generate`
-3. `aws s3 sync .output/public/ $S3_BUCKET --delete`
-4. `aws cloudfront create-invalidation --distribution-id $CF_DIST_CSEARCH --paths "/*"`
+2. Defaults `NUXT_API_SERVER` to `https://api.csearch.org` for the generated site
+3. Runs `npx nuxt generate`
+4. Syncs `.output/public` to S3
+5. Invalidates CloudFront
+
+### Dev deploy (`mars` k3s)
+```bash
+source .env.prod
+docker buildx build --platform linux/amd64 --push \
+  -t "$REGISTRY/csearch-frontend:latest" \
+  -f frontend/Dockerfile.nginx \
+  frontend
+
+kubectl --context mars apply -f k8s/frontend/mars-deployment.yaml
+kubectl --context mars apply -f k8s/frontend/dev-service.yaml
+```
+
+The `mars` deployment runs the nginx container and sets `NUXT_API_SERVER=http://192.168.1.156:3000` in the manifest, so the same image can be reused without baking the dev API target into the build.
 
 ### Local dev
 ```bash
@@ -158,6 +175,9 @@ NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 ```
 
 ### Notes
+- Production deploy is the S3/CloudFront path, not a Kubernetes frontend deployment
+- The default production API origin is `https://api.csearch.org`
+- The `mars` dev deployment is the Kubernetes nginx container path
 - Dynamic route segments use Nuxt bracket syntax (`[category]`, `[congress]`, `[number]`) — required by the framework
 - CloudFront distribution IDs are stored in `.env.prod` (`CF_DIST_CSEARCH`, `CF_DIST_CONGRESS`)
 - Bill list fetches 500 rows from the API and paginates 100 at a time client-side

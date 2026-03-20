@@ -6,10 +6,12 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
@@ -32,6 +34,16 @@ type appConfig struct {
 	DBPassword  string
 	DBName      string
 	DBPort      string
+}
+
+// runStats accumulates one updater pass so the final summary log stays compact.
+type runStats struct {
+	BillsProcessed int64
+	BillsSkipped   int64
+	BillsFailed    int64
+	VotesProcessed int64
+	VotesSkipped   int64
+	VotesFailed    int64
 }
 
 // loadConfig accepts container-style environment variables and falls back to a
@@ -77,6 +89,20 @@ func loadConfig() (appConfig, error) {
 	return cfg, nil
 }
 
+// configuredLogLevel maps LOG_LEVEL onto slog's supported levels.
+func configuredLogLevel() slog.Level {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL"))) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 // openQueries establishes a database connection and wraps it in the generated
 // sqlc query interface.
 func openQueries(cfg appConfig) (*sql.DB, *csearch.Queries, error) {
@@ -87,7 +113,56 @@ func openQueries(cfg appConfig) (*sql.DB, *csearch.Queries, error) {
 	db.SetMaxOpenConns(dbWriteConcurrency)
 	db.SetMaxIdleConns(dbWriteConcurrency)
 
+	if err := ensureSchemaCompatibility(db); err != nil {
+		db.Close()
+		return nil, nil, err
+	}
+
 	return db, csearch.New(db), nil
+}
+
+// ensureSchemaCompatibility applies lightweight, idempotent repairs needed for
+// databases that were created before newer normalized tables existed.
+func ensureSchemaCompatibility(db *sql.DB) error {
+	const stmt = `
+CREATE TABLE IF NOT EXISTS committees (
+    committee_code text PRIMARY KEY,
+    committee_name text,
+    chamber        text
+);
+
+CREATE INDEX IF NOT EXISTS committees_chamber_idx
+    ON committees (chamber);
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'bill_committees'
+          AND column_name = 'committee_name'
+    ) THEN
+        INSERT INTO committees (committee_code, committee_name, chamber)
+        SELECT DISTINCT ON (committee_code)
+            committee_code,
+            NULLIF(committee_name, ''),
+            NULLIF(chamber, '')
+        FROM bill_committees
+        WHERE committee_code IS NOT NULL
+        ORDER BY committee_code, committee_name NULLS LAST, chamber NULLS LAST
+        ON CONFLICT (committee_code) DO UPDATE SET
+            committee_name = COALESCE(excluded.committee_name, committees.committee_name),
+            chamber = COALESCE(excluded.chamber, committees.chamber);
+    END IF;
+END $$;
+`
+
+	if _, err := db.Exec(stmt); err != nil {
+		return fmt.Errorf("ensure schema compatibility: %w", err)
+	}
+
+	return nil
 }
 
 // postgresDSN formats a PostgreSQL connection string from the app config.
@@ -128,10 +203,20 @@ func runCongressTask(cfg appConfig, args ...string) error {
 		return err
 	}
 
-	go streamOutput(stdout)
-	go streamOutput(stderr)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		streamOutput("stdout", stdout)
+	}()
+	go func() {
+		defer wg.Done()
+		streamOutput("stderr", stderr)
+	}()
 
-	return cmd.Wait()
+	err = cmd.Wait()
+	wg.Wait()
+	return err
 }
 
 // pythonPathForCongressDir returns a PYTHONPATH rooted at the parent directory
@@ -145,11 +230,15 @@ func pythonPathForCongressDir(congressDir string) string {
 	return strings.Join(paths, string(os.PathListSeparator))
 }
 
-// streamOutput reads continuously from r and writes to standard output.
-// It is primarily used for surfacing scraper logs.
-func streamOutput(r io.Reader) {
+// streamOutput reads continuously from r and republishes each line as a
+// structured log entry so Python scraper output stays parseable.
+func streamOutput(source string, r io.Reader) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+		slog.Info("python", "stream", source, "output", scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		slog.Warn("python output stream ended", "stream", source, "err", err)
 	}
 }

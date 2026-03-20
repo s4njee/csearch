@@ -74,16 +74,6 @@ ALTER TABLE bills ADD COLUMN search_document tsvector GENERATED ALWAYS AS (
 
 CREATE INDEX bills_search_document_idx ON bills USING GIN (search_document);
 
-CREATE INDEX bills_search_trgm_idx
-    ON bills USING GIN (
-        (lower(concat_ws(' ',
-            coalesce(shorttitle, ''),
-            coalesce(officialtitle, ''),
-            coalesce(sponsor_name, ''),
-            coalesce(policy_area, '')
-        ))) gin_trgm_ops
-    );
-
 -- Billtype index to keep per-type queries fast without billtype partitioning.
 CREATE INDEX bills_billtype_idx ON bills (billtype, congress);
 
@@ -218,16 +208,6 @@ CREATE INDEX votes_votedate_idx ON votes (votedate DESC);
 CREATE INDEX votes_congress_idx ON votes (congress);
 CREATE INDEX votes_chamber_idx ON votes (chamber);
 CREATE INDEX votes_search_document_idx ON votes USING GIN (search_document);
-
-CREATE INDEX votes_search_trgm_idx
-    ON votes USING GIN (
-        (lower(concat_ws(' ',
-            coalesce(question, ''),
-            coalesce(result, ''),
-            coalesce(votetype, ''),
-            coalesce(chamber, '')
-        ))) gin_trgm_ops
-    );
 
 CREATE TABLE vote_members (
     voteid       text NOT NULL,

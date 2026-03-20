@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: csearch-fluent-bit
+  labels:
+    app.kubernetes.io/name: csearch-fluent-bit
+    app.kubernetes.io/component: logging
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csearch-fluent-bit
+  labels:
+    app.kubernetes.io/name: csearch-fluent-bit
+    app.kubernetes.io/component: logging
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: csearch-fluent-bit
+  labels:
+    app.kubernetes.io/name: csearch-fluent-bit
+    app.kubernetes.io/component: logging
+subjects:
+  - kind: ServiceAccount
+    name: csearch-fluent-bit
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: csearch-fluent-bit
+  apiGroup: rbac.authorization.k8s.io

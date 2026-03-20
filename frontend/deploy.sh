@@ -15,6 +15,9 @@ source "$ENV_FILE"
 echo "==> Building..."
 NUXT_API_SERVER="$NUXT_API_SERVER" npx nuxt generate
 
+echo "==> Writing deploy timestamp..."
+echo "{\"updated_at\": \"$(TZ=America/Chicago date +%Y-%m-%dT%H:%M:%S%z)\"}" > .output/public/meta.json
+
 echo "==> Syncing to S3..."
 aws s3 sync .output/public/ "$S3_BUCKET" --delete
 

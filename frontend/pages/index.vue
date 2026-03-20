@@ -4,6 +4,9 @@ import { API_FAMILIES, BILL_TYPE_OPTIONS, VOTE_CHAMBER_OPTIONS } from '~/types/c
 const router = useRouter()
 const { fetchBillsByNumber, searchAllBills, searchVotesFuzzy } = useCongressApi()
 
+const { data: meta } = await useFetch<{ updated_at: string }>('/meta.json', { server: false })
+const updatedAt = computed(() => meta.value?.updated_at ?? null)
+
 const selectedBillType = ref('hr')
 const selectedSort = ref('relevance')
 const billQuery = ref('')
@@ -190,13 +193,13 @@ function formatChamber(value?: string | null) {
 <template>
   <main class="page page--wide">
     <section class="hero-grid">
-      <article class="hero-panel hero-panel--primary">
+      <article class="hero-panel hero-panel--primary hero-panel--stamped">
         <p class="eyebrow">ACE Research</p>
         <h1 class="hero-title">A modern lens on congressional data.</h1>
         <p class="hero-copy">
           Explore the latest legislation, track roll-call votes, dive deep into committee workflows, and discover detailed insights into the actions of the U.S. Congress.
         </p>
-
+        <span v-if="updatedAt" class="hero-updated">Updated {{ updatedAt }}</span>
       </article>
 
       <article class="hero-panel">
@@ -380,3 +383,18 @@ function formatChamber(value?: string | null) {
     </section>
   </main>
 </template>
+
+<style scoped>
+.hero-panel--stamped {
+  position: relative;
+}
+
+.hero-updated {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+</style>

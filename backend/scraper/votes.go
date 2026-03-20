@@ -7,10 +7,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 )
 
 type voteMemberJSON struct {
@@ -167,16 +168,17 @@ func parseVoteMembers(items []json.RawMessage) ([]voteMemberJSON, error) {
 
 // processVotes handles the discovery, parsing, and database insertion of all
 // roll call votes for all supported congresses.
-func processVotes(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg appConfig, hashes *fileHashStore) error {
+func processVotes(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg appConfig, hashes *fileHashStore, stats *runStats) error {
 	for congress := 101; congress <= currentCongress(); congress++ {
 		jobs, err := voteJobsForCongress(cfg, congress)
 		if err != nil {
-			log.Printf("skipping vote congress %d: %v", congress, err)
+			slog.Warn("skipping vote congress", "congress", congress, "err", err)
+			atomic.AddInt64(&stats.VotesFailed, 1)
 			continue
 		}
 
-		log.Printf("processing vote congress %d (%d candidates)", congress, len(jobs))
-		parsedVotes := collectChangedVotes(jobs, hashes)
+		slog.Info("processing vote congress", "congress", congress, "candidates", len(jobs))
+		parsedVotes := collectChangedVotes(jobs, hashes, stats)
 		var wg sync.WaitGroup
 		sem := make(chan struct{}, dbWriteConcurrency)
 		for _, parsedVote := range parsedVotes {
@@ -189,13 +191,24 @@ func processVotes(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg
 				defer func() { <-sem }()
 
 				if err := insertParsedVote(ctx, db, queries, parsedVote); err != nil {
-					log.Printf("unable to insert vote %s: %v", parsedVote.Vote.Voteid, err)
+					slog.Warn("unable to insert vote", "voteid", parsedVote.Vote.Voteid, "err", err)
+					atomic.AddInt64(&stats.VotesFailed, 1)
 					return
 				}
 				hashes.MarkProcessed(parsedVote.Path, parsedVote.Hash)
+				atomic.AddInt64(&stats.VotesProcessed, 1)
+				slog.Info("vote ingested",
+					"congress", parsedVote.Vote.Congress,
+					"voteid", parsedVote.Vote.Voteid,
+					"members", len(parsedVote.Members),
+				)
 			}()
 		}
 		wg.Wait()
+
+		if err := hashes.Save(); err != nil {
+			return fmt.Errorf("persist vote hashes for congress %d: %w", congress, err)
+		}
 	}
 
 	return nil
@@ -215,7 +228,7 @@ func voteJobsForCongress(cfg appConfig, congress int) ([]voteJob, error) {
 		yearDir := filepath.Join(root, year.Name())
 		votes, err := os.ReadDir(yearDir)
 		if err != nil {
-			log.Printf("skipping vote year %s: %v", year.Name(), err)
+			slog.Warn("skipping vote year", "year", year.Name(), "err", err)
 			continue
 		}
 
@@ -231,7 +244,7 @@ func voteJobsForCongress(cfg appConfig, congress int) ([]voteJob, error) {
 
 // collectChangedVotes runs parser jobs concurrently and returns all votes
 // whose source files have changed since the last successful ingest.
-func collectChangedVotes(jobs []voteJob, hashes *fileHashStore) []ParsedVote {
+func collectChangedVotes(jobs []voteJob, hashes *fileHashStore, stats *runStats) []ParsedVote {
 	parsedVotes := make([]ParsedVote, 0, len(jobs))
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -253,16 +266,19 @@ func collectChangedVotes(jobs []voteJob, hashes *fileHashStore) []ParsedVote {
 
 			hash, changed, err := hashes.NeedsProcessing(job.Path)
 			if err != nil {
-				log.Printf("unable to hash %s: %v", job.Path, err)
+				slog.Warn("unable to hash vote", "path", job.Path, "err", err)
+				atomic.AddInt64(&stats.VotesFailed, 1)
 				return
 			}
 			if !changed {
+				atomic.AddInt64(&stats.VotesSkipped, 1)
 				return
 			}
 
 			parsedVote, err := parseVote(job.Path)
 			if err != nil {
-				log.Printf("unable to parse vote %s: %v", job.Path, err)
+				slog.Warn("unable to parse vote", "path", job.Path, "err", err)
+				atomic.AddInt64(&stats.VotesFailed, 1)
 				return
 			}
 			parsedVote.Path = job.Path
@@ -316,7 +332,7 @@ func insertParsedVote(ctx context.Context, db *sql.DB, queries *csearch.Queries,
 func updateVotes(cfg appConfig) error {
 	congress := currentCongress()
 	if err := runCongressTask(cfg, "votes", fmt.Sprintf("--congress=%d", congress)); err != nil {
-		log.Printf("vote sync skipped for congress %d: %v", congress, err)
+		slog.Warn("vote sync skipped", "congress", congress, "err", err)
 	}
 	return nil
 }

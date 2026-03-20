@@ -7,12 +7,13 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -800,16 +801,17 @@ func buildParsedBill(
 
 // processBills handles the discovery, parsing, and database insertion of all
 // bills for all supported congresses.
-func processBills(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg appConfig, hashes *fileHashStore) error {
+func processBills(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg appConfig, hashes *fileHashStore, stats *runStats) error {
 	for congress := 93; congress <= currentCongress(); congress++ {
 		for _, table := range billTables {
 			jobs, err := billJobsForTable(cfg, congress, table)
 			if err != nil {
-				log.Printf("skipping congress %d %s: %v", congress, table, err)
+				slog.Warn("skipping congress bill type", "congress", congress, "billtype", table, "err", err)
+				atomic.AddInt64(&stats.BillsFailed, 1)
 				continue
 			}
 
-			log.Printf("processing congress %d bill type %s (%d candidates)", congress, table, len(jobs))
+			slog.Info("processing congress bill type", "congress", congress, "billtype", table, "candidates", len(jobs))
 			var wg sync.WaitGroup
 			sem := make(chan struct{}, dbWriteConcurrency)
 			for _, job := range jobs {
@@ -823,27 +825,43 @@ func processBills(ctx context.Context, db *sql.DB, queries *csearch.Queries, cfg
 
 					hash, changed, err := hashes.NeedsProcessing(job.Path)
 					if err != nil {
-						log.Printf("unable to hash %s: %v", job.Path, err)
+						slog.Warn("unable to hash bill", "path", job.Path, "err", err)
+						atomic.AddInt64(&stats.BillsFailed, 1)
 						return
 					}
 					if !changed {
+						atomic.AddInt64(&stats.BillsSkipped, 1)
 						return
 					}
 
 					parsedBill, err := job.Parse(job.Path)
 					if err != nil {
-						log.Printf("unable to parse bill %s: %v", job.Display, err)
+						slog.Warn("unable to parse bill", "bill", job.Display, "path", job.Path, "err", err)
+						atomic.AddInt64(&stats.BillsFailed, 1)
 						return
 					}
 
 					if err := insertParsedBill(ctx, db, queries, parsedBill); err != nil {
-						log.Printf("unable to insert bill %s: %v", job.Display, err)
+						slog.Warn("unable to insert bill", "bill", job.Display, "err", err)
+						atomic.AddInt64(&stats.BillsFailed, 1)
 						return
 					}
 					hashes.MarkProcessed(job.Path, hash)
+					atomic.AddInt64(&stats.BillsProcessed, 1)
+					slog.Info("bill ingested",
+						"congress", parsedBill.Bill.Congress,
+						"billtype", parsedBill.Bill.Billtype,
+						"billnumber", parsedBill.Bill.Billnumber,
+						"actions", len(parsedBill.Actions),
+						"cosponsors", len(parsedBill.Cosponsors),
+					)
 				}()
 			}
 			wg.Wait()
+		}
+
+		if err := hashes.Save(); err != nil {
+			return fmt.Errorf("persist bill hashes for congress %d: %w", congress, err)
 		}
 	}
 
@@ -1014,7 +1032,10 @@ func insertParsedBill(ctx context.Context, db *sql.DB, queries *csearch.Queries,
 }
 
 func updateBills(cfg appConfig) error {
-	return runCongressTask(cfg, "govinfo", "--bulkdata=BILLSTATUS", fmt.Sprintf("--congress=%d", currentCongress()))
+	if err := runCongressTask(cfg, "govinfo", "--bulkdata=BILLSTATUS", fmt.Sprintf("--congress=%d", currentCongress())); err != nil {
+		slog.Warn("bill sync skipped", "congress", currentCongress(), "err", err)
+	}
+	return nil
 }
 
 // fileExists checks whether a file exists and is accessible.
