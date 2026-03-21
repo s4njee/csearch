@@ -14,6 +14,7 @@ source "$ENV_FILE"
 
 KUBECTL="kubectl --context=${KUBECTL_CONTEXT}"
 REGISTRY="${REGISTRY:-registry.s8njee.com}"
+export REGISTRY
 BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 VCS_REF="$(git rev-parse --short HEAD)"
 
@@ -114,6 +115,13 @@ ${KUBECTL} rollout status statefulset/postgres --timeout=120s
 # 2. API
 # ---------------------------------------------------------------------------
 echo ""
+echo "==> Applying Redis deployment..."
+${KUBECTL} apply -f k8s/redis/deployment.yaml
+
+echo "==> Waiting for Redis to be ready..."
+${KUBECTL} rollout status deployment/csearch-redis --timeout=120s
+
+echo ""
 echo "==> Applying API deployment..."
 envsubst < k8s/api/deployment.yaml | ${KUBECTL} apply -f -
 
@@ -138,12 +146,34 @@ fi
 # ---------------------------------------------------------------------------
 # 4. Logging shipping
 # ---------------------------------------------------------------------------
+if [[ "${ENABLE_TINY_LOG_COLLECTOR:-true}" == "true" ]]; then
+  export LOG_COLLECTOR_HOSTPATH="${LOG_COLLECTOR_HOSTPATH:-/root/logs}"
+  export CLUSTER_NAME="${CLUSTER_NAME:-csearch}"
+  export LOG_SHIP_HTTP_HOST="csearch-log-collector"
+  export LOG_SHIP_HTTP_PORT="8080"
+  export LOG_SHIP_HTTP_URI="/ingest"
+  export LOG_SHIP_HTTP_TLS="Off"
+  export LOG_SHIP_HTTP_TLS_VERIFY="Off"
+
+  echo ""
+  echo "==> Applying tiny log collector..."
+  ${KUBECTL} apply -f k8s/logging/collector-service.yaml
+  envsubst '${REGISTRY} ${LOG_COLLECTOR_HOSTPATH}' < k8s/logging/collector-deployment.yaml | ${KUBECTL} apply -f -
+
+  echo "==> Waiting for tiny log collector rollout..."
+  ${KUBECTL} rollout status deployment/csearch-log-collector --timeout=120s
+fi
+
 if [[ -n "${LOG_SHIP_HTTP_HOST:-}" ]]; then
+  export LOG_SHIP_HTTP_TLS="${LOG_SHIP_HTTP_TLS:-On}"
+  export LOG_SHIP_HTTP_TLS_VERIFY="${LOG_SHIP_HTTP_TLS_VERIFY:-On}"
+  export CLUSTER_NAME="${CLUSTER_NAME:-csearch}"
+
   echo ""
   echo "==> Applying Fluent Bit logging stack..."
-  envsubst < k8s/logging/fluent-bit-config.yaml | ${KUBECTL} apply -f -
+  envsubst '${LOG_SHIP_HTTP_HOST} ${LOG_SHIP_HTTP_PORT} ${LOG_SHIP_HTTP_URI} ${LOG_SHIP_HTTP_TLS} ${LOG_SHIP_HTTP_TLS_VERIFY} ${CLUSTER_NAME}' < k8s/logging/fluent-bit-config.yaml | ${KUBECTL} apply -f -
   ${KUBECTL} apply -f k8s/logging/fluent-bit-rbac.yaml
-  envsubst < k8s/logging/fluent-bit-daemonset.yaml | ${KUBECTL} apply -f -
+  envsubst '${LOG_SHIP_HTTP_HOST} ${LOG_SHIP_HTTP_PORT} ${LOG_SHIP_HTTP_URI} ${LOG_SHIP_HTTP_TLS} ${LOG_SHIP_HTTP_TLS_VERIFY}' < k8s/logging/fluent-bit-daemonset.yaml | ${KUBECTL} apply -f -
 
   echo "==> Waiting for Fluent Bit DaemonSet rollout..."
   ${KUBECTL} rollout status daemonset/csearch-fluent-bit --timeout=120s

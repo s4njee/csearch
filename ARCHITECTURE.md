@@ -220,7 +220,7 @@ Important detail:
 
 ## Logging And Observability
 
-The platform uses stdout-first logging so Kubernetes can collect logs without extra application-side logging infrastructure.
+The platform uses stdout-first logging so Kubernetes can collect logs without application-side log shippers or agent SDKs.
 
 ### Scraper logging
 
@@ -234,9 +234,53 @@ The platform uses stdout-first logging so Kubernetes can collect logs without ex
 - one completion line per request with response time, status, route, and cache status
 - errors are logged in request context
 
-### Shipping
+### Collection pipeline
 
-If `LOG_SHIP_HTTP_HOST` is configured, the root deployment flow applies a Fluent Bit DaemonSet from `k8s/logging/`.
+The current cluster logging path is:
+
+1. API and scraper containers write structured JSON to stdout
+2. a Fluent Bit DaemonSet tails Kubernetes container logs from `/var/log/containers/*.log`
+3. Fluent Bit enriches each record with Kubernetes metadata
+4. Fluent Bit ships newline-delimited JSON over HTTP to the in-cluster `csearch-log-collector` service
+5. the tiny collector appends those records into daily `.ndjson` files on the node host path under `/root/logs`
+
+This gives the project a lightweight central log capture path without running Loki, Grafana, or a heavier in-cluster observability stack.
+
+### Storage layout
+
+The tiny collector writes files to:
+
+- `/root/logs/<cluster>/<source>/YYYY-MM-DD.ndjson`
+
+For the current deployment defaults, that means files land at paths like:
+
+- `/root/logs/csearch/csearch/2026-03-21.ndjson`
+
+Each line is one JSON object. The collector does not reformat the application payloads beyond preserving Fluent Bit's shipped JSON line format.
+
+### Filtering and scope
+
+The Fluent Bit DaemonSet is intentionally narrow:
+
+- it keeps Kubernetes metadata on each record
+- it only ships workloads labeled `app.kubernetes.io/name=csearch-api` or `app.kubernetes.io/name=csearch-updater`
+- it does not try to ingest `backend/scraper/congress/data` directly
+
+### Operational notes
+
+- `deploy.sh` defaults `ENABLE_TINY_LOG_COLLECTOR=true`
+- the collector host path defaults to `LOG_COLLECTOR_HOSTPATH=/root/logs`
+- the in-cluster collector service listens on `csearch-log-collector:8080`
+- if you disable the tiny collector, the old generic HTTP shipping path can still be used through `LOG_SHIP_HTTP_HOST`, `LOG_SHIP_HTTP_PORT`, and `LOG_SHIP_HTTP_URI`
+
+### Failure modes
+
+Common logging-specific failures:
+
+- Fluent Bit config rendering breaks record accessors if shell substitution is too broad
+- `/root/logs` exists but is not writable by the collector
+- the collector service is healthy but Fluent Bit is pointed at the wrong host, port, or URI
+- workloads are missing `app.kubernetes.io/name`, so the Fluent Bit grep filter drops their logs
 
 ## Ownership Boundaries
 
