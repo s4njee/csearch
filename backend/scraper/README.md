@@ -35,7 +35,8 @@ A normal scraper run does the following:
 5. Skip files whose SHA-256 hash has not changed
 6. Parse changed files into normalized bill or vote structures
 7. Upsert rows into Postgres
-8. Persist the updated hash caches
+8. Clear the shared API Redis cache when new rows were written
+9. Persist the updated hash caches
 
 ## Data Coverage
 
@@ -230,6 +231,7 @@ Edit this when:
 | --- | --- | --- |
 | `CONGRESSDIR` | Yes | Runtime root for scraper code, raw data, and hash caches |
 | `POSTGRESURI` | Yes | Postgres host |
+| `REDIS_URL` | No | Redis connection string used for API cache invalidation, defaults to `redis://localhost:6379` |
 | `DB_PORT` | No | Postgres port, defaults to `5432` |
 | `DB_USER` | No | Postgres user, defaults to `postgres` |
 | `DB_PASSWORD` | No | Postgres password, defaults to `postgres` |
@@ -260,6 +262,7 @@ cat > .env <<'EOF'
 CONGRESSDIR=/Users/your-user/Documents/projects/csearch-updater-root/backend/scraper
 POSTGRESURI=localhost
 DB_PORT=5433
+REDIS_URL=redis://localhost:6379
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=csearch

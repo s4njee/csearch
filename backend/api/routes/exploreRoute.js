@@ -23,9 +23,10 @@ module.exports = async function (fastify) {
       .join('&');
     const cacheKey = `explore_${queryId}_${queryParamsString}`;
 
-    if (cache.has(cacheKey)) {
+    const cached = await cache.get(cacheKey);
+    if (cached !== undefined) {
       reply.header("X-Cache", "HIT");
-      return cache.get(cacheKey);
+      return cached;
     }
 
     const result = await executeExploreQuery(
@@ -49,7 +50,7 @@ module.exports = async function (fastify) {
       results: result.rows,
     };
 
-    cache.set(cacheKey, response);
+    await cache.set(cacheKey, response);
     reply.header("X-Cache", "MISS");
 
     const responseTime = Date.now() - startedAt;

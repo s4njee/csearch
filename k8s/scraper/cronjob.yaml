@@ -50,6 +50,10 @@ spec:
                   value: /srv/csearch
                 - name: POSTGRESURI
                   value: postgres
+                - name: REDIS_URL
+                  value: "redis://csearch-redis:6379"
+                - name: LOG_LEVEL
+                  value: "info"
                 - name: DB_USER
                   valueFrom:
                     configMapKeyRef:

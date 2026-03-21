@@ -99,6 +99,17 @@ func main() {
 		}
 	}
 
+	if stats.BillsProcessed > 0 || stats.VotesProcessed > 0 {
+		deleted, err := clearAPICache(ctx, cfg)
+		if err != nil {
+			slog.Warn("unable to clear redis api cache", "redis_url", cfg.RedisURL, "err", err)
+		} else {
+			slog.Info("redis api cache cleared", "redis_url", cfg.RedisURL, "keys_deleted", deleted)
+		}
+	} else {
+		slog.Info("redis api cache clear skipped", "reason", "no new postgres writes")
+	}
+
 	slog.Info("scraper run complete",
 		"bills_processed", stats.BillsProcessed,
 		"bills_skipped", stats.BillsSkipped,

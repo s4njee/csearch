@@ -8,8 +8,8 @@ A lightweight, production-grade logging system using tools already in the stack 
 
 Pino is already bundled with Fastify (`pino@^8.8.0` in package.json). The server already has `logger: true` in `server.js`, but no request-level detail is captured.
 
-**1.1 Configure Pino with useful defaults in `server.js`**
-- [ ] Replace `logger: true` with a Pino config object:
+**1.1 Configure Pino with useful defaults in the Fastify startup path**
+- [x] Replace `logger: true` with a Pino config object:
   ```js
   const app = Fastify({
     logger: {
@@ -27,10 +27,10 @@ Pino is already bundled with Fastify (`pino@^8.8.0` in package.json). The server
     }
   })
   ```
-- [ ] Set `LOG_LEVEL=info` in production env, `debug` for local `.env`
+- [x] Set `LOG_LEVEL=info` in production env, `debug` for local/dev env
 
 **1.2 Add `onResponse` hook in `app.js` for per-request log lines**
-- [ ] Add a hook after the cors/compress registration:
+- [x] Add a hook after the cors/compress registration:
   ```js
   fastify.addHook('onResponse', (request, reply, done) => {
     request.log.info({
@@ -45,15 +45,15 @@ Pino is already bundled with Fastify (`pino@^8.8.0` in package.json). The server
   This gives one structured JSON line per request with latency + cache hit/miss.
 
 **1.3 Add contextual logging to route handlers**
-- [ ] In `searchRoute.js` — log search queries for analytics:
+- [x] In `searchRoute.js` — log search queries for analytics:
   ```js
   request.log.info({ query: searchQuery, table, filter, resultCount: results.length }, 'search executed')
   ```
-- [ ] In `adminRoute.js` — log cache clears (audit trail):
+- [x] In `adminRoute.js` — log cache clears (audit trail):
   ```js
   request.log.warn({ action: 'cache_clear', ip: request.ip }, 'admin cache reset')
   ```
-- [ ] In `exploreRoute.js` — log slow queries (>500ms):
+- [x] In `exploreRoute.js` — log slow queries (>500ms):
   ```js
   if (reply.elapsedTime > 500) {
     request.log.warn({ queryId, responseTime: reply.elapsedTime }, 'slow explore query')
@@ -61,25 +61,25 @@ Pino is already bundled with Fastify (`pino@^8.8.0` in package.json). The server
   ```
 
 **1.4 Add error context to catch blocks**
-- [ ] In every route's catch block, use `request.log.error({ err }, 'route failed')` instead of relying on Fastify's default 500 handler (which logs the error but without route context)
+- [x] Add request-scoped error logging so route failures include route/status context instead of only the default Fastify 500 handler
 
 ### Phase 2: Go Scraper — Replace fmt/log with `log/slog`
 
 The scraper currently uses `fmt.Println` for progress and `log.Fatal`/`log.Printf` for errors. `log/slog` is in the Go stdlib since 1.21 (bump `go.mod` from 1.19 → 1.21+).
 
 **2.1 Initialize a JSON logger in `main.go`**
-- [ ] Add at top of `main()`:
+- [x] Add at top of `main()`:
   ```go
   logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
       Level: slog.LevelInfo,
   }))
   slog.SetDefault(logger)
   ```
-- [ ] Replace all `log.Fatalf(...)` calls with `slog.Error(...); os.Exit(1)` to get structured output even on fatal errors
-- [ ] Replace `log.Printf(...)` with `slog.Info(...)` or `slog.Warn(...)`
+- [x] Replace all `log.Fatalf(...)` calls with `slog.Error(...); os.Exit(1)` to get structured output even on fatal errors
+- [x] Replace `log.Printf(...)` with `slog.Info(...)` or `slog.Warn(...)`
 
 **2.2 Add per-bill and per-vote structured logging in `bills.go` / `votes.go`**
-- [ ] Log each successfully ingested bill:
+- [x] Log each successfully ingested bill:
   ```go
   slog.Info("bill ingested",
       "congress", congress,
@@ -89,17 +89,17 @@ The scraper currently uses `fmt.Println` for progress and `log.Fatal`/`log.Print
       "cosponsors", len(parsed.Cosponsors),
   )
   ```
-- [ ] Log skipped (unchanged hash) files at `debug` level:
+- [x] Log skipped (unchanged hash) files at `debug` level:
   ```go
   slog.Debug("bill unchanged, skipping", "path", filePath)
   ```
-- [ ] Log parse failures as warnings (not fatals) to support partial ingest:
+- [x] Log parse failures as warnings (not fatals) to support partial ingest:
   ```go
   slog.Warn("bill parse failed", "path", filePath, "err", err)
   ```
 
 **2.3 Emit a run summary at the end of `main()`**
-- [ ] Track counters through the ingest pipeline and log a single summary line:
+- [x] Track counters through the ingest pipeline and log a single summary line:
   ```go
   slog.Info("scraper run complete",
       "bills_processed", stats.BillsProcessed,
@@ -114,7 +114,7 @@ The scraper currently uses `fmt.Println` for progress and `log.Fatal`/`log.Print
   This single line is enough to build a CronJob health dashboard.
 
 **2.4 Tag Python subprocess output**
-- [ ] In `runtime.go` `streamOutput()`, prefix Python lines with a slog entry so they're parseable:
+- [x] In `runtime.go` `streamOutput()`, prefix Python lines with a slog entry so they're parseable:
   ```go
   slog.Info("python", "output", scanner.Text())
   ```
@@ -130,10 +130,10 @@ No new infrastructure needed — K8s already captures stdout/stderr from all pod
   kubectl logs -l app=csearch-updater --since=24h | jq 'select(.msg == "scraper run complete")'
   ```
 
-**3.2 (Optional) Add Fluent Bit DaemonSet for log shipping**
-- [x] Deploy Fluent Bit as a DaemonSet to ship JSON logs to an HTTP collector endpoint
-- [x] Configure filters to parse Pino/slog JSON format automatically (both use `"msg"` and `"level"` fields)
-- [ ] Add index patterns: `csearch-api-*` and `csearch-scraper-*`
+**3.2 Shared log shipping**
+- [x] Move the reusable Loki, Grafana, and Fluent Bit deployment to the external `k8s_study/logging` stack
+- [x] Keep CSearch-specific logging assets in `k8s/logging/`
+- [x] Add CSearch Grafana dashboards for API and scraper log lines
 
 **3.3 Set up CronJob failure alerting**
 - [ ] Add a K8s Event watch or Fluent Bit filter for `reason=BackoffLimitExceeded` on the `csearch-updater` CronJob
@@ -142,17 +142,17 @@ No new infrastructure needed — K8s already captures stdout/stderr from all pod
 ### Phase 4: Operational Dashboards (when log sink is in place)
 
 **4.1 API dashboard — build from Pino log lines**
-- [ ] Request rate by route (from `route` field)
-- [ ] p50/p95/p99 latency (from `responseTime` field)
-- [ ] Cache hit rate (from `cache` field: count HIT vs MISS)
-- [ ] Error rate by status code (from `statusCode` field)
-- [ ] Top search queries (from search log lines)
+- [x] Request rate by route (from `route` field)
+- [x] p50/p95/p99 latency (from `responseTime` field)
+- [x] Cache hit rate (from `cache` field: count HIT vs MISS)
+- [x] Error rate by status code (from `statusCode` field)
+- [x] Top search queries (from search log lines)
 
 **4.2 Scraper dashboard — build from slog summary lines**
-- [ ] Bills/votes processed per run (from `scraper run complete` lines)
-- [ ] Failure rate trend (from `bills_failed` / `votes_failed` counters)
-- [ ] Run duration trend (from `duration_s` field)
-- [ ] Alert if `bills_processed == 0` for 2+ consecutive days
+- [x] Bills/votes processed per run (from `scraper run complete` lines)
+- [x] Failure rate trend (from `bills_failed` / `votes_failed` counters)
+- [x] Run duration trend (from `duration_s` field)
+- [x] Alert-oriented zero-processed run panel for follow-up alerting
 
 ### What NOT to do (keep it lightweight)
 
@@ -163,7 +163,7 @@ No new infrastructure needed — K8s already captures stdout/stderr from all pod
 ## 2. Scraper Reliability
 - [ ] Add retry logic for failed GovInfo/congress.gov downloads (currently fatal on first error, no partial recovery)
 - [ ] Implement graceful partial ingest — skip bad files and continue rather than aborting the entire run
-- [ ] Add structured logging to the Go scraper (currently uses `fmt.Println` / `log.Fatal`)
+- [x] Add structured logging to the Go scraper (currently uses `fmt.Println` / `log.Fatal`)
 - [ ] Validate parsed XML/JSON against required fields before DB insert (silently drops malformed data today)
 - [ ] Add bill parsing unit tests — two schema versions (3.0.0 + legacy) have zero test coverage
 - [ ] Add integration test for the full XML → ParsedBill → DB pipeline

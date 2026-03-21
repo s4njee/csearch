@@ -6,11 +6,24 @@ const cors = require("@fastify/cors");
 
 // Fastify options: trustProxy ensures we get real user IPs behind CloudFront/K8s
 // instead of blocking EVERYONE as 1 IP through the rate limiter!
-module.exports.options = {
-  trustProxy: true
+const appOptions = {
+  trustProxy: true,
+  logger: {
+    level: process.env.LOG_LEVEL || "info",
+    serializers: {
+      req(req) {
+        return { method: req.method, url: req.url, ip: req.ip, reqId: req.id };
+      },
+      res(res) {
+        return { statusCode: res.statusCode };
+      }
+    },
+    // Keep the admin secret out of stdout logs.
+    redact: ["req.headers.authorization"]
+  }
 };
 
-module.exports = async function (fastify, opts) {
+async function app(fastify, opts) {
   // Place here your custom code!
 
   // Do not touch the following lines
@@ -46,20 +59,30 @@ module.exports = async function (fastify, opts) {
 
   // Keep error logs tied to the request context instead of relying on the
   // default Fastify 500 handler alone.
-  fastify.addHook('onError', (request, reply, error, done) => {
-    request.log.error({
+  fastify.setErrorHandler((error, request, reply) => {
+    const statusCode = error.statusCode || 500;
+    const log = statusCode >= 500 ? request.log.error.bind(request.log) : request.log.warn.bind(request.log);
+
+    log({
       err: error,
       route: request.routeOptions?.url || request.url,
-      statusCode: reply.statusCode
-    }, 'request failed')
-    done()
+      statusCode
+    }, 'request failed');
+
+    if (error.headers) {
+      reply.headers(error.headers);
+    }
+
+    reply.status(statusCode).send(error);
   });
 
   // 2. Graceful Shutdown (Zero-Downtime Rollout connection draining)
   const db = require('./controllers/db');
+  const cache = require('./utils/cache');
   fastify.addHook('onClose', async (instance) => {
     // When K8s sends SIGTERM, this ensures active users finish downloading their bills 
-    // and then cleanly destroys the active Knex Postgres connection pools.
+    // and then cleanly destroys the active Knex Postgres and Redis connections.
+    await cache.quit();
     await db.knex.destroy();
   });
 
@@ -74,4 +97,8 @@ module.exports = async function (fastify, opts) {
     dir: path.join(__dirname, "routes"),
     options: Object.assign({}, opts),
   });
-};
+}
+
+app.options = appOptions;
+
+module.exports = app;

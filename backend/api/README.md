@@ -34,8 +34,9 @@ For a typical request:
 1. Fastify loads plugins and routes from `plugins/` and `routes/`
 2. The route validates path or query parameters
 3. The route queries Postgres through Knex
-4. Some routes use the shared LRU cache in `utils/cache.js`
+4. Some routes use the shared Redis cache in `utils/cache.js`
 5. Fastify returns JSON and emits a structured completion log
+6. The shared Loki and Grafana stack, managed outside this repo, consumes those logs for dashboards and ad hoc queries
 
 ## Key Files
 
@@ -46,7 +47,7 @@ For a typical request:
 | `controllers/db.js` | Knex Postgres connection and pool |
 | `routes/` | HTTP route handlers |
 | `services/exploreQueries.js` | Parses and runs explore queries from SQL files |
-| `utils/cache.js` | Shared in-memory LRU cache |
+| `utils/cache.js` | Shared Redis cache wrapper used by hot routes |
 | `utils/constants.js` | Shared constants such as valid bill types |
 | `test/` | Node test runner coverage for routes and services |
 
@@ -185,12 +186,14 @@ Edit this when:
 
 What it does:
 
-- defines the shared in-memory LRU cache used by hot routes
+- defines the shared Redis cache used by hot routes
+- applies a common key prefix and TTL for cached API responses
+- degrades safely when Redis is unavailable so requests still succeed
 
 Edit this when:
 
 - cache TTL changes
-- cache capacity changes
+- Redis connection behavior changes
 - the caching strategy changes globally
 
 ### `test/routes/*.test.js`
@@ -213,7 +216,7 @@ Edit this when:
 | --- | --- | --- |
 | `GET` | `/` | Simple root response |
 | `GET` | `/health` | Deep health check that also verifies DB connectivity |
-| `POST` | `/admin/clear-cache` | Clears the in-memory cache when called with the correct secret |
+| `POST` | `/admin/clear-cache` | Clears the shared Redis cache when called with the correct secret |
 
 ### Bills
 
@@ -264,18 +267,19 @@ When you add or change an explore query, update:
 
 ## Cache Behavior
 
-The API uses a shared process-local LRU cache in `utils/cache.js`.
+The API uses a shared Redis cache in `utils/cache.js`.
 
 Current characteristics:
 
-- maximum 500 cached entries
 - 24 hour TTL
-- cache is local to a single API process
-- cache resets on pod restart
+- cache keys are prefixed with `csearch:`
+- cache is shared across API replicas
+- cache survives API pod restarts as long as Redis stays up
+- cache reads and writes fail open so Redis outages do not break request handling
 
 Routes that use cache set the `X-Cache` response header to `HIT` or `MISS`.
 
-This matters operationally because a multi-replica deployment does not have a shared cache.
+This matters operationally because cache invalidation now applies across replicas instead of only within one pod.
 
 ## Environment Variables
 
@@ -288,6 +292,7 @@ This matters operationally because a multi-replica deployment does not have a sh
 | `DB_USER` | No | Postgres user, defaults to `postgres` |
 | `DB_PASSWORD` | No | Postgres password, defaults to `postgres` |
 | `DB_NAME` | No | Database name, defaults to `csearch` |
+| `REDIS_URL` | No | Redis connection string, defaults to `redis://localhost:6379` |
 | `SECRET_KEY` | For admin endpoint | Secret required by `/admin/clear-cache` |
 | `LOG_LEVEL` | No | Fastify / Pino log level |
 | `FASTIFY_CLOSE_GRACE_DELAY` | No | Graceful shutdown delay |
@@ -306,15 +311,17 @@ docker-compose up postgres api
 
 The API will be available at [http://localhost:3000](http://localhost:3000).
 
+Redis is also started by the compose stack for cached routes.
+
 ### Run directly with Node
 
 ```bash
 cd backend/api
 npm install
-POSTGRESURI=localhost DB_PORT=5433 npm run dev
+POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 npm run dev
 ```
 
-This is useful when you want Fastify file watching and you already have Postgres running.
+This is useful when you want Fastify file watching and you already have Postgres and Redis running.
 
 ## Tests
 
@@ -389,7 +396,7 @@ Confirm the change was made in `backend/scraper/explore.sql`, not just in `backe
 
 ### Cache clear appears inconsistent across replicas
 
-That is expected with the current in-memory cache model. Each API pod has its own cache.
+That is no longer expected with the Redis-backed cache. If cache invalidation looks inconsistent, check whether all API pods point at the same `REDIS_URL` and whether Redis is reachable.
 
 ## Notes On Repo Layout
 

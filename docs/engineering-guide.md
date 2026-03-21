@@ -67,7 +67,7 @@ Read:
 | Add a new bill field to an existing page | `backend/scraper/bills.go`, `backend/scraper/query.sql`, `backend/api/routes/*.js`, `frontend/types/congress.ts`, relevant Vue page/component |
 | Add a new vote-derived metric | `backend/scraper/votes.go`, possibly `backend/scraper/schema.sql`, then API route or explore query, then frontend |
 | Add an explore query | `backend/scraper/explore.sql`, `backend/api/services/exploreQueries.js`, `frontend/pages/explore.vue` |
-| Fix stale API responses | `backend/api/utils/cache.js`, the relevant route, and the deployment flow that clears or refreshes cache |
+| Fix stale API responses | `backend/api/utils/cache.js`, the relevant route, the Redis config, and any flow that clears or refreshes cache |
 | Fix the wrong API target in a deployed frontend | `frontend/composables/useApiBase.ts`, `frontend/docker-entrypoint.sh`, or the relevant manifest / deploy script |
 | Change a production schedule | `k8s/scraper/cronjob.yaml` or `k8s/frontend/deploy-cronjob.yaml` |
 
@@ -83,6 +83,7 @@ These are the files engineers most often assume are duplicated when they are not
 | Live Kubernetes manifests | `k8s/` at the repo root |
 | Frontend production deploy flow | `frontend/deploy.sh` |
 | Full platform deploy flow | `deploy.sh` |
+| Shared logging infrastructure | External `k8s_study/logging/` stack plus CSearch dashboards in `k8s/logging/` |
 
 ## Local Development Workflows
 
@@ -170,6 +171,17 @@ If the wrong API is used in a deployed nginx container, the fix is often in:
 
 Check the hash caches. The scraper skips files whose SHA-256 digest matches the last successful ingest. Relevant files are stored under the runtime `data/` directory, not inside the API or frontend.
 
+### You want logs shipped off-cluster
+
+This repo still includes the older Fluent Bit HTTP shipper in `k8s/logging/`.
+
+If log shipping is not active, verify in this order:
+
+1. `LOG_SHIP_HTTP_HOST`, `LOG_SHIP_HTTP_PORT`, and `LOG_SHIP_HTTP_URI` are set in `.env.prod`
+2. `bash deploy.sh` applied `k8s/logging/fluent-bit-config.yaml`, `k8s/logging/fluent-bit-rbac.yaml`, and `k8s/logging/fluent-bit-daemonset.yaml`
+3. `daemonset/csearch-fluent-bit` is running
+4. the API and scraper are still emitting JSON log lines to stdout
+
 ## Things That Commonly Confuse New Contributors
 
 ### There are two Kubernetes areas in the repo
@@ -186,6 +198,12 @@ There are four frontend execution modes you may encounter:
 4. Deploy-container execution for scheduled static publishing
 
 The correct place to edit depends on which mode you are changing.
+
+For `mars`, the frontend and dev API are split across different manifests:
+
+- `k8s/frontend/mars-deployment.yaml` sets `NUXT_API_SERVER=http://api-dev`
+- `k8s/dev/api.yaml` defines the `api-dev` deployment and its `redis-dev` side service
+- the `mars` dev API currently points at the shared `postgres` service and uses the `csearch-api:redis` image tag
 
 ### The scraper is both Go and Python
 

@@ -11,8 +11,8 @@ module.exports = async function (fastify, opts) {
       return { error: "Forbidden: Invalid Secret" };
     }
 
-    cache.reset();
+    await cache.reset();
     request.log.warn({ action: 'cache_clear', ip: request.ip }, 'admin cache reset')
-    return { success: true, message: "Fastify memory cache successfully reset" };
+    return { success: true, message: "Cache successfully reset" };
   });
 };

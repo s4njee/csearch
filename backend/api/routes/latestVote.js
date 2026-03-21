@@ -13,9 +13,10 @@ module.exports = async function (fastify, opts) {
     }
 
     const cacheKey = `latest_votes_${chamber}`;
-    if (cache.has(cacheKey)) {
+    const cached = await cache.get(cacheKey);
+    if (cached !== undefined) {
       reply.header("X-Cache", "HIT");
-      return cache.get(cacheKey);
+      return cached;
     }
 
     const data = await db.knex
@@ -39,7 +40,7 @@ module.exports = async function (fastify, opts) {
       .orderBy("v.votedate", "desc")
       .limit(60);
 
-    cache.set(cacheKey, data);
+    await cache.set(cacheKey, data);
     reply.header("X-Cache", "MISS");
     return data;
   });

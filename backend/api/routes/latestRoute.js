@@ -12,9 +12,10 @@ module.exports = async function (fastify, opts) {
     }
 
     const cacheKey = `latest_bills_${billtype}`;
-    if (cache.has(cacheKey)) {
+    const cached = await cache.get(cacheKey);
+    if (cached !== undefined) {
       reply.header("X-Cache", "HIT");
-      return cache.get(cacheKey);
+      return cached;
     }
 
     const committeeCodes = db.knex.raw(
@@ -40,7 +41,7 @@ module.exports = async function (fastify, opts) {
       .orderBy("b.billid", "desc")
       .limit(500);
 
-    cache.set(cacheKey, data);
+    await cache.set(cacheKey, data);
     reply.header("X-Cache", "MISS");
     return data;
   });

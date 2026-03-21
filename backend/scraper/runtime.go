@@ -3,6 +3,7 @@ package main
 import (
 	"app/csearch/csearch"
 	"bufio"
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
@@ -30,6 +31,7 @@ const dbWriteConcurrency = 4
 type appConfig struct {
 	CongressDir string
 	PostgresURI string
+	RedisURL    string
 	DBUser      string
 	DBPassword  string
 	DBName      string
@@ -61,6 +63,7 @@ func loadConfig() (appConfig, error) {
 	cfg := appConfig{
 		CongressDir: viper.GetString("CONGRESSDIR"),
 		PostgresURI: viper.GetString("POSTGRESURI"),
+		RedisURL:    viper.GetString("REDIS_URL"),
 		DBUser:      viper.GetString("DB_USER"),
 		DBPassword:  viper.GetString("DB_PASSWORD"),
 		DBName:      viper.GetString("DB_NAME"),
@@ -84,6 +87,9 @@ func loadConfig() (appConfig, error) {
 	}
 	if cfg.DBPort == "" {
 		cfg.DBPort = "5432"
+	}
+	if cfg.RedisURL == "" {
+		cfg.RedisURL = "redis://localhost:6379"
 	}
 
 	return cfg, nil
@@ -241,4 +247,48 @@ func streamOutput(source string, r io.Reader) {
 	if err := scanner.Err(); err != nil {
 		slog.Warn("python output stream ended", "stream", source, "err", err)
 	}
+}
+
+const redisCacheKeyPrefix = "csearch:"
+
+// clearAPICache removes all Redis-backed API cache entries after a successful
+// ingest so readers do not continue serving stale rows from pre-ingest state.
+func clearAPICache(ctx context.Context, cfg appConfig) (int, error) {
+	opt, err := redisOptions(cfg.RedisURL)
+	if err != nil {
+		return 0, err
+	}
+
+	client := newRedisClient(opt)
+	defer client.Close()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		return 0, err
+	}
+
+	var (
+		cursor  uint64
+		deleted int
+	)
+
+	for {
+		keys, nextCursor, err := client.Scan(ctx, cursor, redisCacheKeyPrefix+"*", 100).Result()
+		if err != nil {
+			return deleted, err
+		}
+
+		if len(keys) > 0 {
+			if err := client.Del(ctx, keys...).Err(); err != nil {
+				return deleted, err
+			}
+			deleted += len(keys)
+		}
+
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return deleted, nil
 }
