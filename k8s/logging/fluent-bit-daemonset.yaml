@@ -34,11 +34,15 @@ spec:
             - name: FLUENT_BIT_LOG_LEVEL
               value: info
             - name: LOG_SHIP_HTTP_HOST
-              value: ${LOG_SHIP_HTTP_HOST}
+              value: "${LOG_SHIP_HTTP_HOST}"
             - name: LOG_SHIP_HTTP_PORT
-              value: ${LOG_SHIP_HTTP_PORT}
+              value: "${LOG_SHIP_HTTP_PORT}"
             - name: LOG_SHIP_HTTP_URI
-              value: ${LOG_SHIP_HTTP_URI}
+              value: "${LOG_SHIP_HTTP_URI}"
+            - name: LOG_SHIP_HTTP_TLS
+              value: "${LOG_SHIP_HTTP_TLS}"
+            - name: LOG_SHIP_HTTP_TLS_VERIFY
+              value: "${LOG_SHIP_HTTP_TLS_VERIFY}"
             - name: CLUSTER_NAME
               value: csearch
           ports:

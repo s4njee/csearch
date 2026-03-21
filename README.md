@@ -9,6 +9,9 @@ GovInfo + congress.gov
         |
         v
 backend/scraper  ->  PostgreSQL  ->  backend/api  ->  frontend
+                          |               ^
+                          |    Redis      |
+                          +---(cache)-----+
 ```
 
 The repository is organized around three active production projects:
@@ -121,6 +124,7 @@ csearch-updater-root/
 | `frontend/components/` | Edit reusable UI building blocks |
 | `frontend/composables/` | Change API access and runtime configuration behavior |
 | `k8s/frontend/` | Frontend deployments, services, and scheduled publish jobs |
+| `k8s/logging/` | Fluent Bit, tiny log collector manifests, and logging notes |
 | `k8s/scraper/` | Scraper CronJob and storage configuration |
 
 ## System Overview
@@ -149,9 +153,53 @@ The API reads from Postgres and exposes endpoints for:
 - member and committee pages
 - analytical explore queries
 
+### Cache
+
+The API uses Redis as a shared cache in front of Postgres. Responses for the most expensive and frequently-hit read endpoints are serialized to Redis with a 24-hour TTL. All API replicas share the same Redis instance, so a cache hit from one pod is a hit for all — and a manual or automatic invalidation is consistent across the cluster.
+
+**What gets cached**
+
+| Route | Cache key |
+| --- | --- |
+| `GET /latest/:billtype` | `csearch:latest_bills_<billtype>` |
+| `GET /votes/:chamber` | `csearch:latest_votes_<chamber>` |
+| `GET /explore/:queryId` | `csearch:explore_<queryId>` |
+
+**Cache invalidation**
+
+The scraper automatically clears all `csearch:*` keys at the end of a run when it has processed at least one bill or vote. This means freshly ingested data is visible on the next API request after the daily CronJob completes.
+
+Cache can also be cleared manually:
+
+```bash
+curl -X POST http://localhost:3000/admin/clear-cache \
+  -H "Authorization: <SECRET_KEY>"
+```
+
+**Cache headers**
+
+Every response from a cached route includes an `X-Cache` header:
+
+- `X-Cache: HIT` — served from Redis
+- `X-Cache: MISS` — fetched from Postgres and written to Redis
+
+**Graceful degradation**
+
+If Redis is unavailable, the API continues to serve requests directly from Postgres. Cache operations fail silently — no errors are surfaced to the client.
+
+**Configuration**
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `REDIS_URL` | `redis://localhost:6379` | Set to `redis://csearch-redis:6379` in K8s production |
+
+In K8s the Redis deployment runs `redis:7-alpine` with `--maxmemory 128mb` and `--maxmemory-policy allkeys-lru`. See `k8s/redis/` for the full manifest.
+
 ### Frontend
 
 The frontend is a Nuxt 4 app. Production builds are generated statically, uploaded to S3, and served from CloudFront. A separate nginx-based deployment is used for the `mars` development cluster.
+
+The `mars` dev stack also includes a lightweight API deployment from `k8s/dev/api.yaml`. That manifest currently points at the shared in-cluster `postgres` service, deploys a `redis-dev` cache service, and uses the `registry.s8njee.com/csearch-api:redis` image tag for Redis-enabled API testing.
 
 ## Quick Start
 
@@ -168,6 +216,7 @@ This starts:
 | Frontend | [http://localhost:8080](http://localhost:8080) |
 | API | [http://localhost:3000](http://localhost:3000) |
 | Postgres | `localhost:5433` |
+| Redis | `localhost:6379` |
 | Scraper | Runs as a container in the compose stack |
 
 Notes:
@@ -217,8 +266,39 @@ The root deploy script:
 2. Builds and pushes the database, API, scraper, and frontend deploy images
 3. Applies database and API manifests
 4. Applies the scraper CronJob
-5. Optionally applies Fluent Bit
+5. By default applies the tiny in-cluster log collector plus the in-repo Fluent Bit DaemonSet
 6. Runs the frontend production deploy script
+
+## Logging
+
+The logging path is intentionally lightweight:
+
+1. the API and scraper write structured JSON to stdout
+2. Fluent Bit tails Kubernetes container logs and adds Kubernetes metadata
+3. a tiny in-cluster HTTP collector receives newline-delimited JSON from Fluent Bit
+4. the collector appends those records into daily `.ndjson` files on the node host path
+
+On the current cluster defaults, those files are written under:
+
+- `/root/logs/csearch/csearch/YYYY-MM-DD.ndjson`
+
+Relevant files:
+
+- [`backend/log-collector/main.go`](/Users/sanjee/Documents/projects/csearch-updater-root/backend/log-collector/main.go)
+- [`k8s/logging/fluent-bit-config.yaml`](/Users/sanjee/Documents/projects/csearch-updater-root/k8s/logging/fluent-bit-config.yaml)
+- [`k8s/logging/fluent-bit-daemonset.yaml`](/Users/sanjee/Documents/projects/csearch-updater-root/k8s/logging/fluent-bit-daemonset.yaml)
+- [`k8s/logging/collector-deployment.yaml`](/Users/sanjee/Documents/projects/csearch-updater-root/k8s/logging/collector-deployment.yaml)
+
+Useful defaults from `.env.prod`:
+
+- `ENABLE_TINY_LOG_COLLECTOR=true`
+- `LOG_COLLECTOR_HOSTPATH=/root/logs`
+
+If you want to disable the tiny collector and ship elsewhere, `deploy.sh` still supports the older generic HTTP sink variables:
+
+- `LOG_SHIP_HTTP_HOST`
+- `LOG_SHIP_HTTP_PORT`
+- `LOG_SHIP_HTTP_URI`
 
 ### Frontend production deploy only
 

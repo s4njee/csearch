@@ -10,7 +10,7 @@ data:
     [SERVICE]
         Flush         1
         Daemon        Off
-        Log_Level     ${FLUENT_BIT_LOG_LEVEL}
+        Log_Level     info
         Parsers_File   parsers.conf
         HTTP_Server   On
         HTTP_Listen   0.0.0.0
@@ -41,6 +41,11 @@ data:
         K8S-Logging.Parser  On
         K8S-Logging.Exclude On
 
+    [FILTER]
+        Name                grep
+        Match               kube.*
+        Regex               $kubernetes['labels']['app.kubernetes.io/name'] ^(csearch-api|csearch-updater)$
+
     [OUTPUT]
         Name          http
         Match         kube.*
@@ -50,8 +55,8 @@ data:
         Format        json_lines
         Json_Date_Key timestamp
         Json_Date_Format iso8601
-        tls           On
-        tls.verify    On
+        tls           ${LOG_SHIP_HTTP_TLS}
+        tls.verify    ${LOG_SHIP_HTTP_TLS_VERIFY}
         Header        X-Source csearch
         Header        X-Cluster ${CLUSTER_NAME}
         Retry_Limit   False
