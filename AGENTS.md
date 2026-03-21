@@ -158,15 +158,22 @@ bash deploy.sh
 ```bash
 source .env.prod
 docker buildx build --platform linux/amd64 --push \
+  -t "$REGISTRY/csearch-api:redis" \
+  backend/api
+
+docker buildx build --platform linux/amd64 --push \
   -t "$REGISTRY/csearch-frontend:latest" \
   -f frontend/Dockerfile.nginx \
   frontend
 
+kubectl --context mars apply -f k8s/dev/api.yaml
 kubectl --context mars apply -f k8s/frontend/mars-deployment.yaml
 kubectl --context mars apply -f k8s/frontend/dev-service.yaml
 ```
 
-The `mars` deployment runs the nginx container and sets `NUXT_API_SERVER=http://192.168.1.156:3000` in the manifest, so the same image can be reused without baking the dev API target into the build.
+The `mars` stack uses `k8s/dev/api.yaml` for the dev API and Redis pair. That manifest points the API at the in-cluster `postgres` service, configures `REDIS_URL=redis://redis-dev:6379`, and currently pins the API image to `registry.s8njee.com/csearch-api:redis`.
+
+The frontend `mars` deployment runs the nginx container and sets `NUXT_API_SERVER=http://api-dev` in the manifest, so the same image can be reused without baking the dev API target into the build.
 
 ### Local dev
 ```bash
@@ -178,6 +185,7 @@ NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 - Production deploy is the S3/CloudFront path, not a Kubernetes frontend deployment
 - The default production API origin is `https://api.csearch.org`
 - The `mars` dev deployment is the Kubernetes nginx container path
+- The `mars` API cache now uses Redis via the `redis-dev` in-cluster service
 - Dynamic route segments use Nuxt bracket syntax (`[category]`, `[congress]`, `[number]`) — required by the framework
 - CloudFront distribution IDs are stored in `.env.prod` (`CF_DIST_CSEARCH`, `CF_DIST_CONGRESS`)
 - Bill list fetches 500 rows from the API and paginates 100 at a time client-side

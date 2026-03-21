@@ -15,7 +15,7 @@ process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'test-cli
  * Registers automatic teardown via t.after (node:test) or t.teardown (tap).
  */
 async function build(t) {
-  cache.reset();
+  await cache.reset();
   const app = await buildApplication([APP_PATH], {});
 
   const cleanup = t.after || t.teardown;

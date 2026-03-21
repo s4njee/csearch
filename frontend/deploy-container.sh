@@ -4,7 +4,7 @@ set -euo pipefail
 cd /app
 
 
-echo "==> Rolling restart of csearch-api to flush in-memory cache on all pods..."
+echo "==> Rolling restart of csearch-api before publishing frontend..."
 kubectl rollout restart deployment/csearch-api
 kubectl rollout status deployment/csearch-api --timeout=120s
 

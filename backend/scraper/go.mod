@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/lib/pq v1.10.7
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/spf13/viper v1.15.0
 	github.com/tabbed/pqtype v0.1.1
 )

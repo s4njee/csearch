@@ -28,13 +28,28 @@ services:
     environment:
       CONGRESSDIR: /srv/csearch
       POSTGRESURI: postgres
+      REDIS_URL: redis://redis:6379
       DB_USER: postgres
       DB_PASSWORD: ${DB_PASSWORD:-change-me-local-postgres}
       DB_NAME: csearch
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
       RUN_BILLS: "true"
       RUN_VOTES: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - ./backend/scraper/congress:/srv/csearch/congress
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   api:
     build:
@@ -43,11 +58,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       HOST: 0.0.0.0
       PORT: 3000
       POSTGRESURI: postgres
       SECRET_KEY: ${SECRET_KEY:-change-me-local-api-secret}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
     expose:
       - "3000"
 

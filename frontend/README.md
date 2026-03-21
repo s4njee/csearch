@@ -275,10 +275,15 @@ For environments where the frontend is served from a container instead of S3:
 ```bash
 source ../.env.prod
 docker buildx build --platform linux/amd64 --push \
+  -t "$REGISTRY/csearch-api:redis" \
+  ../backend/api
+
+docker buildx build --platform linux/amd64 --push \
   -t "$REGISTRY/csearch-frontend:latest" \
   -f Dockerfile.nginx \
   .
 
+kubectl --context mars apply -f ../k8s/dev/api.yaml
 kubectl --context mars apply -f ../k8s/frontend/mars-deployment.yaml
 kubectl --context mars apply -f ../k8s/frontend/dev-service.yaml
 ```
@@ -288,6 +293,8 @@ Important behavior:
 - the site is generated during the image build
 - `docker-entrypoint.sh` writes `runtime-config.js` at container startup
 - the manifest sets `NUXT_API_SERVER`, which overrides the build-time default
+- on `mars`, the frontend points to the in-cluster `api-dev` service, not the API load balancer IP
+- on `mars`, `../k8s/dev/api.yaml` deploys both `api-dev` and `redis-dev`, and the API image is currently pinned to `registry.s8njee.com/csearch-api:redis`
 
 ## Scheduled Deploy Container
 
