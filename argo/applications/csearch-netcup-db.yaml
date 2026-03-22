@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/s4njee/csearch.git
-    targetRevision: codex/claude
+    targetRevision: main
     path: k8s/netcup-db
   destination:
     server: https://kubernetes.default.svc
