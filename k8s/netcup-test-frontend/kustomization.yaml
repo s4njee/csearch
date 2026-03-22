@@ -4,8 +4,3 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - ingress.yaml
-
-images:
-  - name: registry.s8njee.com/csearch-frontend
-    newName: registry.s8njee.com/csearch-frontend
-    newTag: latest
