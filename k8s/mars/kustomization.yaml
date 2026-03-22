@@ -11,7 +11,7 @@ resources:
 images:
   - name: registry.s8njee.com/csearch-api
     newName: registry.s8njee.com/csearch-api
-    newTag: latest
+    newTag: 5fc66ce297799e082ba99cd60c749938dd82b1f1
   - name: registry.s8njee.com/csearch-frontend
     newName: registry.s8njee.com/csearch-frontend
-    newTag: latest
+    newTag: 5fc66ce297799e082ba99cd60c749938dd82b1f1
