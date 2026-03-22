@@ -33,6 +33,18 @@ spec:
           env:
             - name: FLUENT_BIT_LOG_LEVEL
               value: info
+            - name: LOG_S3_BUCKET
+              value: "${LOG_S3_BUCKET}"
+            - name: LOG_S3_REGION
+              value: "${LOG_S3_REGION}"
+            - name: LOG_S3_TOTAL_FILE_SIZE
+              value: "${LOG_S3_TOTAL_FILE_SIZE}"
+            - name: LOG_S3_UPLOAD_TIMEOUT
+              value: "${LOG_S3_UPLOAD_TIMEOUT}"
+            - name: LOG_S3_USE_PUT_OBJECT
+              value: "${LOG_S3_USE_PUT_OBJECT}"
+            - name: LOG_S3_STORE_DIR_LIMIT_SIZE
+              value: "${LOG_S3_STORE_DIR_LIMIT_SIZE}"
             - name: LOG_SHIP_HTTP_HOST
               value: "${LOG_SHIP_HTTP_HOST}"
             - name: LOG_SHIP_HTTP_PORT
@@ -45,6 +57,24 @@ spec:
               value: "${LOG_SHIP_HTTP_TLS_VERIFY}"
             - name: CLUSTER_NAME
               value: csearch
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: csearch-fluent-bit-aws
+                  key: aws_access_key_id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: csearch-fluent-bit-aws
+                  key: aws_secret_access_key
+                  optional: true
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: csearch-fluent-bit-aws
+                  key: aws_session_token
+                  optional: true
           ports:
             - name: http-metrics
               containerPort: 2020
@@ -91,6 +121,8 @@ spec:
               readOnly: true
             - name: state
               mountPath: /var/fluent-bit/state
+            - name: s3-buffer
+              mountPath: /var/fluent-bit/s3
       volumes:
         - name: config
           configMap:
@@ -100,4 +132,6 @@ spec:
             path: /var/log
             type: Directory
         - name: state
+          emptyDir: {}
+        - name: s3-buffer
           emptyDir: {}

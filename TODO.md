@@ -131,7 +131,7 @@ No new infrastructure needed — K8s already captures stdout/stderr from all pod
   ```
 
 **3.2 Shared log shipping**
-- [x] Move the reusable Loki, Grafana, and Fluent Bit deployment to the external `k8s_study/logging` stack
+- [x] Add repo-owned Fluent Bit manifests and the tiny collector path under `k8s/logging/`
 - [x] Keep CSearch-specific logging assets in `k8s/logging/`
 - [x] Add CSearch Grafana dashboards for API and scraper log lines
 
@@ -169,9 +169,10 @@ No new infrastructure needed — K8s already captures stdout/stderr from all pod
 - [ ] Add integration test for the full XML → ParsedBill → DB pipeline
 
 ## 3. Distributed Cache (Redis)
-- [ ] Replace in-process LRU cache with Redis — current setup means each K8s replica maintains its own separate cache, wasting memory and causing inconsistent responses
-- [ ] Eliminates the cache invalidation race condition where `POST /admin/clear-cache` only hits one replica
-- [ ] Enables cache warming to survive pod restarts
+- [x] Replace in-process cache with Redis so replicas share cache state
+- [x] Make `POST /admin/clear-cache` clear shared keys instead of only one pod
+- [x] Keep cached responses available across API pod restarts while Redis stays up
+- [ ] Add Redis-focused observability, such as cache hit-rate or Redis availability checks
 
 ## 4. API Documentation
 - [ ] Add OpenAPI/Swagger spec for all endpoints — no API docs exist today
@@ -192,7 +193,7 @@ No new infrastructure needed — K8s already captures stdout/stderr from all pod
 
 ## 7. CI/CD Pipeline
 - [ ] Add GitHub Actions (or equivalent) for: lint, test, build on PR
-- [ ] Automate Docker image builds on merge to main
+- [x] Automate API and frontend image builds on merge to `main` for the Argo-managed path
 - [ ] Add schema migration tooling (currently `schema.sql` is applied manually; no versioned migrations)
 - [ ] Validate K8s manifests in CI (`kubeval` or `kubeconform`)
 

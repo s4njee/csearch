@@ -1,124 +1,131 @@
-# CSearch Logging Assets
+# CSearch Logging
 
-This directory now holds CSearch-specific logging assets for a shared Loki and Grafana stack.
+This directory contains the logging assets that are actively used by the repo-owned deploy path.
 
-The logging infrastructure itself is no longer deployed from this repo. The source of truth for the shared cluster logging stack is the generic `logging/` module in the separate `k8s_study` repo.
+The default model is:
 
-Use this directory for:
+1. the API and scraper write structured JSON to stdout
+2. Fluent Bit tails Kubernetes container logs
+3. Fluent Bit filters to CSearch workloads
+4. Fluent Bit ships those records either:
+   - to the tiny in-cluster HTTP collector, or
+   - directly to S3
 
-- CSearch-specific Grafana dashboards
-- saved LogQL queries and operator notes
-- assumptions about the structured log fields emitted by the API and scraper
+Optional Grafana and Loki dashboards are also stored here, but they are not the default deploy path from this repo.
 
-## Prerequisite
+## What This Directory Owns
 
-Install the shared logging stack first from the `k8s_study` repo:
+| File or directory | Purpose |
+| --- | --- |
+| `fluent-bit-config.yaml` | Fluent Bit config for HTTP shipping |
+| `fluent-bit-config-s3.yaml` | Fluent Bit config for direct S3 output |
+| `fluent-bit-daemonset.yaml` | Fluent Bit DaemonSet |
+| `fluent-bit-rbac.yaml` | RBAC for the DaemonSet |
+| `collector-deployment.yaml` | Tiny log collector deployment |
+| `collector-service.yaml` | Tiny log collector service |
+| `dashboards/` | Optional Grafana dashboards for API and scraper logs |
 
-- Loki
-- Fluent Bit
-- the Grafana instance from `kube-prometheus-stack`
+## Deploy Modes
 
-This repo assumes that stack is already available and that the `monitoring-stack` Grafana instance has a Loki datasource provisioned.
+### Default: tiny in-cluster collector
 
-## CSearch log assumptions
+`deploy.sh` uses this path when `ENABLE_TINY_LOG_COLLECTOR=true`.
 
-The dashboards in `dashboards/` assume Fluent Bit emits these Loki labels:
+Behavior:
 
-- `namespace`
-- `pod`
-- `container`
-- `app`
+- deploys `csearch-log-collector`
+- renders `fluent-bit-config.yaml`
+- points Fluent Bit at `csearch-log-collector:8080/ingest`
+- writes newline-delimited JSON files to the host path configured by `LOG_COLLECTOR_HOSTPATH`
 
-For CSearch, the important app values are:
+Default output location:
 
-- `csearch-api`
-- `csearch-updater`
+- `/root/logs/csearch/csearch/YYYY-MM-DD.ndjson`
 
-The dashboards also assume the application log body remains structured JSON.
+### Direct S3 output
 
-### API log lines used by the dashboards
+`deploy.sh` prefers this path when `LOG_S3_BUCKET` is set.
 
-- `msg="request completed"` with:
-  - `route`
-  - `responseTime`
-  - `statusCode`
-  - `cache`
-- `msg="search executed"` with:
-  - `query`
-  - `table`
-  - `filter`
-  - `resultCount`
+Behavior:
 
-### Scraper log lines used by the dashboards
+- renders `fluent-bit-config-s3.yaml`
+- configures Fluent Bit's native `s3` output
+- optionally creates the `csearch-fluent-bit-aws` secret when static AWS credentials are provided
 
-- `msg="scraper run complete"` with:
-  - `bills_processed`
-  - `bills_skipped`
-  - `bills_failed`
-  - `votes_processed`
-  - `votes_skipped`
-  - `votes_failed`
-  - `duration_s`
+Important detail:
 
-## Import or provision the dashboards
+- the S3 path is the primary shipping path in this mode
+- the tiny collector can still exist, but the DaemonSet will use the S3 config
 
-1. Open Grafana from the shared `kube-prometheus-stack` install.
-2. Go to Dashboards, then Import.
-3. Import:
-   - `dashboards/csearch-api-loki.json`
-   - `dashboards/csearch-scraper-loki.json`
-4. Select the existing `Loki` datasource.
+### Fallback generic HTTP shipping
 
-If you provision these dashboards from Kubernetes `ConfigMap`s instead of importing them by hand:
+If `LOG_S3_BUCKET` is unset and `LOG_SHIP_HTTP_HOST` is set, `deploy.sh` renders the HTTP shipping config with those explicit destination settings.
 
-- keep the `grafana_dashboard=1` label on each `ConfigMap`
-- keep the dashboard JSON pinned to the explicit datasource name `Loki`
-- do not use `${DS_LOKI}` placeholders, because those are import-time inputs and will not resolve reliably for sidecar-provisioned dashboards
+## What Fluent Bit Ships
 
-If you are accessing Grafana locally, the expected port-forward is:
+The current config intentionally stays narrow:
+
+- it tails `/var/log/containers/*.log`
+- it enriches records with Kubernetes metadata
+- it only keeps workloads whose `app.kubernetes.io/name` is:
+  - `csearch-api`
+  - `csearch-updater`
+
+It does not read application files directly from `backend/scraper/congress/data` or other host paths.
+
+## Environment Variables
+
+These variables control the logging deploy path:
+
+| Variable | Meaning |
+| --- | --- |
+| `ENABLE_TINY_LOG_COLLECTOR` | enables the tiny collector path, defaults to `true` in `.env.prod.example` |
+| `LOG_COLLECTOR_HOSTPATH` | host path used by the tiny collector, defaults to `/root/logs` |
+| `LOG_S3_BUCKET` | enables direct S3 output when set |
+| `LOG_S3_REGION` | S3 region for Fluent Bit |
+| `LOG_S3_TOTAL_FILE_SIZE` | target file size before upload |
+| `LOG_S3_UPLOAD_TIMEOUT` | upload timeout for Fluent Bit's S3 output |
+| `LOG_S3_USE_PUT_OBJECT` | Fluent Bit S3 output toggle |
+| `LOG_S3_STORE_DIR_LIMIT_SIZE` | local Fluent Bit buffer limit for S3 uploads |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` | optional static AWS credentials for Fluent Bit |
+| `LOG_SHIP_HTTP_HOST` / `LOG_SHIP_HTTP_PORT` / `LOG_SHIP_HTTP_URI` | fallback HTTP ship destination |
+| `LOG_SHIP_HTTP_TLS` / `LOG_SHIP_HTTP_TLS_VERIFY` | TLS options for the HTTP shipper |
+| `CLUSTER_NAME` | record routing label used in rendered config |
+
+## Useful Commands
+
+Check the DaemonSet:
 
 ```bash
-kubectl port-forward -n monitoring svc/monitoring-stack-grafana 3000:80
+kubectl get daemonset csearch-fluent-bit
+kubectl rollout status daemonset/csearch-fluent-bit
 ```
 
-## Useful LogQL queries
+Check the tiny collector:
 
-API request volume by route:
-
-```logql
-sum by (route) (
-  count_over_time({app="csearch-api"} | json | msg="request completed" [5m])
-)
+```bash
+kubectl get deployment csearch-log-collector
+kubectl logs deployment/csearch-log-collector
 ```
 
-API p95 latency:
+Inspect API and scraper logs directly:
 
-```logql
-quantile_over_time(
-  0.95,
-  {app="csearch-api"} | json | msg="request completed" | unwrap responseTime [5m]
-)
+```bash
+kubectl logs -l app.kubernetes.io/name=csearch-api --since=1h | jq .
+kubectl logs -l app.kubernetes.io/name=csearch-updater --since=24h | jq 'select(.msg == "scraper run complete")'
 ```
 
-API cache hit rate:
+## Optional Grafana Dashboards
 
-```logql
-100 *
-sum(count_over_time({app="csearch-api"} | json | msg="request completed" | cache="HIT" [5m]))
-/
-sum(count_over_time({app="csearch-api"} | json | msg="request completed" [5m]))
-```
+The dashboards in `dashboards/` are useful if you already have Grafana and Loki somewhere else.
 
-Scraper run summaries:
+They assume:
 
-```logql
-{app="csearch-updater"} | json | msg="scraper run complete"
-```
+- a datasource named `Loki`
+- labels such as `namespace`, `pod`, `container`, and `app`
+- JSON log bodies from the API and scraper
 
-Scraper duration trend:
+Important detail:
 
-```logql
-avg_over_time(
-  {app="csearch-updater"} | json | msg="scraper run complete" | unwrap duration_s [24h]
-)
-```
+- this repo does not currently deploy Grafana or Loki for you
+- treat the dashboards as optional assets, not as the primary logging path

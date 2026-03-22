@@ -10,7 +10,7 @@ This monorepo contains three active projects that together form the CSearch cong
 | `backend/api/` | Node.js (Fastify) | REST API — serves bill and vote data from Postgres to the frontend |
 | `frontend/` | Nuxt 4 (Vue 3) | Static frontend — deployed to S3/CloudFront at csearch.org |
 
-Supporting infrastructure lives in `k8s/` (Kubernetes manifests), `docker-compose.yml` (local dev stack), and `deploy.sh` (one-command cluster deployment).
+Supporting infrastructure lives in `argo/` (Argo CD applications), `k8s/` (Kubernetes manifests), and the remaining legacy scripts such as `deploy.sh`.
 
 ---
 
@@ -116,10 +116,10 @@ kubectl rollout status deployment/csearch-api
 kubectl apply -f k8s/api/deployment.yaml
 ```
 
-### Local dev
+### Direct local run
 ```bash
-docker-compose up postgres api
-# API at http://localhost:3000
+cd backend/api
+POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 npm run dev
 ```
 
 ---
@@ -127,7 +127,7 @@ docker-compose up postgres api
 ## Project 3: frontend
 
 ### What it does
-Nuxt 4 static site (SSG). Production builds are generated with `nuxt generate`, synced to S3, and served via CloudFront. The dev frontend for the `mars` k3s cluster runs as an nginx container that serves the generated Nuxt output and injects its API origin at runtime.
+Nuxt 4 static site (SSG). Production builds are generated with `nuxt generate`, synced to S3, and served via CloudFront. The cluster-hosted frontend path uses an nginx container that serves the generated Nuxt output and injects its API origin at runtime.
 
 ### Key files
 - `frontend/pages/bills/[category]/index.vue` — bill list with search, sort toggle, and 100-row pagination
@@ -154,26 +154,26 @@ bash deploy.sh
 4. Syncs `.output/public` to S3
 5. Invalidates CloudFront
 
-### Dev deploy (`mars` k3s)
+### Argo-managed cluster deploys
+
+The default Kubernetes deployment path now centers on Argo CD:
+
+- `argo/applications/csearch-netcup-db.yaml` syncs `k8s/netcup-db/`
+- `argo/applications/csearch-netcup-core.yaml` syncs `k8s/netcup-core/`
+- `argo/applications/csearch-netcup-scraper.yaml` syncs `k8s/netcup-scraper/`
+- `argo/applications/csearch-netcup-test-frontend.yaml` syncs `k8s/netcup-test-frontend/`
+
+The existing workflow at `.github/workflows/mars-images.yml` still automates image builds and tag updates for the frontend-oriented path already wired in CI, but Argo itself is now the default deployment mechanism documented in this repo.
+
+If you need to build the nginx frontend image manually:
+
 ```bash
 source .env.prod
-docker buildx build --platform linux/amd64 --push \
-  -t "$REGISTRY/csearch-api:redis" \
-  backend/api
-
 docker buildx build --platform linux/amd64 --push \
   -t "$REGISTRY/csearch-frontend:latest" \
   -f frontend/Dockerfile.nginx \
   frontend
-
-kubectl --context mars apply -f k8s/dev/api.yaml
-kubectl --context mars apply -f k8s/frontend/mars-deployment.yaml
-kubectl --context mars apply -f k8s/frontend/dev-service.yaml
 ```
-
-The `mars` stack uses `k8s/dev/api.yaml` for the dev API and Redis pair. That manifest points the API at the in-cluster `postgres` service, configures `REDIS_URL=redis://redis-dev:6379`, and currently pins the API image to `registry.s8njee.com/csearch-api:redis`.
-
-The frontend `mars` deployment runs the nginx container and sets `NUXT_API_SERVER=http://api-dev` in the manifest, so the same image can be reused without baking the dev API target into the build.
 
 ### Local dev
 ```bash
@@ -184,24 +184,10 @@ NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 ### Notes
 - Production deploy is the S3/CloudFront path, not a Kubernetes frontend deployment
 - The default production API origin is `https://api.csearch.org`
-- The `mars` dev deployment is the Kubernetes nginx container path
-- The `mars` API cache now uses Redis via the `redis-dev` in-cluster service
+- The default Argo-managed cluster apps are `csearch-netcup-db`, `csearch-netcup-core`, `csearch-netcup-scraper`, and `csearch-netcup-test-frontend`
 - Dynamic route segments use Nuxt bracket syntax (`[category]`, `[congress]`, `[number]`) — required by the framework
 - CloudFront distribution IDs are stored in `.env.prod` (`CF_DIST_CSEARCH`, `CF_DIST_CONGRESS`)
 - Bill list fetches 500 rows from the API and paginates 100 at a time client-side
-
----
-
-## Local Dev Stack
-
-Runs postgres, API, and frontend together:
-
-```bash
-docker-compose up --build
-# Frontend: http://localhost:8080
-# API: http://localhost:3000 (proxied via nginx at /api)
-# Postgres: localhost:5433
-```
 
 ---
 
@@ -215,23 +201,27 @@ docker-compose up --build
 ### k8s manifest structure
 ```
 k8s/
-├── api/          — Deployment, Service, Ingress, cert-manager issuers
-├── db/           — Dockerfile (postgres:15 + schema.sql), StatefulSet, Service, ConfigMap/Secret
-├── scraper/      — CronJob, PVC for congress data
+├── netcup-db/             — Default Argo-managed Postgres manifests
+├── netcup-core/           — Default Argo-managed API, Redis, and ingress
+├── netcup-scraper/        — Default Argo-managed scraper CronJob
+├── netcup-test-frontend/  — Default Argo-managed test frontend
 └── registry-pull-secret.yaml
 ```
 
-### Full cluster deploy
-```bash
-# deploy.sh sources .env.prod, uses envsubst for secrets, applies in order:
-# 1. db config/secret → statefulset → service
-# 2. api deployment (with envsubst)
-# 3. scraper pvc → cronjob
-bash deploy.sh
+### Argo applications
+```text
+argo/applications/
+├── csearch-netcup-db.yaml
+├── csearch-netcup-core.yaml
+├── csearch-netcup-scraper.yaml
+└── csearch-netcup-test-frontend.yaml
 ```
 
 ### Useful kubectl commands
 ```bash
+# Inspect Argo applications
+kubectl --context mars get applications -n argocd
+
 # Check running pods
 kubectl get pods
 
@@ -240,10 +230,4 @@ kubectl logs -f job/<job-name>
 
 # Trigger a manual updater run
 kubectl create job csearch-updater-manual-$(date +%s) --from=cronjob/csearch-updater
-
-# Restart API after image push
-kubectl rollout restart deployment/csearch-api
-
-# Apply all k8s manifests (deploy.sh handles ordering and envsubst)
-bash deploy.sh
 ```
