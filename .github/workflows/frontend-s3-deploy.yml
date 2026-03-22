@@ -7,6 +7,10 @@ on:
     paths:
       - ".github/workflows/frontend-s3-deploy.yml"
       - "frontend/**"
+  schedule:
+    # GitHub Actions cron uses UTC. This is 1:00 AM America/Chicago during daylight time
+    # and 12:00 AM during standard time; GitHub Actions cannot natively track DST.
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:
