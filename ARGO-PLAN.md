@@ -125,7 +125,7 @@ k8s/
         └── scraper/
             └── kustomization.yaml
 
-argocd/
+argo/
 └── applications/
     ├── csearch-mars-core.yaml
     └── csearch-mars-scraper.yaml
@@ -285,7 +285,7 @@ kubectl --context mars -n argocd get secret argocd-initial-admin-secret \
 
 ### 9.1 Core app
 
-Create [`argocd/applications/csearch-mars-core.yaml`](/Users/sanjee/Documents/projects/csearch-updater-root/argocd/applications/csearch-mars-core.yaml):
+Create [`argo/applications/csearch-mars-core.yaml`](/Users/sanjee/Documents/projects/csearch-updater-root/argo/applications/csearch-mars-core.yaml):
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -310,7 +310,7 @@ spec:
 
 ### 9.2 Scraper app
 
-Create [`argocd/applications/csearch-mars-scraper.yaml`](/Users/sanjee/Documents/projects/csearch-updater-root/argocd/applications/csearch-mars-scraper.yaml):
+Create [`argo/applications/csearch-mars-scraper.yaml`](/Users/sanjee/Documents/projects/csearch-updater-root/argo/applications/csearch-mars-scraper.yaml):
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -336,7 +336,7 @@ spec:
 Apply them:
 
 ```bash
-kubectl --context mars apply -f argocd/applications/csearch-mars-core.yaml
+kubectl --context mars apply -f argo/applications/csearch-mars-core.yaml
 ```
 
 Recommended order:
