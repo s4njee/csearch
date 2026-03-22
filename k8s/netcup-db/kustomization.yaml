@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - postgres-config.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
+
+configMapGenerator:
+  - name: postgres-schema
+    files:
+      - 001-schema.sql
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+images:
+  - name: registry.s8njee.com/csearch-postgres
+    newName: registry.s8njee.com/csearch-postgres
+    newTag: latest
