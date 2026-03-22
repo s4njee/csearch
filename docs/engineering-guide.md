@@ -1,230 +1,215 @@
 # Engineering Guide
 
-This document is the practical onboarding guide for engineers working in CSearch.
-
-Use it to answer two questions quickly:
+This is the practical onboarding guide for day-to-day work in CSearch. It answers three questions:
 
 1. Where should I start for the change I need to make?
-2. How does this repo actually behave in development and production?
+2. Which file is the source of truth?
+3. What are the common patterns and pitfalls?
+
+For deployment specifics, see [`deployment.md`](deployment.md). For caching details, see [`caching.md`](caching.md).
 
 ## Mental Model
 
-Think about the system as four layers with clear ownership:
+Think about the platform as four product layers plus two operational layers:
 
 | Layer | Owns | Main code |
 | --- | --- | --- |
-| Ingest | Downloading and normalizing source data | `backend/scraper/` |
-| Storage | Canonical bill and vote records | PostgreSQL initialized from `backend/scraper/schema.sql` |
-| Query | API shapes, caching, and search behavior | `backend/api/` |
-| Presentation | User-facing pages and browser/runtime API targeting | `frontend/` |
+| Ingest | downloading and normalizing source data | `backend/scraper/` |
+| Storage | canonical bill and vote records | Postgres initialized from `backend/scraper/schema.sql` |
+| Query | API contracts, search, and caching | `backend/api/` |
+| Presentation | pages, UX, and runtime API targeting | `frontend/` |
+| Deploy | Argo applications and synced Kubernetes manifests | `argo/`, `k8s/netcup-*` |
+| Observability | structured logs and shipping configuration | `k8s/logging/` |
 
-That ownership model helps when you decide where a bug really lives:
+Use this ownership model to localize bugs quickly:
 
-- If the data is missing from Postgres, start in the scraper.
-- If Postgres has the data but the frontend does not, start in the API contract.
-- If the API returns the right data but the page is wrong, start in the frontend.
+- Data missing from Postgres → start in the scraper
+- Postgres has the data but API is wrong → start in the route or query layer
+- API is right but page is wrong → start in the frontend
+- Code is right but behavior differs between environments → start in the Argo app or synced manifests
 
-## What To Read Before Editing
-
-### If you are changing ingest logic
-
-Read:
-
-1. [`backend/scraper/README.md`](../backend/scraper/README.md)
-2. [`ARCHITECTURE.md`](../ARCHITECTURE.md)
-3. The relevant parser file:
-   - `backend/scraper/bills.go`
-   - `backend/scraper/votes.go`
-
-### If you are changing API behavior
-
-Read:
-
-1. [`backend/api/README.md`](../backend/api/README.md)
-2. The relevant route in `backend/api/routes/`
-3. `backend/api/controllers/db.js`
-
-### If you are changing UI behavior
-
-Read:
-
-1. [`frontend/README.md`](../frontend/README.md)
-2. `frontend/composables/useCongressApi.ts`
-3. The page or component you plan to touch
-
-### If you are changing deployment or operations
-
-Read:
-
-1. [`ARCHITECTURE.md`](../ARCHITECTURE.md)
-2. `deploy.sh`
-3. The relevant manifest in `k8s/`
-
-## Common Tasks And Where To Work
-
-| Goal | Usually edit these places |
-| --- | --- |
-| Add a new bill field to an existing page | `backend/scraper/bills.go`, `backend/scraper/query.sql`, `backend/api/routes/*.js`, `frontend/types/congress.ts`, relevant Vue page/component |
-| Add a new vote-derived metric | `backend/scraper/votes.go`, possibly `backend/scraper/schema.sql`, then API route or explore query, then frontend |
-| Add an explore query | `backend/scraper/explore.sql`, `backend/api/services/exploreQueries.js`, `frontend/pages/explore.vue` |
-| Fix stale API responses | `backend/api/utils/cache.js`, the relevant route, the Redis config, and any flow that clears or refreshes cache |
-| Fix the wrong API target in a deployed frontend | `frontend/composables/useApiBase.ts`, `frontend/docker-entrypoint.sh`, or the relevant manifest / deploy script |
-| Change a production schedule | `k8s/scraper/cronjob.yaml` or `k8s/frontend/deploy-cronjob.yaml` |
-
-## Important Sources Of Truth
-
-These are the files engineers most often assume are duplicated when they are not:
+## Source-of-Truth Map
 
 | Concern | Source of truth |
 | --- | --- |
 | Database schema bootstrap | `backend/scraper/schema.sql` |
-| Generated Go query code | `backend/scraper/query.sql` and `backend/scraper/sqlc.yaml` |
+| Generated Go query input | `backend/scraper/query.sql` |
 | Explore SQL | `backend/scraper/explore.sql` |
-| Live Kubernetes manifests | `k8s/` at the repo root |
-| Frontend production deploy flow | `frontend/deploy.sh` |
-| Full platform deploy flow | `deploy.sh` |
-| Shared logging infrastructure | External `k8s_study/logging/` stack plus CSearch dashboards in `k8s/logging/` |
+| API cache implementation | `backend/api/utils/cache.js` |
+| Default deployment entry points | `argo/applications/` |
+| Default synced manifests | `k8s/netcup-db/`, `k8s/netcup-core/`, `k8s/netcup-scraper/`, `k8s/netcup-test-frontend/` |
+| Logging shipper and collector config | `k8s/logging/` |
 
-## Local Development Workflows
+**Important:** `backend/api/sql/explore.sql` is a copied build artifact, not the source of truth. Changes made only there will be overwritten.
 
-### Full stack
+## What To Read Before Editing
+
+### Ingest and schema work
+
+1. [`backend/scraper/README.md`](../backend/scraper/README.md)
+2. [`ARCHITECTURE.md`](../ARCHITECTURE.md)
+3. The relevant parser or SQL file: `bills.go`, `votes.go`, `query.sql`, `schema.sql`
+
+### API behavior
+
+1. [`backend/api/README.md`](../backend/api/README.md)
+2. The relevant file in `backend/api/routes/`
+3. `backend/api/controllers/db.js`
+4. `backend/api/utils/cache.js` if the route is cached
+
+### Frontend behavior
+
+1. [`frontend/README.md`](../frontend/README.md)
+2. `frontend/composables/useCongressApi.ts`
+3. `frontend/composables/useApiBase.ts`
+4. The page or component you plan to touch
+
+### Deployment and operations
+
+1. [`deployment.md`](deployment.md)
+2. [`ARCHITECTURE.md`](../ARCHITECTURE.md)
+3. The relevant Argo application under `argo/applications/`
+4. The synced manifest root under `k8s/netcup-*`
+
+## Common Tasks
+
+| Goal | Usually edit these files |
+| --- | --- |
+| Add a new bill field to a page | `backend/scraper/bills.go`, `backend/scraper/query.sql`, relevant API route, `frontend/types/congress.ts`, relevant page |
+| Add a new vote-derived metric | `backend/scraper/votes.go`, maybe `schema.sql`, then API route or explore query, then frontend |
+| Add or change an explore query | `backend/scraper/explore.sql`, `backend/api/services/exploreQueries.js`, `frontend/pages/explore.vue` |
+| Fix stale API responses | `backend/api/utils/cache.js`, the cached route, Redis config, scraper invalidation flow |
+| Fix the wrong API target in a deployed frontend | `frontend/composables/useApiBase.ts`, `frontend/docker-entrypoint.sh`, or the manifest that sets `NUXT_API_SERVER` |
+| Change the default API or Redis deployment | `argo/applications/csearch-netcup-core.yaml`, `k8s/netcup-core/` |
+| Change the default database deployment | `argo/applications/csearch-netcup-db.yaml`, `k8s/netcup-db/` |
+| Change the default scraper deployment | `argo/applications/csearch-netcup-scraper.yaml`, `k8s/netcup-scraper/` |
+| Change the test frontend deployment | `argo/applications/csearch-netcup-test-frontend.yaml`, `k8s/netcup-test-frontend/` |
+
+## Direct Development
+
+### API
 
 ```bash
-docker-compose up --build
-```
-
-Use this when:
-
-- you need the system running end to end
-- you want the least amount of setup
-- you are validating how the frontend, API, and database work together
-
-### API-focused work
-
-```bash
-docker-compose up postgres api
 cd backend/api
+npm install
 npm test
+POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 npm run dev
 ```
 
-Use this when:
-
-- you are changing route logic or query behavior
-- you do not need the frontend running
-
-### Frontend-focused work
+### Frontend
 
 ```bash
-docker-compose up postgres api
 cd frontend
 npm install
 NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 ```
 
-Use this when:
+### Scraper
 
-- you want hot reload
-- you are changing page layout or UI behavior
+```bash
+cd backend/scraper
+go test ./...
+go run .
+```
 
-### Scraper-focused work
+The scraper requires `CONGRESSDIR` and database env vars. See [`backend/scraper/README.md`](../backend/scraper/README.md) for the expected runtime layout and full variable list.
 
-Use the compose stack first unless you need to debug the scraper directly. The scraper expects `CONGRESSDIR` to point at a runtime root that contains:
+## Generated and Vendored Files
 
-- `congress/` for the vendored Python scraper and its downloaded raw data
-- `data/` for hash caches
+These files should not be edited by hand:
 
-See [`backend/scraper/README.md`](../backend/scraper/README.md) for the direct run setup.
+- `backend/scraper/csearch/*.go` — generated by `sqlc` from `query.sql`. Regenerate instead of editing.
+- `backend/api/sql/explore.sql` — copied from `backend/scraper/explore.sql` at build time.
+- `backend/scraper/congress/` — vendored Python scraper. Change only when fetch behavior or upstream format changes.
+
+## Logging Overview
+
+The API and scraper both emit structured JSON to stdout. No special log libraries or agents are needed beyond what is already configured.
+
+**API logging** (Pino via Fastify):
+
+- Per-request completion logs with latency and cache status
+- Request-scoped error logs
+- Search query logging, admin audit logging, and slow-query warnings
+- Config in `backend/api/server.js` and `backend/api/app.js`
+
+**Scraper logging** (`log/slog`):
+
+- Per-bill and per-vote ingest logs
+- Run summary with processed/skipped/failed counters and duration
+- Python subprocess output re-emitted as structured logs
+- Config in `backend/scraper/main.go`
+
+**Log shipping** (Fluent Bit):
+
+- Tails `/var/log/containers/*.log` and filters to CSearch workloads
+- Ships to the in-cluster collector or directly to S3
+- Config and manifests in `k8s/logging/`
+- See [`k8s/logging/README.md`](../k8s/logging/README.md) for shipping modes and environment variables
 
 ## Debugging Playbooks
 
 ### Data is missing from the site
 
-Work from left to right:
+Work left to right through the pipeline:
 
-1. Confirm the scraper downloaded source files under the congress data directory
+1. Confirm the scraper downloaded the expected raw files
 2. Confirm the normalized data exists in Postgres
-3. Confirm the API route returns the data
+3. Confirm the API route returns that data
 4. Confirm the frontend calls the expected endpoint
+5. If the public site is stale, confirm the static publish ran after the data changed
 
 ### Data exists in Postgres but not in the API
 
-Check:
-
-- the route file in `backend/api/routes/`
-- any per-route cache behavior
-- any derived query shape in `backend/api/services/exploreQueries.js`
+Check the route file in `backend/api/routes/`, any route-level cache behavior, and any response shaping in `services/` or route-specific SQL.
 
 ### The frontend is talking to the wrong API
 
-Remember the API base resolution order:
+The API base resolution order is:
 
 1. `window.__CSEARCH_RUNTIME_CONFIG__.API_SERVER` from `runtime-config.js`
 2. Nuxt public runtime config
 3. The default value from `frontend/nuxt.config.ts`
 
-If the wrong API is used in a deployed nginx container, the fix is often in:
-
-- `frontend/docker-entrypoint.sh`
-- the Kubernetes manifest that sets `NUXT_API_SERVER`
+If an nginx container uses the wrong API, the fix is usually in `frontend/docker-entrypoint.sh`, the manifest that sets `NUXT_API_SERVER`, or the environment the container started with.
 
 ### The scraper says nothing changed when you expected updates
 
-Check the hash caches. The scraper skips files whose SHA-256 digest matches the last successful ingest. Relevant files are stored under the runtime `data/` directory, not inside the API or frontend.
+Check whether the source files actually changed, whether the file hash caches already contain the new digests, and whether `RUN_BILLS` or `RUN_VOTES` disabled part of the run.
 
-### You want logs shipped off-cluster
+### Cache invalidation looks wrong
 
-This repo still includes the older Fluent Bit HTTP shipper in `k8s/logging/`.
+Check whether all API pods point at the same `REDIS_URL`, whether Redis is reachable, whether the scraper actually wrote any new rows before invalidation, and whether the route you are testing is a cached route. See [`caching.md`](caching.md) for the full cache behavior model.
 
-If log shipping is not active, verify in this order:
+### A change to explore SQL does not show up after deploy
 
-1. `LOG_SHIP_HTTP_HOST`, `LOG_SHIP_HTTP_PORT`, and `LOG_SHIP_HTTP_URI` are set in `.env.prod`
-2. `bash deploy.sh` applied `k8s/logging/fluent-bit-config.yaml`, `k8s/logging/fluent-bit-rbac.yaml`, and `k8s/logging/fluent-bit-daemonset.yaml`
-3. `daemonset/csearch-fluent-bit` is running
-4. the API and scraper are still emitting JSON log lines to stdout
+The change was likely made only in `backend/api/sql/explore.sql`. Update `backend/scraper/explore.sql` instead, then rebuild or redeploy the API.
+
+### Logging looks incomplete
+
+Check that workload labels include `app.kubernetes.io/name`, that the Fluent Bit grep filter still matches, that the chosen logging mode has its required env vars set, and that `/root/logs` is writable if using the tiny collector path.
 
 ## Things That Commonly Confuse New Contributors
 
-### There are two Kubernetes areas in the repo
+**Old manifests in the repo** — Use `argo/applications/` and the `k8s/netcup-*` directories for the default deployment path. Other manifest paths are reference material.
 
-Use the top-level `k8s/` directory for the current platform. The manifests under `backend/api/k8s/` are older service-local artifacts and examples.
+**Multiple frontend deployment shapes** — There are three: local `nuxt dev`, static S3/CloudFront publish, and nginx container in Kubernetes. They resolve the API base URL differently.
 
-### The frontend has multiple deployment modes
+**The scraper is both Go and Python** — Python handles source acquisition, Go handles normalization and database writes. If raw files are missing, start in the Python side. If normalized data is wrong, start in Go.
 
-There are four frontend execution modes you may encounter:
+## Data Coverage
 
-1. Local `nuxt dev`
-2. Production static generation to S3 + CloudFront
-3. nginx container deployment for cluster-based environments like `mars`
-4. Deploy-container execution for scheduled static publishing
+| Data type | Range |
+| --- | --- |
+| Bills | 93rd Congress through current |
+| Votes | 101st Congress through current |
 
-The correct place to edit depends on which mode you are changing.
+The current congress number is computed dynamically from the current year: `(year - 1789) / 2 + 1`.
 
-For `mars`, the frontend and dev API are split across different manifests:
+## First-Day Checklist
 
-- `k8s/frontend/mars-deployment.yaml` sets `NUXT_API_SERVER=http://api-dev`
-- `k8s/dev/api.yaml` defines the `api-dev` deployment and its `redis-dev` side service
-- the `mars` dev API currently points at the shared `postgres` service and uses the `csearch-api:redis` image tag
-
-### The scraper is both Go and Python
-
-That is intentional:
-
-- Python handles source acquisition through the vendored `congress` project
-- Go handles normalization, deduplication, and database writes
-
-If the problem is with downloaded source files, you may need the vendored Python code. If the problem is with normalized records in Postgres, you almost certainly need the Go code.
-
-### Some files are generated or copied
-
-- `backend/scraper/csearch/*.go` is generated by `sqlc`
-- `backend/api/sql/explore.sql` is copied from `backend/scraper/explore.sql` during the full deploy flow
-
-If you change the generated or copied artifact directly, your change may be overwritten later.
-
-## Suggested First-Day Checklist
-
-1. Run `docker-compose up --build`
-2. Open the frontend, API, and database locally
-3. Read the README for the area you expect to change most often
-4. Pick one user-facing page and trace the data flow all the way back to the scraper
-5. Read `deploy.sh` once so the production deploy path is not a black box later
+1. Read [`README.md`](../README.md)
+2. Read the README for the area you expect to touch most
+3. Trace one page from UI → API → Postgres → scraper
+4. Inspect the default Argo applications in `argo/applications/`
+5. Read [`deployment.md`](deployment.md) so the release path is not a black box later

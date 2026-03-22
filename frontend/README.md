@@ -6,22 +6,18 @@ Its job is to:
 
 - render bill, vote, committee, member, and explore pages
 - fetch data from the CSearch API
-- support both static production builds and nginx-based cluster deployments
+- support both local development and Kubernetes-hosted or static-publish deployment paths
 
-## What Makes This Frontend Slightly Unusual
+## Runtime Modes
 
-This project has multiple runtime modes, and they do not all resolve the API base URL the same way.
-
-The frontend can run as:
+This frontend has multiple runtime shapes, and they do not all resolve the API base URL the same way.
 
 | Mode | Main use | Main files |
 | --- | --- | --- |
-| Local `nuxt dev` | development | `package.json`, `nuxt.config.ts` |
-| Production static site | S3 + CloudFront deploy | `deploy.sh` |
-| nginx container | cluster-hosted frontend deployments | `Dockerfile.nginx`, `docker-entrypoint.sh`, `k8s/frontend/*.yaml` |
-| Deploy container | scheduled static publish job | `Dockerfile.deploy`, `deploy-container.sh`, `k8s/frontend/deploy-cronjob.yaml` |
-
-If you are debugging “wrong API target” issues, always identify which of those modes you are in first.
+| Local `nuxt dev` | development with hot reload | `package.json`, `nuxt.config.ts` |
+| nginx container | cluster-hosted frontend deployments | `Dockerfile.nginx`, `docker-entrypoint.sh`, `k8s/netcup-test-frontend/` |
+| Static site publish | public site publishing | `deploy.sh` |
+| Deploy container | scheduled static publishing job | `Dockerfile.deploy`, `deploy-container.sh`, `k8s/frontend/deploy-cronjob.yaml` |
 
 ## API Base Resolution
 
@@ -38,176 +34,36 @@ Relevant files:
 - `public/runtime-config.js`
 - `docker-entrypoint.sh`
 
-This matters because:
-
-- local `nuxt dev` often uses a build-time or dev-time value
-- nginx container deployments inject the runtime value at container startup
+This matters because nginx container deployments inject the runtime value at container startup.
 
 ## Key Files
 
 | Path | Purpose |
 | --- | --- |
-| `pages/` | Route-level pages |
-| `components/` | Shared Vue UI pieces |
-| `composables/useCongressApi.ts` | API client wrapper used by pages and components |
-| `composables/useApiBase.ts` | Resolves the API base URL |
-| `types/congress.ts` | Shared frontend data types and bill constants |
-| `nuxt.config.ts` | Nuxt configuration, route rules, prerender targets, default API server |
-| `assets/css/main.css` | Global styles |
-| `deploy.sh` | Production S3 + CloudFront deploy |
+| `pages/` | route-level pages |
+| `components/` | shared Vue UI pieces |
+| `composables/useCongressApi.ts` | frontend API client wrapper |
+| `composables/useApiBase.ts` | resolves the active API base URL |
+| `types/congress.ts` | shared TypeScript interfaces and bill constants |
+| `nuxt.config.ts` | Nuxt config, route rules, prerender targets, default API server |
+| `assets/css/main.css` | global styles |
+| `deploy.sh` | static publish flow for the public site |
 | `Dockerfile.nginx` | nginx image for cluster-hosted generated output |
-| `Dockerfile.deploy` | deploy-container image for scheduled publish jobs |
+| `Dockerfile.deploy` | deploy-container image for scheduled publishing |
 
-## Most Used Files
+## Common Edit Points
 
-These are the files engineers usually touch when making day-to-day frontend changes.
-
-### `pages/bills/[category]/index.vue`
-
-What it does:
-
-- renders the main bill listing experience
-- handles bill search, sorting, and pagination behavior
-
-Edit this when:
-
-- list-page UX changes
-- bill search interaction changes
-- list-level data presentation changes
-
-### `pages/bills/[category]/[congress]/[number].vue`
-
-What it does:
-
-- renders the bill detail page
-- consumes the bill detail API payload and related sub-sections
-
-Edit this when:
-
-- the bill detail page layout changes
-- a new bill field needs to appear on the page
-- bill-related sub-sections like actions or cosponsors change
-
-### `pages/votes/index.vue`
-
-What it does:
-
-- renders the vote browsing and vote search entry point
-
-Edit this when:
-
-- vote list filtering changes
-- vote search UI changes
-- vote summary presentation changes
-
-### `pages/explore.vue`
-
-What it does:
-
-- renders the analytical explore interface
-- drives query selection and result display for explore SQL queries
-
-Edit this when:
-
-- the explore UI changes
-- new query controls or result presentations are needed
-
-### `composables/useCongressApi.ts`
-
-What it does:
-
-- provides the frontend’s typed wrapper around API calls
-- centralizes endpoint path construction
-
-Edit this when:
-
-- the frontend needs a new API method
-- an endpoint path changes
-- request parameter construction changes
-
-### `composables/useApiBase.ts`
-
-What it does:
-
-- resolves the active API base URL at runtime
-- prefers runtime-injected config over the build-time default
-
-Edit this when:
-
-- deployed environments use the wrong API
-- runtime versus build-time API behavior needs to change
-
-### `types/congress.ts`
-
-What it does:
-
-- defines shared TypeScript interfaces and constants used across pages and components
-
-Edit this when:
-
-- API response shapes change
-- new typed frontend data models are needed
-
-### `components/BillsContainer.vue`
-
-What it does:
-
-- holds shared bill-list presentation logic used by list-style pages
-
-Edit this when:
-
-- reusable bill-card or list rendering behavior changes
-- multiple bill-list pages need the same UI update
-
-### `components/VotesContainer.vue`
-
-What it does:
-
-- holds shared vote-list rendering behavior
-
-Edit this when:
-
-- multiple vote views need the same rendering or filtering update
-
-### `nuxt.config.ts`
-
-What it does:
-
-- defines Nuxt runtime config
-- sets the default API server
-- configures route rules and static prerender targets
-
-Edit this when:
-
-- prerendered routes change
-- default API configuration changes
-- dev proxy or global Nuxt behavior changes
-
-### `deploy.sh`
-
-What it does:
-
-- runs the production static-site generation flow
-- syncs the generated output to S3
-- invalidates CloudFront
-
-Edit this when:
-
-- the production publish workflow changes
-- deploy metadata changes
-- the S3 or CloudFront deployment steps change
-
-### `docker-entrypoint.sh`
-
-What it does:
-
-- writes `runtime-config.js` inside the nginx container at startup
-- injects `NUXT_API_SERVER` without rebuilding the image
-
-Edit this when:
-
-- containerized deployments need different runtime API injection behavior
-- the nginx-served frontend points at the wrong API
+| File | Edit this when |
+| --- | --- |
+| `pages/bills/[category]/index.vue` | bill list UX, search, sorting, or pagination changes |
+| `pages/bills/[category]/[congress]/[number].vue` | bill detail layout or bill sub-section changes |
+| `pages/votes/index.vue` | vote list filtering or vote search UI changes |
+| `pages/explore.vue` | explore UI or result presentation changes |
+| `composables/useCongressApi.ts` | the frontend needs a new API method or path |
+| `composables/useApiBase.ts` | deployed environments are using the wrong API |
+| `types/congress.ts` | API response shapes changed |
+| `docker-entrypoint.sh` | nginx container runtime injection needs to change |
+| `nuxt.config.ts` | prerender behavior or default API config changed |
 
 ## Page Map
 
@@ -221,23 +77,9 @@ Edit this when:
 | Members | `pages/members/[bioguide_id].vue` |
 | Explore | `pages/explore.vue` |
 
-## Local Development
+## Direct Development
 
-### Run the frontend with the full local stack
-
-```bash
-docker-compose up --build
-```
-
-In this mode:
-
-- the frontend is served at [http://localhost:8080](http://localhost:8080)
-- `NUXT_API_SERVER=/api`
-- Nuxt proxies `/api/**` to the API container
-
-This is the easiest way to work end to end.
-
-### Run the frontend directly with hot reload
+Run directly with hot reload:
 
 ```bash
 cd frontend
@@ -250,15 +92,49 @@ Use this when:
 - you want the fastest feedback loop
 - the API is already running separately
 
-## Production Deploy
+## Deployment
 
-Run from `frontend/`:
+Argo CD is the default Kubernetes deployment strategy for the frontend-side manifests in this repo.
+
+### Default Argo-managed frontend
+
+Current default frontend app:
+
+- [`argo/applications/csearch-netcup-test-frontend.yaml`](../argo/applications/csearch-netcup-test-frontend.yaml)
+- [`k8s/netcup-test-frontend/kustomization.yaml`](../k8s/netcup-test-frontend/kustomization.yaml)
+
+This path deploys:
+
+- the nginx frontend container
+- the `csearch-frontend-test` service
+- the `test.csearch.org` ingress
+
+Important detail:
+
+- the API origin for nginx deployments comes from `NUXT_API_SERVER` in the Kubernetes manifest, not from the built assets alone
+
+### Build the nginx image manually
+
+Run this from the repo root:
 
 ```bash
+source .env.prod
+docker buildx build --platform linux/amd64 --push \
+  -t "$REGISTRY/csearch-frontend:latest" \
+  -f frontend/Dockerfile.nginx \
+  frontend
+```
+
+### Public static publish
+
+The public site still uses a static publish flow:
+
+```bash
+cd frontend
 bash deploy.sh
 ```
 
-This flow:
+That flow:
 
 1. loads `../.env.prod`
 2. runs `npx nuxt generate`
@@ -266,67 +142,28 @@ This flow:
 4. syncs `.output/public/` to S3
 5. invalidates CloudFront
 
-The production API origin is provided by `NUXT_API_SERVER` from `.env.prod`.
+### Scheduled deploy container
 
-## Cluster-Hosted nginx Deploy
-
-For environments where the frontend is served from a container instead of S3:
-
-```bash
-source ../.env.prod
-docker buildx build --platform linux/amd64 --push \
-  -t "$REGISTRY/csearch-api:redis" \
-  ../backend/api
-
-docker buildx build --platform linux/amd64 --push \
-  -t "$REGISTRY/csearch-frontend:latest" \
-  -f Dockerfile.nginx \
-  .
-
-kubectl --context mars apply -f ../k8s/dev/api.yaml
-kubectl --context mars apply -f ../k8s/frontend/mars-deployment.yaml
-kubectl --context mars apply -f ../k8s/frontend/dev-service.yaml
-```
-
-Important behavior:
-
-- the site is generated during the image build
-- `docker-entrypoint.sh` writes `runtime-config.js` at container startup
-- the manifest sets `NUXT_API_SERVER`, which overrides the build-time default
-- on `mars`, the frontend points to the in-cluster `api-dev` service, not the API load balancer IP
-- on `mars`, `../k8s/dev/api.yaml` deploys both `api-dev` and `redis-dev`, and the API image is currently pinned to `registry.s8njee.com/csearch-api:redis`
-
-## Scheduled Deploy Container
-
-There is a second frontend container image used for automated static publishing:
+There is also a deploy-container image for automated static publishing:
 
 - image build file: `Dockerfile.deploy`
 - runtime script: `deploy-container.sh`
 - CronJob: `../k8s/frontend/deploy-cronjob.yaml`
 
-That container:
-
-1. restarts the API deployment to clear process-local cache
-2. runs `nuxt generate`
-3. publishes the static output to S3
-4. invalidates CloudFront
-
-This is separate from the nginx runtime image used for cluster-hosted page serving.
-
 ## How To Make Common Changes
 
 ### Add a field to a page
 
-1. Confirm the API already returns the field
-2. Update `types/congress.ts` if needed
-3. Update the relevant page or component
-4. Verify the static-generation path still works
+1. confirm the API already returns the field
+2. update `types/congress.ts` if needed
+3. update the relevant page or component
+4. verify the static-generation path still works
 
 ### Add a new page
 
-1. Add the page under `pages/`
-2. Add shared types or API methods if needed
-3. If the page should be pre-rendered in static builds, update `nuxt.config.ts`
+1. add the page under `pages/`
+2. add shared types or API methods if needed
+3. if the page should be pre-rendered in static builds, update `nuxt.config.ts`
 
 ### Change how the frontend talks to the API
 
@@ -336,6 +173,7 @@ Start with:
 - `composables/useCongressApi.ts`
 - `nuxt.config.ts`
 - `docker-entrypoint.sh`
+- the manifest or environment that sets `NUXT_API_SERVER`
 
 ## Troubleshooting
 
@@ -349,8 +187,19 @@ That usually means the runtime API target is different from the build-time API t
 
 ### A page is missing from the generated output
 
-Check `nuxt.config.ts`. Static generation only includes the routes that are crawled or explicitly listed in the prerender config.
+Check `nuxt.config.ts`. Static generation only includes routes that are crawled or explicitly listed in the prerender config.
 
 ### Frontend data looks stale after a scraper run
 
-Remember that the public site updates only after the frontend generation and publish flow runs. Scraper freshness and frontend freshness are related but not identical.
+Remember that scraper freshness and frontend freshness are not the same thing:
+
+- the public site updates only after the static publish flow runs
+- the Argo-managed frontend updates when its image or manifest changes in Git
+
+### The deployed frontend uses the wrong API
+
+Check:
+
+- the value injected into `runtime-config.js`
+- the `NUXT_API_SERVER` value in the relevant manifest or environment
+- the fallback default in `nuxt.config.ts`

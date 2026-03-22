@@ -39,7 +39,7 @@ What is already in place:
   - `backend/scraper/bills.go`
   - `backend/scraper/votes.go`
 - Python subprocess output re-emitted as structured logs in `backend/scraper/runtime.go`
-- shared Loki, Grafana, and Fluent Bit stack now lives in the external `k8s_study/logging` module
+- repo-owned Fluent Bit shipping and tiny-collector assets now live in `k8s/logging/`
 - CSearch-specific dashboard assets now live in:
   - `k8s/logging/README.md`
   - `k8s/logging/dashboards/csearch-api-loki.json`
@@ -126,8 +126,8 @@ Primary files:
 
 Completed items:
 
-- shared Loki, Grafana, and Fluent Bit deployment moved out of this repo
-- CSearch keeps only app-specific dashboards, queries, and log-shape documentation
+- repo-owned Fluent Bit config, DaemonSet, and tiny-collector manifests are in place
+- optional Grafana dashboards are stored alongside those logging assets
 
 Primary files:
 
@@ -253,7 +253,7 @@ These are still good ideas, but they should not block the current workstream:
 - Prometheus and Grafana as the primary observability path
 - OpenTelemetry or distributed tracing
 - self-hosted log database infrastructure
-- Redis migration purely for observability reasons
+- moving more of the manual deploy path under Argo CD purely for observability reasons
 
 ## Open Questions
 

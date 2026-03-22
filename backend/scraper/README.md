@@ -1,13 +1,13 @@
 # Backend Scraper
 
-The scraper is the ingest side of CSearch. It fetches congressional source data, normalizes it, and writes it into Postgres.
+The scraper is the ingest side of CSearch. It fetches raw congressional data, normalizes it, and writes it into Postgres.
 
-This project is a hybrid:
+This project is intentionally hybrid:
 
-- Python handles raw source acquisition through a vendored copy of `unitedstates/congress`
-- Go handles CSearch-specific parsing, deduplication, and database writes
+- Python handles source acquisition through the vendored `unitedstates/congress` project
+- Go handles CSearch-specific parsing, deduplication, hashing, cache invalidation, and database writes
 
-If you need to understand why data is or is not present in Postgres, this is the place to start.
+If data is missing or wrong in Postgres, start here.
 
 ## What This Project Owns
 
@@ -17,7 +17,8 @@ The scraper owns:
 - normalized bill and vote parsing
 - hash-based skip logic for unchanged files
 - schema bootstrap SQL
-- SQL source files used by generated Go query code
+- SQL source used by generated Go query code
+- shared Redis cache invalidation after successful writes
 
 The scraper does not own:
 
@@ -28,15 +29,15 @@ The scraper does not own:
 
 A normal scraper run does the following:
 
-1. Load environment and connect to Postgres
-2. Load the persisted bill and vote hash caches
-3. Run the vendored Python scraper for votes and or bills
-4. Walk the downloaded files for each supported congress
-5. Skip files whose SHA-256 hash has not changed
-6. Parse changed files into normalized bill or vote structures
-7. Upsert rows into Postgres
-8. Clear the shared API Redis cache when new rows were written
-9. Persist the updated hash caches
+1. load config and connect to Postgres
+2. load the persisted bill and vote hash caches
+3. run the vendored Python scraper for bills and or votes
+4. walk the downloaded files for each supported congress
+5. skip files whose SHA-256 hash has not changed
+6. parse changed files into normalized bill or vote structures
+7. upsert rows into Postgres
+8. clear `csearch:*` Redis keys if any rows changed
+9. persist the updated hash caches
 
 ## Data Coverage
 
@@ -69,215 +70,79 @@ Important detail:
 - raw downloaded source files live under `congress/data/...`
 - hash caches live under `data/...`
 
-That separation is easy to miss when debugging local runs.
-
 ## Key Files
 
 | Path | Purpose |
 | --- | --- |
-| `main.go` | Overall run orchestration and feature flags |
-| `runtime.go` | Config loading, DB connection, Python task runner |
-| `bills.go` | Bill parsing and database insert logic |
-| `votes.go` | Vote parsing and database insert logic |
+| `main.go` | run orchestration, feature flags, final run summary |
+| `runtime.go` | config loading, DB connection, Python task runner, Redis invalidation |
+| `bills.go` | bill parsing and DB insert logic |
+| `votes.go` | vote parsing and DB insert logic |
 | `hashes.go` | SHA-256 hash cache storage |
-| `schema.sql` | Database bootstrap schema |
+| `schema.sql` | database bootstrap schema |
 | `query.sql` | SQL source for generated Go query methods |
 | `csearch/*.go` | `sqlc`-generated Go code, do not edit by hand |
-| `explore.sql` | Source of truth for explore queries consumed by the API |
-| `congress/` | Vendored Python scraper code |
+| `explore.sql` | source of truth for API explore queries |
+| `congress/` | vendored Python scraper code |
 
-## Most Used Files
+## Most Common Edit Points
 
-These are the files most engineers touch when making normal ingest or schema changes.
-
-### `main.go`
-
-What it does:
-
-- starts the scraper run
-- reads the `RUN_BILLS` and `RUN_VOTES` feature flags
-- opens Postgres
-- loads hash caches
-- orchestrates the bill and vote update flow
-- emits the final run summary
-
-Edit this when:
-
-- run sequencing needs to change
-- startup behavior changes
-- new top-level run flags or summary logging are needed
-
-### `runtime.go`
-
-What it does:
-
-- loads config from environment or `.env`
-- opens the Postgres connection
-- runs the vendored Python scraper as a subprocess
-- streams Python output into structured logs
-
-Edit this when:
-
-- environment handling changes
-- Postgres connection setup changes
-- Python task invocation changes
-- local and container runtime path behavior changes
-
-### `bills.go`
-
-What it does:
-
-- scans bill files across supported congresses
-- parses bill XML and legacy JSON shapes
-- normalizes actions, cosponsors, committees, subjects, and summary fields
-- writes bill data transactionally into Postgres
-
-Edit this when:
-
-- a bill field is missing or wrong in the database
-- upstream bill XML changed
-- a new normalized bill field needs to be captured
-- bill-related child tables need different insert behavior
-
-### `votes.go`
-
-What it does:
-
-- scans vote JSON files across supported congresses
-- normalizes vote metadata and per-member positions
-- maps vote keys like `Yea` or `Aye` to canonical forms
-- writes vote and vote-member rows into Postgres
-
-Edit this when:
-
-- vote fields are missing or incorrect
-- vote member position normalization needs to change
-- vote source file shape changes
-
-### `hashes.go`
-
-What it does:
-
-- computes SHA-256 digests for source files
-- decides whether a file needs reprocessing
-- persists the hash cache to disk
-
-Edit this when:
-
-- skip logic changes
-- the hash-cache format changes
-- you need to debug why changed files are being skipped or reprocessed
-
-### `schema.sql`
-
-What it does:
-
-- bootstraps the Postgres schema used by the scraper and API
-- defines the normalized tables, indexes, search helpers, and supporting database objects
-
-Edit this when:
-
-- new tables or columns are needed
-- indexes or search-related database functions need to change
-- the data model changes
-
-### `query.sql`
-
-What it does:
-
-- defines the SQL statements that `sqlc` turns into generated Go query code
-
-Edit this when:
-
-- insert, upsert, or delete queries need to change
-- the generated Go query methods need new inputs or outputs
-
-Important:
-
-- update `query.sql`, then regenerate `csearch/*.go`
-- do not hand-edit the generated files
-
-### `explore.sql`
-
-What it does:
-
-- stores the SQL query pack that powers the API explore feature
-
-Edit this when:
-
-- adding or changing analytical explore queries
-
-Important:
-
-- this file is the source of truth
-- the API copy is overwritten during the full deploy flow
-
-### `congress/tasks/utils.py`
-
-What it does:
-
-- contains the vendored Python scraper HTTP client behavior
-- controls important source-fetch concerns such as request pacing
-
-Edit this when:
-
-- the low-level fetch behavior needs to change
-- you are debugging an upstream download issue
-- the source site requires scraper-level request handling changes
+| File | Edit this when |
+| --- | --- |
+| `main.go` | run sequencing, top-level flags, summary logging, or invalidation timing changes |
+| `runtime.go` | environment handling, DB setup, Python subprocess invocation, or Redis config changes |
+| `bills.go` | a bill field is missing or wrong, upstream bill XML changed, or bill child tables need different insert behavior |
+| `votes.go` | vote fields are missing or incorrect, vote normalization needs to change, or vote source format changed |
+| `hashes.go` | skip logic or hash-cache persistence needs to change |
+| `schema.sql` | tables, indexes, or search-related DB objects need to change |
+| `query.sql` | generated Go queries need new inputs, outputs, or SQL behavior |
+| `congress/tasks/utils.py` | low-level fetch behavior or request pacing must change |
 
 ## Environment Variables
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `CONGRESSDIR` | Yes | Runtime root for scraper code, raw data, and hash caches |
+| `CONGRESSDIR` | Yes | runtime root for scraper code, raw data, and hash caches |
 | `POSTGRESURI` | Yes | Postgres host |
 | `REDIS_URL` | No | Redis connection string used for API cache invalidation, defaults to `redis://localhost:6379` |
 | `DB_PORT` | No | Postgres port, defaults to `5432` |
 | `DB_USER` | No | Postgres user, defaults to `postgres` |
 | `DB_PASSWORD` | No | Postgres password, defaults to `postgres` |
-| `DB_NAME` | No | Database name, defaults to `csearch` |
-| `RUN_BILLS` | No | Enable bill sync and ingest, defaults to `true` |
-| `RUN_VOTES` | No | Enable vote sync and ingest, defaults to `true` |
+| `DB_NAME` | No | database name, defaults to `csearch` |
+| `RUN_BILLS` | No | enable bill sync and ingest, defaults to `true` |
+| `RUN_VOTES` | No | enable vote sync and ingest, defaults to `true` |
 | `LOG_LEVEL` | No | `debug`, `info`, `warn`, or `error` for Go logs |
 
-## Local Development
+## Direct Development
 
-### Easiest path
-
-Run the scraper inside the compose stack:
-
-```bash
-docker-compose up postgres scraper
-```
-
-This is the best option when you just want a working local run with the right container layout.
-
-### Run the Go updater directly
-
-You can also run the Go updater without Docker. One workable local setup is:
+Run tests:
 
 ```bash
 cd backend/scraper
-cat > .env <<'EOF'
-CONGRESSDIR=/Users/your-user/Documents/projects/csearch-updater-root/backend/scraper
-POSTGRESURI=localhost
-DB_PORT=5433
-REDIS_URL=redis://localhost:6379
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=csearch
-RUN_BILLS=true
-RUN_VOTES=true
-EOF
+go test ./...
+```
 
+Run the updater directly:
+
+```bash
+cd backend/scraper
+CONGRESSDIR=/path/to/runtime-root \
+POSTGRESURI=localhost \
+DB_PORT=5433 \
+REDIS_URL=redis://localhost:6379 \
+DB_USER=postgres \
+DB_PASSWORD=postgres \
+DB_NAME=csearch \
+RUN_BILLS=true \
+RUN_VOTES=true \
 go run .
 ```
 
 Notes:
 
-- `CONGRESSDIR` should be the directory that contains both `congress/` and `data/`
-- if `data/` does not exist yet, the updater will create it when it saves hash caches
-- for local development, the vendored Python scraper is expected at `backend/scraper/congress`
+- `CONGRESSDIR` must contain both `congress/` and `data/`
+- if `data/` does not exist yet, the updater creates it when saving hash caches
+- the vendored Python scraper is expected at `backend/scraper/congress` for direct local runs
 
 ### Run only one side of the ingest
 
@@ -288,19 +153,17 @@ RUN_BILLS=false RUN_VOTES=true go run .
 RUN_BILLS=true RUN_VOTES=false go run .
 ```
 
-This is useful when you are debugging only bills or only votes.
-
-## Tests
-
-Run Go tests from `backend/scraper/`:
-
-```bash
-go test ./...
-```
-
 There is also a legacy Python test suite inside `congress/test/`, but most CSearch-specific correctness lives in the Go parser and insert logic.
 
-## Build And Deploy
+## Deployment
+
+Argo CD is the default deployment path for the scraper.
+
+Default deployment entry points:
+
+- [`argo/applications/csearch-netcup-scraper.yaml`](../../argo/applications/csearch-netcup-scraper.yaml)
+- [`k8s/netcup-scraper/cronjob.yaml`](../../k8s/netcup-scraper/cronjob.yaml)
+- [`k8s/netcup-scraper/kustomization.yaml`](../../k8s/netcup-scraper/kustomization.yaml)
 
 ### Build the scraper image
 
@@ -311,12 +174,6 @@ source .env.prod
 docker buildx build --platform linux/amd64 --push \
   -t "$REGISTRY/csearch-updater:latest" \
   -f backend/scraper/Dockerfile .
-```
-
-### Apply the scraper CronJob
-
-```bash
-kubectl apply -f k8s/scraper/cronjob.yaml
 ```
 
 ### Trigger a manual run in the cluster
@@ -336,28 +193,17 @@ Do not hand-edit:
 - `csearch/models.go`
 - `csearch/query.sql.go`
 
-If you change SQL in `query.sql`, regenerate the `sqlc` output instead of editing the generated files directly.
+If you change SQL in `query.sql`, regenerate the `sqlc` output instead of editing generated files directly.
 
 ### Vendored Python scraper
 
 `congress/` is a vendored copy of the upstream Python scraper. Change it only when:
 
-- the fetch behavior needs to change
-- the upstream source format changed
+- fetch behavior needs to change
+- upstream source format changed
 - the Go updater needs a different raw input layout
 
-Most application-level fixes belong in the Go code, not the vendored Python code.
-
-## How The Python And Go Pieces Fit Together
-
-`runtime.go` shells out to the Python scraper with commands like:
-
-- `votes --congress=<current>`
-- `govinfo --bulkdata=BILLSTATUS --congress=<current>`
-
-After the raw files are present on disk, `bills.go` and `votes.go` scan all supported congress directories and process changed files.
-
-That means the Python side is focused on fetching, while the Go side is focused on normalization and idempotent ingest.
+Most application-level fixes belong in the Go code, not in the vendored Python code.
 
 ## Troubleshooting
 
@@ -380,6 +226,14 @@ Look at:
 - `hashes.go`
 - the structured log lines about skipped or failed files
 - the raw source files under `congress/data/...`
+
+### Cache invalidation did not seem to happen
+
+Check:
+
+- whether the run actually changed any bill or vote rows
+- whether `REDIS_URL` points at the expected Redis instance
+- whether Redis was reachable during the run
 
 ### A schema-related insert starts failing after an update
 

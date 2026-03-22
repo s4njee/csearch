@@ -164,7 +164,36 @@ if [[ "${ENABLE_TINY_LOG_COLLECTOR:-true}" == "true" ]]; then
   ${KUBECTL} rollout status deployment/csearch-log-collector --timeout=120s
 fi
 
-if [[ -n "${LOG_SHIP_HTTP_HOST:-}" ]]; then
+if [[ -n "${LOG_S3_BUCKET:-}" ]]; then
+  export LOG_S3_REGION="${LOG_S3_REGION:-us-east-1}"
+  export LOG_S3_TOTAL_FILE_SIZE="${LOG_S3_TOTAL_FILE_SIZE:-50M}"
+  export LOG_S3_UPLOAD_TIMEOUT="${LOG_S3_UPLOAD_TIMEOUT:-10m}"
+  export LOG_S3_USE_PUT_OBJECT="${LOG_S3_USE_PUT_OBJECT:-Off}"
+  export LOG_S3_STORE_DIR_LIMIT_SIZE="${LOG_S3_STORE_DIR_LIMIT_SIZE:-512M}"
+  export CLUSTER_NAME="${CLUSTER_NAME:-csearch}"
+
+  if [[ -n "${AWS_ACCESS_KEY_ID:-}" && -n "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
+    echo ""
+    echo "==> Applying Fluent Bit AWS credentials secret..."
+    ${KUBECTL} create secret generic csearch-fluent-bit-aws \
+      --from-literal=aws_access_key_id="${AWS_ACCESS_KEY_ID}" \
+      --from-literal=aws_secret_access_key="${AWS_SECRET_ACCESS_KEY}" \
+      ${AWS_SESSION_TOKEN:+--from-literal=aws_session_token="${AWS_SESSION_TOKEN}"} \
+      --dry-run=client -o yaml | ${KUBECTL} apply -f -
+  else
+    echo ""
+    echo "==> No static AWS credentials provided for Fluent Bit; relying on the runtime AWS credential chain."
+  fi
+
+  echo ""
+  echo "==> Applying Fluent Bit S3 logging stack..."
+  envsubst '${LOG_S3_BUCKET} ${LOG_S3_REGION} ${LOG_S3_TOTAL_FILE_SIZE} ${LOG_S3_UPLOAD_TIMEOUT} ${LOG_S3_USE_PUT_OBJECT} ${LOG_S3_STORE_DIR_LIMIT_SIZE} ${CLUSTER_NAME}' < k8s/logging/fluent-bit-config-s3.yaml | ${KUBECTL} apply -f -
+  ${KUBECTL} apply -f k8s/logging/fluent-bit-rbac.yaml
+  envsubst '${LOG_S3_BUCKET} ${LOG_S3_REGION} ${LOG_S3_TOTAL_FILE_SIZE} ${LOG_S3_UPLOAD_TIMEOUT} ${LOG_S3_USE_PUT_OBJECT} ${LOG_S3_STORE_DIR_LIMIT_SIZE} ${LOG_SHIP_HTTP_HOST} ${LOG_SHIP_HTTP_PORT} ${LOG_SHIP_HTTP_URI} ${LOG_SHIP_HTTP_TLS} ${LOG_SHIP_HTTP_TLS_VERIFY}' < k8s/logging/fluent-bit-daemonset.yaml | ${KUBECTL} apply -f -
+
+  echo "==> Waiting for Fluent Bit DaemonSet rollout..."
+  ${KUBECTL} rollout status daemonset/csearch-fluent-bit --timeout=120s
+elif [[ -n "${LOG_SHIP_HTTP_HOST:-}" ]]; then
   export LOG_SHIP_HTTP_TLS="${LOG_SHIP_HTTP_TLS:-On}"
   export LOG_SHIP_HTTP_TLS_VERIFY="${LOG_SHIP_HTTP_TLS_VERIFY:-On}"
   export CLUSTER_NAME="${CLUSTER_NAME:-csearch}"
@@ -179,7 +208,7 @@ if [[ -n "${LOG_SHIP_HTTP_HOST:-}" ]]; then
   ${KUBECTL} rollout status daemonset/csearch-fluent-bit --timeout=120s
 else
   echo ""
-  echo "==> Skipping Fluent Bit logging stack (LOG_SHIP_HTTP_HOST is unset)."
+  echo "==> Skipping Fluent Bit logging stack (neither LOG_S3_BUCKET nor LOG_SHIP_HTTP_HOST is set)."
 fi
 
 # ---------------------------------------------------------------------------
