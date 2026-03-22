@@ -30,7 +30,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: NUXT_API_SERVER
-              value: http://csearch-api
+              value: http://192.168.1.156:3000
           ports:
             - name: http
               containerPort: 80
