@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Install tools needed by the deploy entrypoint
 RUN apk add --no-cache aws-cli bash curl kubectl tzdata
