@@ -55,7 +55,7 @@ spec:
             - name: REDIS_URL
               value: redis://csearch-redis:6379
             - name: POSTGRESURI
-              value: postgres
+              value: csearch-pooler
             - name: DB_USER
               value: postgres
             - name: DB_PASSWORD
