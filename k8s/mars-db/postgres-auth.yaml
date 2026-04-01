@@ -7,4 +7,5 @@ metadata:
     app.kubernetes.io/component: database
 type: Opaque
 stringData:
-  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  username: postgres
+  password: ${POSTGRES_PASSWORD}
