@@ -309,4 +309,27 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO csearch;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO csearch;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO csearch;
 
+ALTER SCHEMA public OWNER TO csearch;
+
+DO $$
+DECLARE
+    obj record;
+BEGIN
+    FOR obj IN
+        SELECT quote_ident(tablename) AS name
+        FROM pg_tables
+        WHERE schemaname = 'public'
+    LOOP
+        EXECUTE 'ALTER TABLE public.' || obj.name || ' OWNER TO csearch';
+    END LOOP;
+
+    FOR obj IN
+        SELECT quote_ident(sequencename) AS name
+        FROM pg_sequences
+        WHERE schemaname = 'public'
+    LOOP
+        EXECUTE 'ALTER SEQUENCE public.' || obj.name || ' OWNER TO csearch';
+    END LOOP;
+END $$;
+
 COMMIT;
