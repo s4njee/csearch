@@ -5,12 +5,16 @@ resources:
   - api.yaml
   - api-lb.yaml
   - redis.yaml
+  - scraper.yaml
   - frontend.yaml
   - frontend-lb.yaml
 
 images:
   - name: registry.s8njee.com/csearch-api
     newName: registry.s8njee.com/csearch-api
+    newTag: latest
+  - name: registry.s8njee.com/csearch-updater
+    newName: registry.s8njee.com/csearch-updater
     newTag: latest
   - name: registry.s8njee.com/csearch-frontend
     newName: registry.s8njee.com/csearch-frontend
