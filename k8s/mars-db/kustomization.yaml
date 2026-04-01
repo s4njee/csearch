@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - postgres-config.yaml
-  - postgres-auth.yaml
   - cnpg-cluster.yaml
   - cnpg-pooler.yaml
 

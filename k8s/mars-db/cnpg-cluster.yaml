@@ -15,9 +15,7 @@ spec:
   bootstrap:
     initdb:
       database: csearch
-      owner: postgres
-      secret:
-        name: postgres-auth
+      owner: csearch
       postInitApplicationSQLRefs:
         configMapRefs:
           - name: postgres-schema

@@ -61,19 +61,19 @@ spec:
                   key: POSTGRES_POOLER_HOST
             - name: DB_USER
               valueFrom:
-                configMapKeyRef:
-                  name: postgres-config
-                  key: POSTGRES_USER
+                secretKeyRef:
+                  name: pg-cluster-app
+                  key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-auth
+                  name: pg-cluster-app
                   key: password
             - name: DB_NAME
               valueFrom:
-                configMapKeyRef:
-                  name: postgres-config
-                  key: POSTGRES_DB
+                secretKeyRef:
+                  name: pg-cluster-app
+                  key: dbname
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
