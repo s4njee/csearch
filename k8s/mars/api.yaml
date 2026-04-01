@@ -55,13 +55,25 @@ spec:
             - name: REDIS_URL
               value: redis://csearch-redis:6379
             - name: POSTGRESURI
-              value: postgres
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_POOLER_HOST
             - name: DB_USER
-              value: postgres
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_USER
             - name: DB_PASSWORD
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-auth
+                  key: POSTGRES_PASSWORD
             - name: DB_NAME
-              value: csearch
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_DB
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
