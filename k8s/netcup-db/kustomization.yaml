@@ -3,8 +3,8 @@ kind: Kustomization
 
 resources:
   - postgres-config.yaml
-  - cnpg-cluster.yaml
-  - cnpg-pooler.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
 
 configMapGenerator:
   - name: postgres-schema
@@ -13,3 +13,8 @@ configMapGenerator:
 
 generatorOptions:
   disableNameSuffixHash: true
+
+images:
+  - name: registry.s8njee.com/csearch-postgres
+    newName: registry.s8njee.com/csearch-postgres
+    newTag: latest
