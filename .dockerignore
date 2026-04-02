@@ -1,6 +1,17 @@
 # Scraped congress data — can be large and is mounted as a volume at runtime
 backend/scraper/congress/data
 backend/scraper/congress/csearch/congress/data
+backend/scraper/congress/cache
+backend/scraper/congress/build
+backend/scraper/congress/__pycache__
+backend/scraper/congress/united_states_congress.egg-info
+backend/scraper/congress/env
+backend/scraper/congress/.git
+backend/scraper/congress/.claude
+backend/scraper/congress/.DS_Store
+backend/scraper/congress/fileHashes.gob
+backend/scraper/congress/voteHashes.gob
+backend/scraper/congress/voteHashes 2.gob
 
 # Congress data archives
 *.tar.zst
@@ -9,7 +20,6 @@ backend/scraper/congress/csearch/congress/data
 
 # Scraper virtualenv and cache
 backend/scraper/cache
-backend/scraper/congress/cache
 
 # Node dependencies
 backend/api/node_modules

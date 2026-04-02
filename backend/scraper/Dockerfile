@@ -1,12 +1,11 @@
-FROM golang:1.24-alpine AS builder
+FROM rust:1-slim-bookworm AS builder
 
 WORKDIR /src/scraper
 
-COPY backend/scraper/go.mod backend/scraper/go.sum ./
-RUN go mod download
+COPY backend/scraper/Cargo.toml backend/scraper/Cargo.lock ./
+COPY backend/scraper/src ./src
 
-COPY backend/scraper/ ./
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/updater .
+RUN cargo build --release
 
 
 FROM python:3.11-slim-bookworm
@@ -31,10 +30,11 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 RUN groupadd --gid 1000 csearch \
  && useradd --uid 1000 --gid 1000 --create-home --shell /usr/sbin/nologin csearch \
- && mkdir -p /srv/csearch \
+ && mkdir -p /srv/csearch /opt/csearch/congress \
  && chown -R csearch:csearch /srv/csearch
 
-COPY --from=builder /out/updater /usr/local/bin/updater
+COPY --from=builder /src/scraper/target/release/csearch-rscraper /usr/local/bin/updater
+COPY backend/scraper/congress/ /opt/csearch/congress/
 COPY backend/scraper/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
