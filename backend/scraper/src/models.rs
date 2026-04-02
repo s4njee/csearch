@@ -54,7 +54,16 @@
 // ============================================================================
 
 use chrono::NaiveDate;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
+
+fn null_or_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    let value = Option::<T>::deserialize(deserializer)?;
+    Ok(value.unwrap_or_default())
+}
 use serde_json::Value;
 
 // ============================================================================
@@ -498,63 +507,63 @@ pub struct BillXmlRootNew {
 /// Bill data from JSON format (older congresses).
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct BillJson {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub number: String,
-    #[serde(rename = "bill_type", default)]
+    #[serde(rename = "bill_type", default, deserialize_with = "null_or_default")]
     pub bill_type: String,
-    #[serde(rename = "introduced_at", default)]
+    #[serde(rename = "introduced_at", default, deserialize_with = "null_or_default")]
     pub introduced_at: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub congress: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub status: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub summary: BillJsonSummary,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub actions: Vec<BillJsonAction>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub sponsor: BillJsonPerson,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub cosponsors: Vec<BillJsonPerson>,
-    #[serde(rename = "status_at", default)]
+    #[serde(rename = "status_at", default, deserialize_with = "null_or_default")]
     pub status_at: String,
-    #[serde(rename = "short_title", default)]
+    #[serde(rename = "short_title", default, deserialize_with = "null_or_default")]
     pub short_title: String,
-    #[serde(rename = "official_title", default)]
+    #[serde(rename = "official_title", default, deserialize_with = "null_or_default")]
     pub official_title: String,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct BillJsonSummary {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub date: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub text: String,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct BillJsonAction {
-    #[serde(rename = "acted_at", default)]
+    #[serde(rename = "acted_at", default, deserialize_with = "null_or_default")]
     pub acted_at: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub text: String,
     /// `r#type` — the `r#` prefix lets us use `type` as an identifier even
     /// though it's a reserved keyword in Rust. Like backtick-quoting `type`
     /// in Kotlin, or using `getattr(obj, 'type')` in Python.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub r#type: String,
 }
 
 /// A person (sponsor or cosponsor) from JSON bill data.
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct BillJsonPerson {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub title: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub name: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub state: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_or_default")]
     pub party: String,
 }
 
