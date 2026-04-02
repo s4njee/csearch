@@ -1,0 +1,31 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg-cluster
+  namespace: default
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database-ha
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.8
+  storage:
+    size: 30Gi
+    storageClass: local-path
+  bootstrap:
+    initdb:
+      database: csearch
+      owner: postgres
+      secret:
+        name: postgres-auth
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - name: postgres-schema
+            key: 001-schema.sql
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "256MB"
+      work_mem: "16MB"
+      maintenance_work_mem: "64MB"
+      effective_cache_size: "512MB"
