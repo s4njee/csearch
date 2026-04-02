@@ -26,7 +26,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: frontend
-          image: registry.s8njee.com/csearch-frontend@sha256:ae7a01c01f0669eb1e8b6ac24322bc715c0b4b11a6a89d738f7f79e6a08fb714
+          image: registry.s8njee.com/csearch-frontend@sha256:02289d44b5667d9038d64e3a92d02bf4868694f5c5cfb762480bb6fb4498dd2e
           imagePullPolicy: Always
           env:
             - name: NUXT_API_SERVER
