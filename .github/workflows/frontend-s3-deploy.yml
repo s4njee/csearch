@@ -9,9 +9,9 @@ on:
       - "frontend/**"
   schedule:
     # GitHub Actions cron uses UTC and cannot track America/Chicago DST directly.
-    # 13:00 UTC runs at 8:00 AM during CDT and 7:00 AM during CST,
-    # keeping the deploy safely after the 5:00 AM America/Chicago scraper year-round.
-    - cron: "0 13 * * *"
+    # 12:00 UTC runs at 7:00 AM during CDT and 6:00 AM during CST,
+    # keeping the deploy one to two hours after the 5:00 AM America/Chicago scraper.
+    - cron: "0 12 * * *"
   workflow_dispatch:
 
 permissions:
