@@ -14,6 +14,49 @@ import logging
 from congress.tasks import vote_info
 
 
+def vote_listing_options(congress, options):
+    # Always refresh listing pages for the current Congress so we discover
+    # newly posted votes instead of reusing stale cached index pages.
+    if options.get("force", False) or int(congress) == utils.current_congress():
+        return utils.merge(options, {"force": True})
+    return options
+
+
+def house_group_id_from_href(href):
+    if not href:
+        return None
+
+    parsed = urllib.parse.urlparse(urllib.parse.urljoin("https://clerk.house.gov/", href))
+    match = re.search(r"(?:^|/)ROLL_(\d+)\.asp$", parsed.path, re.IGNORECASE)
+    if not match:
+        return None
+
+    return match.group(1)
+
+
+def house_vote_number_from_href(href, session_year):
+    if not href:
+        return None
+
+    parsed = urllib.parse.urlparse(
+        urllib.parse.urljoin("https://clerk.house.gov/", href)
+    )
+    if not parsed.path.endswith("/cgi-bin/vote.asp"):
+        return None
+
+    query = urllib.parse.parse_qs(parsed.query)
+    years = query.get("year")
+    rollnumbers = query.get("rollnumber")
+    if years != [str(session_year)] or not rollnumbers:
+        return None
+
+    rollnumber = rollnumbers[0]
+    if not rollnumber.isdigit():
+        return None
+
+    return str(int(rollnumber))
+
+
 def run(options):
     # Parse the options and fill to_fetch with vote ids.
 
@@ -73,52 +116,53 @@ def run(options):
 
 def vote_ids_for_house(congress, session_year, options):
     vote_ids = []
+    page_options = vote_listing_options(congress, options)
 
     index_page = "https://clerk.house.gov/evs/%s/index.asp" % session_year
-    group_page = r"ROLL_(\d+)\.asp"
-    link_pattern = r"http://clerk.house.gov/cgi-bin/vote.asp\?year=%s&rollnumber=(\d+)" % session_year
 
     # download index page, find the matching links to the paged listing of votes
     page = utils.download(
         index_page,
         "%s/votes/%s/pages/house.html" % (congress, session_year),
-        options)
+        page_options)
 
     if not page:
         logging.error("Couldn't download House vote index page, skipping")
         return None
 
-    # extract matching links
     doc = html.document_fromstring(page)
-    links = doc.xpath(
-        "//a[re:match(@href, '%s')]" % group_page,
-        namespaces={"re": "http://exslt.org/regular-expressions"})
+    groups = []
+    for href in doc.xpath("//a/@href"):
+        num = house_vote_number_from_href(href, session_year)
+        if num is not None:
+            vote_id = "h" + num + "-" + str(congress) + "." + session_year
+            if should_process(vote_id, options):
+                vote_ids.append(vote_id)
 
-    for link in links:
-        # get some identifier for this inside page for caching
-        grp = re.match(group_page, link.get("href")).group(1)
+        grp = house_group_id_from_href(href)
+        if grp is not None:
+            groups.append(grp)
+
+    for grp in utils.uniq(groups):
 
         # download inside page, find the matching links
         page = utils.download(
-            urllib.parse.urljoin(index_page, link.get("href")),
+            urllib.parse.urljoin(index_page, "ROLL_%s.asp" % grp),
             "%s/votes/%s/pages/house_%s.html" % (congress, session_year, grp),
-            options)
+            page_options)
 
         if not page:
             logging.error("Couldn't download House vote group page (%s), aborting" % grp)
             continue
 
         doc = html.document_fromstring(page)
-        votelinks = doc.xpath(
-            "//a[re:match(@href, '%s')]" % link_pattern,
-            namespaces={"re": "http://exslt.org/regular-expressions"})
-
-        for votelink in votelinks:
-            num = re.match(link_pattern, votelink.get("href")).group(1)
-            vote_id = "h" + num + "-" + str(congress) + "." + session_year
-            if not should_process(vote_id, options):
+        for href in doc.xpath("//a/@href"):
+            num = house_vote_number_from_href(href, session_year)
+            if num is None:
                 continue
-            vote_ids.append(vote_id)
+            vote_id = "h" + num + "-" + str(congress) + "." + session_year
+            if should_process(vote_id, options):
+                vote_ids.append(vote_id)
 
     return utils.uniq(vote_ids)
 
@@ -127,12 +171,13 @@ def vote_ids_for_senate(congress, session_year, options):
     session_num = int(session_year) - utils.get_congress_first_year(int(congress)) + 1
 
     vote_ids = []
+    page_options = vote_listing_options(congress, options)
 
     url = "https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_%s_%d.xml" % (congress, session_num)
     page = utils.download(
         url,
         "%s/votes/%s/pages/senate.xml" % (congress, session_year),
-        utils.merge(options, {'binary': True})
+        utils.merge(page_options, {'binary': True})
     )
 
     if not page or b"Requested Page Not Found (404)" in page:
