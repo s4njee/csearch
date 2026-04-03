@@ -58,7 +58,10 @@ spec:
             - name: REDIS_URL
               value: "redis://csearch-redis:6379"
             - name: POSTGRESURI
-              value: postgres
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_POOLER_HOST
             - name: DB_USER
               valueFrom:
                 configMapKeyRef:

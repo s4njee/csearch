@@ -49,7 +49,10 @@ spec:
                 - name: CONGRESSDIR
                   value: /srv/csearch
                 - name: POSTGRESURI
-                  value: postgres
+                  valueFrom:
+                    configMapKeyRef:
+                      name: postgres-config
+                      key: POSTGRES_RW_HOST
                 - name: REDIS_URL
                   value: "redis://csearch-redis:6379"
                 - name: LOG_LEVEL

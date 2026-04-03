@@ -8,4 +8,6 @@ metadata:
 data:
   POSTGRES_DB: csearch
   POSTGRES_USER: postgres
+  POSTGRES_RW_HOST: postgres
+  POSTGRES_POOLER_HOST: postgres
   PGDATA: /var/lib/postgresql/data/pgdata
