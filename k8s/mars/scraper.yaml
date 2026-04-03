@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: csearch-updater
     app.kubernetes.io/component: scraper
 spec:
-  schedule: "0 10 * * *"
+  schedule: "0 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
