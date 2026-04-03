@@ -22,7 +22,7 @@ module.exports = async function (fastify, opts) {
       "(SELECT COALESCE(array_agg(DISTINCT bc.committee_code ORDER BY bc.committee_code), '{}') FROM bill_committees bc WHERE bc.billtype = b.billtype AND bc.billnumber = b.billnumber AND bc.congress = b.congress) AS committee_codes"
     );
 
-    const data = await db.knex
+    let query = db.knex
       .select(
         "b.billid", "b.shorttitle", "b.officialtitle", "b.introducedat",
         "b.summary_text", "b.billtype",
@@ -35,8 +35,13 @@ module.exports = async function (fastify, opts) {
           "(SELECT COUNT(*)::int FROM bill_cosponsors bc WHERE bc.billtype = b.billtype AND bc.billnumber = b.billnumber AND bc.congress = b.congress) AS cosponsor_count"
         )
       )
-      .from("public.bills as b")
-      .where("b.billtype", billtype)
+      .from("public.bills as b");
+
+    if (billtype !== "all") {
+      query = query.where("b.billtype", billtype);
+    }
+
+    const data = await query
       .orderByRaw("b.latest_action_date DESC NULLS LAST")
       .orderBy("b.billid", "desc")
       .limit(500);
