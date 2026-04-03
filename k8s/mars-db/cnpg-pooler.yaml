@@ -5,7 +5,6 @@
 # pg-cluster-rw. This multiplexes Node.js HTTP connections into a bounded
 # set of Postgres sockets.
 # ─────────────────────────────────────────────────────────────────────────────
-
 apiVersion: postgresql.cnpg.io/v1
 kind: Pooler
 metadata:
@@ -16,10 +15,8 @@ metadata:
 spec:
   cluster:
     name: pg-cluster
-
   type: rw
   instances: 2
-
   pgbouncer:
     poolMode: transaction
     parameters:

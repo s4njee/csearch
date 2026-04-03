@@ -55,13 +55,25 @@ spec:
             - name: REDIS_URL
               value: redis://csearch-redis:6379
             - name: POSTGRESURI
-              value: csearch-pooler
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_POOLER_HOST
             - name: DB_USER
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: pg-cluster-app
+                  key: username
             - name: DB_PASSWORD
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: pg-cluster-app
+                  key: password
             - name: DB_NAME
-              value: csearch
+              valueFrom:
+                secretKeyRef:
+                  name: pg-cluster-app
+                  key: dbname
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

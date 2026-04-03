@@ -1,246 +1,270 @@
-# Backend Scraper
+# Congress Scraper (Rust)
 
-The scraper is the ingest side of CSearch. It fetches raw congressional data, normalizes it, and writes it into Postgres.
+A Rust application that scrapes, parses, and stores U.S. congressional vote and bill data into PostgreSQL. It uses a Python subprocess to sync raw data files, then processes them in parallel using Tokio, with Redis cache invalidation on writes.
 
-This project is intentionally hybrid:
+## Source Files
 
-- Python handles source acquisition through the vendored `unitedstates/congress` project
-- Go handles CSearch-specific parsing, deduplication, hashing, cache invalidation, and database writes
+### `src/main.rs`
 
-If data is missing or wrong in Postgres, start here.
+Entry point. Initializes structured JSON logging via `tracing`, loads configuration, opens the database pool, and orchestrates the full scraper run. Iterates over congress sessions (101 to current), conditionally running vote and bill processing. Clears the Redis API cache if any writes occurred, and reports final statistics.
 
-## What This Project Owns
+### `src/config.rs`
 
-The scraper owns:
+Configuration management. Loads settings from environment variables (`CONGRESS_DIR`, `POSTGRES_URI`, `REDIS_URL`, etc.). Provides helpers like `current_congress()` (calculates from the current year) and `env_enabled()` (parses boolean env vars).
 
-- source acquisition for bills and votes
-- normalized bill and vote parsing
-- hash-based skip logic for unchanged files
-- schema bootstrap SQL
-- SQL source used by generated Go query code
-- shared Redis cache invalidation after successful writes
+### `src/votes.rs`
 
-The scraper does not own:
+Vote processing pipeline. Calls a Python subprocess to sync vote data, then collects and parses vote JSON files in parallel. Uses a semaphore-gated `JoinSet` for concurrent parsing (up to 64 workers), offloads CPU-heavy JSON deserialization to `spawn_blocking`, and writes results to PostgreSQL with a second semaphore limiting DB concurrency to 4. Tracks file hashes to skip unchanged votes.
 
-- HTTP response shapes
-- frontend page behavior
+### `src/bills.rs`
 
-## Run Lifecycle
+Bill processing pipeline. Handles 8 bill types (`s`, `hr`, `hconres`, `hjres`, `hres`, `sconres`, `sjres`, `sres`) across congresses 93 to present. Parses both XML (new and legacy schemas) and JSON formats. Same parallel architecture as votes: semaphore-gated parsing with `spawn_blocking`, followed by semaphore-gated transactional DB writes that upsert bills, actions, cosponsors, committees, and subjects.
 
-A normal scraper run does the following:
+### `src/models.rs`
 
-1. load config and connect to Postgres
-2. load the persisted bill and vote hash caches
-3. run the vendored Python scraper for bills and or votes
-4. walk the downloaded files for each supported congress
-5. skip files whose SHA-256 hash has not changed
-6. parse changed files into normalized bill or vote structures
-7. upsert rows into Postgres
-8. clear `csearch:*` Redis keys if any rows changed
-9. persist the updated hash caches
+Data structures for serialization and database insertion. Includes:
+- Insert parameter structs (`InsertVoteParams`, `InsertBillParams`, etc.)
+- Parsed intermediate types (`ParsedVote`, `ParsedBill`, `ParsedCommittee`)
+- XML deserialization structs (`BillXmlRootNew`, `BillXmlRootLegacy`, and nested types)
+- Vote JSON deserialization structs (`VoteJson`, `VoteMemberJson`)
 
-## Data Coverage
+### `src/db.rs`
 
-| Data type | Range |
-| --- | --- |
-| Bills | 93rd Congress through current |
-| Votes | 101st Congress through current |
+Database operations using `sqlx`. Opens a connection pool (max 4 connections) and provides async functions for inserting/deleting votes, bills, actions, cosponsors, committees, and subjects. All write operations run within transactions using prepared statements.
 
-The current congress is computed dynamically from the current year.
+### `src/hashes.rs`
 
-## Runtime Directory Layout
+File change detection via SHA-256 hashing. `FileHashStore` persists a map of file path to hash (serialized with bincode). Before processing a file, `needs_processing()` computes its hash and compares it against the stored value. Files are re-processed only when their content has changed.
 
-The scraper expects `CONGRESSDIR` to point at a runtime root with this shape:
+### `src/redis_cache.rs`
 
-```text
-<CONGRESSDIR>/
-  congress/
-    run.py
-    data/
-      <congress>/
-        bills/
-        votes/
-  data/
-    fileHashes.gob
-    voteHashes.gob
+Redis cache invalidation. After writes occur, `clear_api_cache()` uses cursor-based `SCAN` to find all keys matching `csearch:*` and deletes them in batches of 100.
+
+### `src/python.rs`
+
+Python subprocess management. `run_congress_task()` spawns a Python process with the appropriate `PYTHONPATH`, pipes stdout/stderr, and streams output to structured logs via two concurrent Tokio tasks.
+
+### `src/stats.rs`
+
+Simple counters (`RunStats`) tracking processed, skipped, and failed counts for both bills and votes.
+
+### `src/util.rs`
+
+Utility functions for date parsing (multiple formats including `YYYY-MM-DD` and RFC 3339), integer parsing, file existence checks, and empty-string-to-`None` conversion.
+
+## Tokio Usage
+
+The scraper is built entirely on Tokio's async runtime. Here's how each Tokio feature is used.
+
+### Runtime Initialization
+
+The `#[tokio::main]` macro creates a multi-threaded Tokio runtime at the program entry point:
+
+```rust
+#[tokio::main]
+async fn main() -> ExitCode {
+    init_tracing();
+    match run().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            error!(?err, "scraper failed");
+            ExitCode::FAILURE
+        }
+    }
+}
 ```
 
-Important detail:
+### Semaphore-Gated Concurrency
 
-- raw downloaded source files live under `congress/data/...`
-- hash caches live under `data/...`
+Both votes and bills use a two-tier semaphore pattern to limit parallelism. A high-concurrency semaphore gates CPU-bound parsing, and a low-concurrency one gates database writes:
 
-## Key Files
+```rust
+const WORKER_LIMIT: usize = 64;
+const DB_WRITE_CONCURRENCY: usize = 4;
 
-| Path | Purpose |
-| --- | --- |
-| `main.go` | run orchestration, feature flags, final run summary |
-| `runtime.go` | config loading, DB connection, Python task runner, Redis invalidation |
-| `bills.go` | bill parsing and DB insert logic |
-| `votes.go` | vote parsing and DB insert logic |
-| `hashes.go` | SHA-256 hash cache storage |
-| `schema.sql` | database bootstrap schema |
-| `query.sql` | SQL source for generated Go query methods |
-| `csearch/*.go` | `sqlc`-generated Go code, do not edit by hand |
-| `explore.sql` | source of truth for API explore queries |
-| `congress/` | vendored Python scraper code |
+// Parsing phase
+let parse_sem = Arc::new(Semaphore::new(WORKER_LIMIT));
+let mut tasks = JoinSet::new();
 
-## Most Common Edit Points
+for job in jobs {
+    let parse_sem = parse_sem.clone();
+    let known_hashes = known_hashes.clone();
+    tasks.spawn(async move {
+        let _permit = parse_sem.acquire_owned().await?;
+        tokio::task::spawn_blocking(move || parse_vote_job(job, &known_hashes)).await?
+    });
+}
 
-| File | Edit this when |
-| --- | --- |
-| `main.go` | run sequencing, top-level flags, summary logging, or invalidation timing changes |
-| `runtime.go` | environment handling, DB setup, Python subprocess invocation, or Redis config changes |
-| `bills.go` | a bill field is missing or wrong, upstream bill XML changed, or bill child tables need different insert behavior |
-| `votes.go` | vote fields are missing or incorrect, vote normalization needs to change, or vote source format changed |
-| `hashes.go` | skip logic or hash-cache persistence needs to change |
-| `schema.sql` | tables, indexes, or search-related DB objects need to change |
-| `query.sql` | generated Go queries need new inputs, outputs, or SQL behavior |
-| `congress/tasks/utils.py` | low-level fetch behavior or request pacing must change |
+// Write phase
+let write_sem = Arc::new(Semaphore::new(DB_WRITE_CONCURRENCY));
+let mut write_tasks = JoinSet::new();
 
-## Environment Variables
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `CONGRESSDIR` | Yes | runtime root for scraper code, raw data, and hash caches |
-| `POSTGRESURI` | Yes | Postgres host |
-| `REDIS_URL` | No | Redis connection string used for API cache invalidation, defaults to `redis://localhost:6379` |
-| `DB_PORT` | No | Postgres port, defaults to `5432` |
-| `DB_USER` | No | Postgres user, defaults to `postgres` |
-| `DB_PASSWORD` | No | Postgres password, defaults to `postgres` |
-| `DB_NAME` | No | database name, defaults to `csearch` |
-| `RUN_BILLS` | No | enable bill sync and ingest, defaults to `true` |
-| `RUN_VOTES` | No | enable vote sync and ingest, defaults to `true` |
-| `LOG_LEVEL` | No | `debug`, `info`, `warn`, or `error` for Go logs |
-
-## Direct Development
-
-Run tests:
-
-```bash
-cd backend/scraper
-go test ./...
+for changed_vote in changed_votes {
+    let write_sem = write_sem.clone();
+    let pool = pool.clone();
+    write_tasks.spawn(async move {
+        let _permit = write_sem.acquire_owned().await?;
+        insert_parsed_vote(&pool, &changed_vote.parsed_vote).await?;
+        Ok::<_, anyhow::Error>(changed_vote)
+    });
+}
 ```
 
-Run the updater directly:
+### `spawn_blocking` for CPU-Bound Work
 
-```bash
-cd backend/scraper
-CONGRESSDIR=/path/to/runtime-root \
-POSTGRESURI=localhost \
-DB_PORT=5433 \
-REDIS_URL=redis://localhost:6379 \
-DB_USER=postgres \
-DB_PASSWORD=postgres \
-DB_NAME=csearch \
-RUN_BILLS=true \
-RUN_VOTES=true \
-go run .
+JSON and XML parsing is synchronous and CPU-intensive. To avoid blocking the async executor, it's offloaded to Tokio's blocking thread pool:
+
+```rust
+tasks.spawn(async move {
+    let _permit = parse_sem.acquire_owned().await?;
+    tokio::task::spawn_blocking(move || parse_bill_job(job, &known_hashes)).await?
+});
 ```
 
-Notes:
+### `JoinSet` for Task Collection
 
-- `CONGRESSDIR` must contain both `congress/` and `data/`
-- if `data/` does not exist yet, the updater creates it when saving hash caches
-- the vendored Python scraper is expected at `backend/scraper/congress` for direct local runs
+`JoinSet` manages groups of spawned tasks and collects their results:
 
-### Run only one side of the ingest
+```rust
+let mut write_tasks = JoinSet::new();
+// ... spawn tasks ...
 
-Examples:
-
-```bash
-RUN_BILLS=false RUN_VOTES=true go run .
-RUN_BILLS=true RUN_VOTES=false go run .
+while let Some(result) = write_tasks.join_next().await {
+    match result {
+        Ok(Ok(changed_vote)) => {
+            hashes.mark_processed(&changed_vote.path, changed_vote.hash);
+            stats.votes_processed += 1;
+        }
+        Ok(Err(err)) => {
+            warn!(?err, "vote write failed");
+            stats.votes_failed += 1;
+        }
+        Err(err) => {
+            warn!(?err, "vote write task panicked");
+            stats.votes_failed += 1;
+        }
+    }
+}
 ```
 
-There is also a legacy Python test suite inside `congress/test/`, but most CSearch-specific correctness lives in the Go parser and insert logic.
+The double `Result` pattern (`Ok(Ok(...))` / `Ok(Err(...))` / `Err(...)`) handles both task-level panics (outer `Result` from `JoinSet`) and application-level errors (inner `Result` from the task body).
 
-## Deployment
+### `tokio::spawn` for Concurrent I/O Streaming
 
-Argo CD is the default deployment path for the scraper.
+When running the Python subprocess, two tasks are spawned to concurrently stream stdout and stderr without blocking the main wait on process exit:
 
-Default deployment entry points:
+```rust
+let stdout_task = tokio::spawn(stream_output("stdout", stdout));
+let stderr_task = tokio::spawn(stream_output("stderr", stderr));
 
-- [`argo/applications/csearch-netcup-scraper.yaml`](../../argo/applications/csearch-netcup-scraper.yaml)
-- [`k8s/netcup-scraper/cronjob.yaml`](../../k8s/netcup-scraper/cronjob.yaml)
-- [`k8s/netcup-scraper/kustomization.yaml`](../../k8s/netcup-scraper/kustomization.yaml)
-
-### Build the scraper image
-
-Run from the repo root because the Dockerfile copies files using root-relative paths:
-
-```bash
-source .env.prod
-docker buildx build --platform linux/amd64 --push \
-  -t "$REGISTRY/csearch-updater:latest" \
-  -f backend/scraper/Dockerfile .
+let status = child.wait().await?;
+stdout_task.await??;
+stderr_task.await??;
 ```
 
-### Trigger a manual run in the cluster
+### Async Buffered Line Reading
 
-```bash
-kubectl create job csearch-updater-manual-$(date +%s) --from=cronjob/csearch-updater
-kubectl logs -f job/<job-name>
+Python subprocess output is read line-by-line using Tokio's async I/O:
+
+```rust
+use tokio::io::{AsyncBufReadExt, BufReader};
+
+async fn stream_output(source: &str, reader: impl AsyncRead + Unpin) -> anyhow::Result<()> {
+    let mut lines = BufReader::new(reader).lines();
+    while let Some(line) = lines.next_line().await? {
+        info!(stream = source, output = line, "python");
+    }
+    Ok(())
+}
 ```
 
-## Generated And Vendored Files
+### Async Database Operations (sqlx)
 
-### `sqlc` generated code
+All database interactions are non-blocking. The connection pool is configured with the tokio-rustls runtime:
 
-Do not hand-edit:
+```rust
+// Cargo.toml
+// sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono"] }
 
-- `csearch/db.go`
-- `csearch/models.go`
-- `csearch/query.sql.go`
+let pool = PgPoolOptions::new()
+    .max_connections(DB_WRITE_CONCURRENCY)
+    .connect(&cfg.postgres_dsn())
+    .await?;
+```
 
-If you change SQL in `query.sql`, regenerate the `sqlc` output instead of editing generated files directly.
+Transactions are started and committed asynchronously:
 
-### Vendored Python scraper
+```rust
+let mut tx = pool.begin().await?;
 
-`congress/` is a vendored copy of the upstream Python scraper. Change it only when:
+sqlx::query("INSERT INTO votes (...) VALUES (...) ON CONFLICT (...) DO UPDATE SET ...")
+    .bind(&params.vote_id)
+    // ...
+    .execute(&mut *tx)
+    .await?;
 
-- fetch behavior needs to change
-- upstream source format changed
-- the Go updater needs a different raw input layout
+tx.commit().await?;
+```
 
-Most application-level fixes belong in the Go code, not in the vendored Python code.
+### Async Redis Operations
 
-## Troubleshooting
+Redis uses a multiplexed async connection with cursor-based scanning:
 
-### A scraper run completes but no records changed
+```rust
+let mut connection = client.get_multiplexed_async_connection().await?;
 
-Check:
+loop {
+    let (next_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+        .cursor_arg(cursor)
+        .arg("MATCH")
+        .arg("csearch:*")
+        .arg("COUNT")
+        .arg(100)
+        .query_async(&mut connection)
+        .await?;
 
-- whether the source files actually changed
-- whether the relevant hash cache already contains the new digest
-- whether `RUN_BILLS` or `RUN_VOTES` disabled part of the run
+    if !keys.is_empty() {
+        let removed: i64 = redis::cmd("DEL")
+            .arg(&keys)
+            .query_async(&mut connection)
+            .await?;
+    }
 
-### The updater cannot find the Python scraper
+    cursor = next_cursor;
+    if cursor == 0 { break; }
+}
+```
 
-Check `CONGRESSDIR`. The updater looks for `CONGRESSDIR/congress/run.py` first and falls back to the bundled image path only in containerized runtime.
+### Concurrency Architecture Summary
 
-### Bills or votes are skipped unexpectedly
-
-Look at:
-
-- `hashes.go`
-- the structured log lines about skipped or failed files
-- the raw source files under `congress/data/...`
-
-### Cache invalidation did not seem to happen
-
-Check:
-
-- whether the run actually changed any bill or vote rows
-- whether `REDIS_URL` points at the expected Redis instance
-- whether Redis was reachable during the run
-
-### A schema-related insert starts failing after an update
-
-Check:
-
-- `schema.sql`
-- `query.sql`
-- the generated `csearch/*.go` code
-
-Those three need to stay aligned.
+```
+main()
+  |
+  +-- run()
+       |
+       +-- For each congress session:
+       |     |
+       |     +-- update_votes()  --> tokio::spawn Python subprocess
+       |     |                        +-- tokio::spawn(stream stdout)
+       |     |                        +-- tokio::spawn(stream stderr)
+       |     |
+       |     +-- process_votes()
+       |     |     +-- collect_changed_votes()
+       |     |     |     +-- JoinSet: up to 64 tasks (Semaphore)
+       |     |     |           +-- spawn_blocking(parse_vote_job)
+       |     |     |
+       |     |     +-- JoinSet: up to 4 DB writes (Semaphore)
+       |     |           +-- insert_parsed_vote() [async sqlx tx]
+       |     |
+       |     +-- update_bills()  --> tokio::spawn Python subprocess
+       |     |
+       |     +-- process_bills()
+       |           +-- collect_changed_bills()
+       |           |     +-- JoinSet: up to 64 tasks (Semaphore)
+       |           |           +-- spawn_blocking(parse_bill_job)
+       |           |
+       |           +-- JoinSet: up to 4 DB writes (Semaphore)
+       |                 +-- insert_parsed_bill() [async sqlx tx]
+       |
+       +-- clear_api_cache()  --> async Redis SCAN + DEL
+```
