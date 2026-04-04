@@ -521,7 +521,6 @@ fn parse_vote(path: &Path) -> Result<ParsedVote> {
                 continue;
             }
             members.push(InsertVoteMemberParams {
-                voteid: vote_json.vote_id.clone(),
                 bioguide_id: item.id,
                 display_name: option_string(item.display_name),
                 party: option_string(item.party),
@@ -603,30 +602,21 @@ async fn insert_parsed_vote(pool: &PgPool, parsed_vote: &ParsedVote) -> Result<(
     // All queries executed on `tx` are part of this transaction.
     let mut tx = pool.begin().await?;
 
+    // Step 1: Upsert the vote record.
     db::insert_vote(&mut tx, &parsed_vote.vote)
         .await
         .with_context(|| format!("InsertVote failed for {}", parsed_vote.vote.voteid))?;
 
-    // Delete existing members first, then re-insert — ensures we always
-    // have the latest data even if the member list changed.
-    db::delete_vote_members(&mut tx, &parsed_vote.vote.voteid)
+    // Step 2: Delete existing members + batch-insert new ones in one round-trip.
+    db::replace_vote_members(&mut tx, &parsed_vote.vote.voteid, &parsed_vote.members)
         .await
-        .with_context(|| format!("DeleteVoteMembers failed for {}", parsed_vote.vote.voteid))?;
-
-    for member in &parsed_vote.members {
-        db::insert_vote_member(&mut tx, member)
-            .await
-            .with_context(|| {
-                format!(
-                    "InsertVoteMember failed for {}/{}",
-                    parsed_vote.vote.voteid, member.bioguide_id
-                )
-            })?;
-    }
+        .with_context(|| format!("ReplaceVoteMembers failed for {}", parsed_vote.vote.voteid))?;
 
     // Commit the transaction. If we don't call this (e.g., because an
     // error caused an early return via `?`), the transaction is rolled
     // back when `tx` is dropped.
+    // Total: 3 round-trips (upsert vote, replace members, commit)
+    // instead of N+2 (upsert, delete, N member inserts, commit).
     tx.commit().await?;
     Ok(())
 }

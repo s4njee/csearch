@@ -34,6 +34,7 @@ use crate::models::{
     InsertCommitteeParams, InsertVoteMemberParams, InsertVoteParams,
 };
 
+
 /// Maximum number of concurrent database connections in the pool.
 /// `u32` because sqlx's pool API expects an unsigned 32-bit int.
 const DB_WRITE_CONCURRENCY: u32 = 4;
@@ -189,34 +190,36 @@ INSERT INTO votes (
     Ok(())
 }
 
-/// Deletes all member votes for a given vote ID (before re-inserting).
-pub async fn delete_vote_members(tx: &mut Transaction<'_, Postgres>, voteid: &str) -> Result<()> {
-    sqlx::query("DELETE FROM vote_members WHERE voteid = $1")
-        .bind(voteid)
-        .execute(&mut **tx)
-        .await?;
-    Ok(())
-}
-
-/// Inserts a single vote member record.
-/// `ON CONFLICT ... DO NOTHING` skips duplicates silently.
-pub async fn insert_vote_member(
+/// Deletes existing vote members and batch-inserts new ones in a single
+/// CTE round-trip using UNNEST arrays. Reduces N+1 round-trips to 1.
+pub async fn replace_vote_members(
     tx: &mut Transaction<'_, Postgres>,
-    member: &InsertVoteMemberParams,
+    voteid: &str,
+    members: &[InsertVoteMemberParams],
 ) -> Result<()> {
+    let bioguide_ids: Vec<String> = members.iter().map(|m| m.bioguide_id.clone()).collect();
+    let display_names: Vec<Option<String>> = members.iter().map(|m| m.display_name.clone()).collect();
+    let parties: Vec<Option<String>> = members.iter().map(|m| m.party.clone()).collect();
+    let states: Vec<Option<String>> = members.iter().map(|m| m.state.clone()).collect();
+    let positions: Vec<String> = members.iter().map(|m| m.position.clone()).collect();
+
     sqlx::query(
         r#"
+WITH deleted AS (
+    DELETE FROM vote_members WHERE voteid = $1
+)
 INSERT INTO vote_members (voteid, bioguide_id, display_name, party, state, position)
-VALUES ($1, $2, $3, $4, $5, $6)
+SELECT $1, *
+FROM UNNEST($2::text[], $3::text[], $4::text[], $5::text[], $6::text[])
 ON CONFLICT ON CONSTRAINT vote_members_pkey DO NOTHING
         "#,
     )
-    .bind(&member.voteid)
-    .bind(&member.bioguide_id)
-    .bind(&member.display_name)
-    .bind(&member.party)
-    .bind(&member.state)
-    .bind(&member.position)
+    .bind(voteid)          // $1
+    .bind(&bioguide_ids)   // $2
+    .bind(&display_names)  // $3
+    .bind(&parties)        // $4
+    .bind(&states)         // $5
+    .bind(&positions)      // $6
     .execute(&mut **tx)
     .await?;
     Ok(())
@@ -283,252 +286,206 @@ INSERT INTO bills (
     Ok(())
 }
 
-/// Clears the latest_action_id for a bill (used before re-inserting actions).
-pub async fn clear_bill_latest_action(
-    tx: &mut Transaction<'_, Postgres>,
-    billtype: &str,
-    billnumber: i32,
-    congress: i32,
-    latest_action_date: Option<chrono::NaiveDate>,
-) -> Result<()> {
-    sqlx::query(
-        r#"
-UPDATE bills
-SET latest_action_id = NULL,
-    latest_action_date = $4
-WHERE billtype = $1
-  AND billnumber = $2
-  AND congress = $3
-        "#,
-    )
-    .bind(billtype)
-    .bind(billnumber)
-    .bind(congress)
-    .bind(latest_action_date)
-    .execute(&mut **tx)
-    .await?;
-    Ok(())
-}
 
-/// Deletes all actions for a bill (before re-inserting from fresh data).
-pub async fn delete_bill_actions(
-    tx: &mut Transaction<'_, Postgres>,
-    billtype: &str,
-    billnumber: i32,
-    congress: i32,
-) -> Result<()> {
-    sqlx::query(
-        "DELETE FROM bill_actions WHERE billtype = $1 AND billnumber = $2 AND congress = $3",
-    )
-    .bind(billtype)
-    .bind(billnumber)
-    .bind(congress)
-    .execute(&mut **tx)
-    .await?;
-    Ok(())
-}
-
-/// Inserts a bill action and returns its auto-generated ID.
+/// Deletes existing actions, batch-inserts new ones using UNNEST, and
+/// updates the bill's latest_action pointer — all in a single SQL round-trip
+/// via a CTE (Common Table Expression) chain.
 ///
-/// `query_scalar` + `RETURNING id` retrieves the inserted row's ID.
-/// This is like Python's `cursor.execute(...); return cursor.fetchone()[0]`
-/// or `RETURNING id` in any PostgreSQL client.
-pub async fn insert_bill_action(
-    tx: &mut Transaction<'_, Postgres>,
-    action: &InsertBillActionParams,
-) -> Result<i64> {
-    let id = sqlx::query_scalar(
-        r#"
-INSERT INTO bill_actions (billtype, billnumber, congress, acted_at, action_text, action_type, action_code, source_system_code)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id
-        "#,
-    )
-    .bind(&action.billtype)
-    .bind(action.billnumber)
-    .bind(action.congress)
-    .bind(action.acted_at)
-    .bind(&action.action_text)
-    .bind(&action.action_type)
-    .bind(&action.action_code)
-    .bind(&action.source_system_code)
-    .fetch_one(&mut **tx)
-    .await?;
-    Ok(id)
-}
-
-/// Updates the latest_action_id and latest_action_date on a bill.
-/// Called after inserting all actions, once we know which one is the latest.
-pub async fn update_bill_latest_action(
+/// Previously this was ~N+3 round-trips (clear latest_action, delete, N inserts,
+/// update latest_action). Now it's 1.
+///
+/// **How it works:**
+///   1. `clear_latest` CTE: NULLs out the bill's latest_action_id (FK safety)
+///   2. `deleted` CTE: DELETEs all existing actions for this bill
+///   3. `inserted` CTE: INSERTs all new actions from UNNEST arrays, RETURNING ids
+///   4. `best` CTE: Finds the action matching latest_action_date/text
+///   5. Final UPDATE: Sets the bill's latest_action_id and latest_action_date
+///
+/// `UNNEST` takes parallel PostgreSQL arrays and expands them into rows,
+/// like Python's `zip()`. So `UNNEST(ARRAY['a','b'], ARRAY[1,2])` produces
+/// rows `('a',1), ('b',2)`.
+pub async fn replace_bill_actions(
     tx: &mut Transaction<'_, Postgres>,
     billtype: &str,
     billnumber: i32,
     congress: i32,
-    latest_action_id: Option<i64>,
+    actions: &[InsertBillActionParams],
     latest_action_date: Option<chrono::NaiveDate>,
+    latest_action_text: &str,
 ) -> Result<()> {
+    // Build parallel arrays — one per column — from the actions slice.
+    // sqlx binds `Vec<T>` as PostgreSQL array parameters.
+    let dates: Vec<chrono::NaiveDate> = actions.iter().map(|a| a.acted_at).collect();
+    let texts: Vec<Option<String>> = actions.iter().map(|a| a.action_text.clone()).collect();
+    let types: Vec<Option<String>> = actions.iter().map(|a| a.action_type.clone()).collect();
+    let codes: Vec<Option<String>> = actions.iter().map(|a| a.action_code.clone()).collect();
+    let sources: Vec<Option<String>> = actions.iter().map(|a| a.source_system_code.clone()).collect();
+
     sqlx::query(
         r#"
+WITH clear_latest AS (
+    UPDATE bills
+    SET latest_action_id = NULL
+    WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+),
+deleted AS (
+    DELETE FROM bill_actions
+    WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+),
+inserted AS (
+    INSERT INTO bill_actions
+        (billtype, billnumber, congress, acted_at, action_text, action_type, action_code, source_system_code)
+    SELECT $1, $2, $3, *
+    FROM UNNEST($4::date[], $5::text[], $6::text[], $7::text[], $8::text[])
+    RETURNING id, acted_at, action_text
+),
+best AS (
+    SELECT id FROM inserted
+    WHERE acted_at = $9
+    ORDER BY (action_text = $10) DESC
+    LIMIT 1
+)
 UPDATE bills
-SET latest_action_id = $4,
-    latest_action_date = $5
-WHERE billtype = $1
-  AND billnumber = $2
-  AND congress = $3
+SET latest_action_id   = best.id,
+    latest_action_date = $9
+FROM best
+WHERE billtype = $1 AND billnumber = $2 AND congress = $3
         "#,
     )
-    .bind(billtype)
-    .bind(billnumber)
-    .bind(congress)
-    .bind(latest_action_id)
-    .bind(latest_action_date)
+    .bind(billtype)                  // $1
+    .bind(billnumber)                // $2
+    .bind(congress)                  // $3
+    .bind(&dates)                    // $4  date[]
+    .bind(&texts)                    // $5  text[]
+    .bind(&types)                    // $6  text[]
+    .bind(&codes)                    // $7  text[]
+    .bind(&sources)                  // $8  text[]
+    .bind(latest_action_date)        // $9
+    .bind(latest_action_text)        // $10
     .execute(&mut **tx)
     .await?;
     Ok(())
 }
 
-/// Deletes all cosponsors for a bill (before re-inserting).
-pub async fn delete_bill_cosponsors(
+/// Deletes existing cosponsors and batch-inserts new ones in a single
+/// CTE round-trip using UNNEST arrays.
+pub async fn replace_bill_cosponsors(
     tx: &mut Transaction<'_, Postgres>,
     billtype: &str,
     billnumber: i32,
     congress: i32,
+    cosponsors: &[InsertBillCosponsorParams],
 ) -> Result<()> {
-    sqlx::query(
-        "DELETE FROM bill_cosponsors WHERE billtype = $1 AND billnumber = $2 AND congress = $3",
-    )
-    .bind(billtype)
-    .bind(billnumber)
-    .bind(congress)
-    .execute(&mut **tx)
-    .await?;
-    Ok(())
-}
+    let bioguide_ids: Vec<String> = cosponsors.iter().map(|c| c.bioguide_id.clone()).collect();
+    let full_names: Vec<Option<String>> = cosponsors.iter().map(|c| c.full_name.clone()).collect();
+    let states: Vec<Option<String>> = cosponsors.iter().map(|c| c.state.clone()).collect();
+    let parties: Vec<Option<String>> = cosponsors.iter().map(|c| c.party.clone()).collect();
+    let dates: Vec<Option<chrono::NaiveDate>> = cosponsors.iter().map(|c| c.sponsorship_date).collect();
+    let originals: Vec<Option<bool>> = cosponsors.iter().map(|c| c.is_original_cosponsor).collect();
 
-/// Inserts a bill cosponsor. Skips duplicates silently.
-pub async fn insert_bill_cosponsor(
-    tx: &mut Transaction<'_, Postgres>,
-    cosponsor: &InsertBillCosponsorParams,
-) -> Result<()> {
     sqlx::query(
         r#"
-INSERT INTO bill_cosponsors (billtype, billnumber, congress, bioguide_id, full_name, state, party, sponsorship_date, is_original_cosponsor)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+WITH deleted AS (
+    DELETE FROM bill_cosponsors
+    WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+)
+INSERT INTO bill_cosponsors
+    (billtype, billnumber, congress, bioguide_id, full_name, state, party, sponsorship_date, is_original_cosponsor)
+SELECT $1, $2, $3, *
+FROM UNNEST($4::text[], $5::text[], $6::text[], $7::text[], $8::date[], $9::bool[])
 ON CONFLICT ON CONSTRAINT bill_cosponsors_pkey DO NOTHING
         "#,
     )
-    .bind(&cosponsor.billtype)
-    .bind(cosponsor.billnumber)
-    .bind(cosponsor.congress)
-    .bind(&cosponsor.bioguide_id)
-    .bind(&cosponsor.full_name)
-    .bind(&cosponsor.state)
-    .bind(&cosponsor.party)
-    .bind(cosponsor.sponsorship_date)
-    .bind(cosponsor.is_original_cosponsor)
+    .bind(billtype)       // $1
+    .bind(billnumber)     // $2
+    .bind(congress)       // $3
+    .bind(&bioguide_ids)  // $4
+    .bind(&full_names)    // $5
+    .bind(&states)        // $6
+    .bind(&parties)       // $7
+    .bind(&dates)         // $8
+    .bind(&originals)     // $9
     .execute(&mut **tx)
     .await?;
     Ok(())
 }
 
-/// Inserts or updates a committee in the `committees` reference table.
-pub async fn insert_committee(
-    tx: &mut Transaction<'_, Postgres>,
-    committee: &InsertCommitteeParams,
-) -> Result<()> {
-    sqlx::query(
-        r#"
-INSERT INTO committees (committee_code, committee_name, chamber)
-VALUES ($1, $2, $3)
-ON CONFLICT (committee_code) DO UPDATE SET
-    committee_name = excluded.committee_name,
-    chamber = excluded.chamber
-        "#,
-    )
-    .bind(&committee.committee_code)
-    .bind(&committee.committee_name)
-    .bind(&committee.chamber)
-    .execute(&mut **tx)
-    .await?;
-    Ok(())
-}
-
-/// Deletes all committee associations for a bill.
-pub async fn delete_bill_committees(
+/// Batch-upserts committees into the reference table, deletes existing
+/// bill-committee associations, and re-inserts them — all in one round-trip.
+///
+/// The CTE chain:
+///   1. `upserted_committees`: UNNEST + INSERT ... ON CONFLICT DO UPDATE
+///      into the `committees` reference table.
+///   2. `deleted`: DELETE existing bill_committees rows for this bill.
+///   3. Final INSERT: Re-insert bill_committees from UNNEST of committee codes.
+pub async fn replace_bill_committees(
     tx: &mut Transaction<'_, Postgres>,
     billtype: &str,
     billnumber: i32,
     congress: i32,
+    committees: &[InsertCommitteeParams],
 ) -> Result<()> {
-    sqlx::query(
-        "DELETE FROM bill_committees WHERE billtype = $1 AND billnumber = $2 AND congress = $3",
-    )
-    .bind(billtype)
-    .bind(billnumber)
-    .bind(congress)
-    .execute(&mut **tx)
-    .await?;
-    Ok(())
-}
+    let codes: Vec<String> = committees.iter().map(|c| c.committee_code.clone()).collect();
+    let names: Vec<Option<String>> = committees.iter().map(|c| c.committee_name.clone()).collect();
+    let chambers: Vec<Option<String>> = committees.iter().map(|c| c.chamber.clone()).collect();
 
-/// Links a bill to a committee in the `bill_committees` join table.
-pub async fn insert_bill_committee(
-    tx: &mut Transaction<'_, Postgres>,
-    billtype: &str,
-    billnumber: i32,
-    congress: i32,
-    committee_code: &str,
-) -> Result<()> {
     sqlx::query(
         r#"
+WITH upserted_committees AS (
+    INSERT INTO committees (committee_code, committee_name, chamber)
+    SELECT * FROM UNNEST($4::text[], $5::text[], $6::text[])
+    ON CONFLICT (committee_code) DO UPDATE SET
+        committee_name = excluded.committee_name,
+        chamber = excluded.chamber
+),
+deleted AS (
+    DELETE FROM bill_committees
+    WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+)
 INSERT INTO bill_committees (billtype, billnumber, congress, committee_code)
-VALUES ($1, $2, $3, $4)
+SELECT $1, $2, $3, *
+FROM UNNEST($4::text[])
 ON CONFLICT ON CONSTRAINT bill_committees_pkey DO NOTHING
         "#,
     )
-    .bind(billtype)
-    .bind(billnumber)
-    .bind(congress)
-    .bind(committee_code)
+    .bind(billtype)     // $1
+    .bind(billnumber)   // $2
+    .bind(congress)     // $3
+    .bind(&codes)       // $4  (used in both upserted_committees and final INSERT)
+    .bind(&names)       // $5
+    .bind(&chambers)    // $6
     .execute(&mut **tx)
     .await?;
     Ok(())
 }
 
-/// Deletes all subjects for a bill.
-pub async fn delete_bill_subjects(
+/// Deletes existing subjects and batch-inserts new ones in a single
+/// CTE round-trip.
+pub async fn replace_bill_subjects(
     tx: &mut Transaction<'_, Postgres>,
     billtype: &str,
     billnumber: i32,
     congress: i32,
+    subjects: &[InsertBillSubjectParams],
 ) -> Result<()> {
-    sqlx::query(
-        "DELETE FROM bill_subjects WHERE billtype = $1 AND billnumber = $2 AND congress = $3",
-    )
-    .bind(billtype)
-    .bind(billnumber)
-    .bind(congress)
-    .execute(&mut **tx)
-    .await?;
-    Ok(())
-}
+    let subject_names: Vec<String> = subjects.iter().map(|s| s.subject.clone()).collect();
 
-/// Inserts a bill subject. Skips duplicates silently.
-pub async fn insert_bill_subject(
-    tx: &mut Transaction<'_, Postgres>,
-    subject: &InsertBillSubjectParams,
-) -> Result<()> {
     sqlx::query(
         r#"
+WITH deleted AS (
+    DELETE FROM bill_subjects
+    WHERE billtype = $1 AND billnumber = $2 AND congress = $3
+)
 INSERT INTO bill_subjects (billtype, billnumber, congress, subject)
-VALUES ($1, $2, $3, $4)
+SELECT $1, $2, $3, *
+FROM UNNEST($4::text[])
 ON CONFLICT ON CONSTRAINT bill_subjects_pkey DO NOTHING
         "#,
     )
-    .bind(&subject.billtype)
-    .bind(subject.billnumber)
-    .bind(subject.congress)
-    .bind(&subject.subject)
+    .bind(billtype)         // $1
+    .bind(billnumber)       // $2
+    .bind(congress)         // $3
+    .bind(&subject_names)   // $4
     .execute(&mut **tx)
     .await?;
     Ok(())
