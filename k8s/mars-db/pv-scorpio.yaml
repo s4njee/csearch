@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pg-cluster-3-scorpio
+spec:
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  storageClassName: local-path
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: postgres-cnpg
+    name: pg-cluster-3
+  local:
+    path: /var/lib/rancher/k3s/storage/pg-cluster-3
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - scorpio
