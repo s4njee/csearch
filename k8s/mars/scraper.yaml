@@ -36,7 +36,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: updater
-              image: registry.s8njee.com/csearch-updater:latest
+              image: registry.s8njee.com/csearch-updater:34b3201a9ac0e8dbbf4d897279016f7309642497
               imagePullPolicy: Always
               securityContext:
                 allowPrivilegeEscalation: false
