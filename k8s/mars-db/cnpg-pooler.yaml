@@ -9,7 +9,7 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Pooler
 metadata:
   name: csearch-pooler
-  namespace: default
+  namespace: postgres-cnpg
   labels:
     app.kubernetes.io/name: pgbouncer
 spec:

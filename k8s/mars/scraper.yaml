@@ -48,29 +48,20 @@ spec:
                 - name: CONGRESSDIR
                   value: /srv/csearch
                 - name: POSTGRESURI
-                  valueFrom:
-                    configMapKeyRef:
-                      name: postgres-config
-                      key: POSTGRES_RW_HOST
+                  value: pg-cluster-rw.postgres-cnpg.svc.cluster.local
                 - name: REDIS_URL
                   value: "redis://csearch-redis:6379"
                 - name: LOG_LEVEL
                   value: "info"
                 - name: DB_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: pg-cluster-app
-                      key: username
+                  value: postgres
                 - name: DB_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: pg-cluster-app
-                      key: password
+                      name: postgres-auth
+                      key: POSTGRES_PASSWORD
                 - name: DB_NAME
-                  valueFrom:
-                    secretKeyRef:
-                      name: pg-cluster-app
-                      key: dbname
+                  value: csearch
                 - name: RUN_BILLS
                   value: "true"
                 - name: RUN_VOTES
