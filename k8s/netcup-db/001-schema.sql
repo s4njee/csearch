@@ -7,6 +7,7 @@
 BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+SET ROLE csearch;
 
 CREATE TABLE bills (
     billid              text,
@@ -301,4 +302,5 @@ CREATE OR REPLACE FUNCTION search_votes(
     LIMIT GREATEST(result_limit, 1);
 $$;
 
+RESET ROLE;
 COMMIT;
