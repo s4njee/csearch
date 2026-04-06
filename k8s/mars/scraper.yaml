@@ -20,6 +20,8 @@ spec:
             app.kubernetes.io/component: scraper
         spec:
           restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: freya
           imagePullSecrets:
             - name: registry-s8njee-pull
           dnsConfig:
@@ -54,12 +56,15 @@ spec:
                 - name: LOG_LEVEL
                   value: "info"
                 - name: DB_USER
-                  value: postgres
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-auth
+                      key: username
                 - name: DB_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: postgres-auth
-                      key: POSTGRES_PASSWORD
+                      key: password
                 - name: DB_NAME
                   value: csearch
                 - name: RUN_BILLS
