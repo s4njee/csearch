@@ -48,6 +48,7 @@ pub struct Config {
     pub db_user: String,
     pub db_password: String,
     pub db_name: String,
+    pub db_write_concurrency: u32,
 
     /// `u16` = unsigned 16-bit integer (0–65535). Rust has explicit integer
     /// sizes unlike Python (arbitrary precision) or JS (all numbers are f64).
@@ -122,6 +123,10 @@ impl Config {
             db_user: env::var("DB_USER").unwrap_or_else(|_| "postgres".to_string()),
             db_password: env::var("DB_PASSWORD").unwrap_or_else(|_| "postgres".to_string()),
             db_name: env::var("DB_NAME").unwrap_or_else(|_| "csearch".to_string()),
+            db_write_concurrency: env::var("DB_WRITE_CONCURRENCY")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .unwrap_or(4),
             // `.ok()` converts `Result` to `Option` (discarding the error).
             // `.and_then(...)` chains an operation on the inner value if present.
             // `.unwrap_or(5432)` provides the default if parsing fails or var is missing.

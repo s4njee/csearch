@@ -34,11 +34,6 @@ use crate::models::{
     InsertCommitteeParams, InsertVoteMemberParams, InsertVoteParams,
 };
 
-
-/// Maximum number of concurrent database connections in the pool.
-/// `u32` because sqlx's pool API expects an unsigned 32-bit int.
-const DB_WRITE_CONCURRENCY: u32 = 4;
-
 /// SQL to ensure the `committees` table exists and is populated.
 ///
 /// `r#"..."#` is a raw string literal — backslashes and quotes inside
@@ -93,7 +88,7 @@ END $$;
 /// Python objects), so cloning is cheap (just increments a counter).
 pub async fn open_pool(cfg: &Config) -> Result<PgPool> {
     let pool = PgPoolOptions::new()
-        .max_connections(DB_WRITE_CONCURRENCY)
+        .max_connections(cfg.db_write_concurrency)
         .connect(&cfg.postgres_dsn())
         .await
         // `.context(...)` adds a human-readable message to errors.

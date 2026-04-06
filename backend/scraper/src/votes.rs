@@ -56,10 +56,6 @@ use crate::util::{file_exists, option_string, parse_date_value};
 /// Set to 64 to parallelize CPU-bound JSON parsing across threads.
 const WORKER_LIMIT: usize = 64;
 
-/// Maximum number of concurrent database write tasks.
-/// Set to 4 to match the database connection pool size.
-const DB_WRITE_CONCURRENCY: usize = 4;
-
 /// A pending vote file to be processed.
 /// This is a simple container struct — like a Python dataclass or JS object.
 struct VoteJob {
@@ -167,16 +163,16 @@ pub async fn process_votes(
         // Phase 2: Write parsed votes to the database
         // ====================================================================
         //
-        // We create a semaphore with 4 permits (matching the DB pool size)
+        // We create a semaphore with permits matching the DB pool size
         // and spawn an async task for each vote. The semaphore ensures at
-        // most 4 DB writes happen concurrently.
+        // most that many DB writes happen concurrently.
         //
         // `Arc::new(...)` wraps the semaphore in an atomic reference count
         // so it can be shared across spawned tasks. Each `write_sem.clone()`
         // creates a new reference to the SAME semaphore (cheap, just bumps
         // a counter).
         // ====================================================================
-        let write_sem = Arc::new(Semaphore::new(DB_WRITE_CONCURRENCY));
+        let write_sem = Arc::new(Semaphore::new(cfg.db_write_concurrency as usize));
         let mut write_tasks = JoinSet::new();
 
         for changed_vote in collected.changed_votes {
@@ -201,7 +197,7 @@ pub async fn process_votes(
             // in JS.
             write_tasks.spawn(async move {
                 // Acquire a semaphore permit. This `.await` suspends until
-                // a permit is available (at most 4 tasks can hold permits).
+                // a permit is available.
                 // `_permit` keeps the permit alive; it's released when this
                 // variable is dropped (when the async block ends).
                 let _permit = write_sem.acquire_owned().await?;
