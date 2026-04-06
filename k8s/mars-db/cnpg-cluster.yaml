@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/component: database-ha
 spec:
   instances: 3
-  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-system-trixie
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.1
   imagePullPolicy: IfNotPresent
   storage:
     size: 30Gi
