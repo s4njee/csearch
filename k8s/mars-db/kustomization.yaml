@@ -2,14 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - namespace.yaml
-  - sealed-secret-postgres-auth-default.yaml
-  - sealed-secret-postgres-auth-postgres-cnpg.yaml
-  - pv-orion.yaml
-  - pv-apollo.yaml
-  - pv-scorpio.yaml
-  - cnpg-cluster.yaml
-  - cnpg-pooler.yaml
+  - postgres-config.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
 
 configMapGenerator:
   - name: postgres-schema

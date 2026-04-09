@@ -55,7 +55,7 @@ spec:
             - name: REDIS_URL
               value: redis://csearch-redis:6379
             - name: POSTGRESURI
-              value: pg-cluster-rw.postgres-cnpg.svc.cluster.local
+              value: pg-cluster-rw.default.svc.cluster.local
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
