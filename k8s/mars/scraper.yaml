@@ -50,7 +50,7 @@ spec:
                 - name: CONGRESSDIR
                   value: /srv/csearch
                 - name: POSTGRESURI
-                  value: pg-cluster-rw.postgres-cnpg.svc.cluster.local
+                  value: pg-cluster-rw.default.svc.cluster.local
                 - name: REDIS_URL
                   value: "redis://csearch-redis:6379"
                 - name: LOG_LEVEL
@@ -69,6 +69,8 @@ spec:
                   value: csearch
                 - name: DB_WRITE_CONCURRENCY
                   value: "1"
+                - name: BILL_WRITE_MODE
+                  value: "incremental"
                 - name: RUN_BILLS
                   value: "true"
                 - name: RUN_VOTES
