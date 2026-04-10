@@ -2,87 +2,82 @@
 
 A monorepo for ingesting, storing, querying, and presenting U.S. congressional bill and vote data.
 
-```
-GovInfo + congress.gov
-        |
-        v
-  scraper  -->  PostgreSQL  -->  FastAPI  -->  frontend
-                     |            ^
-                     +-- Redis ---+
-                     |
-              nlp.bill_chunks
-              nlp.bill_embeddings  (pgvector)
-                     ^
-                     |
-              nightly-updater (OpenAI embeddings)
+```mermaid
+flowchart LR
+    src["GovInfo +\ncongress.gov"]
+    scraper["Scraper (Rust)"]
+    pg[("PostgreSQL\nnetcup")]
+    redis[("Redis")]
+    api["FastAPI"]
+    cf["Cloudflare Pages\ncsearch.org"]
+    nlp["NLP Pipeline\nnightly CronJob · freya\nOpenAI text-embedding-3-small"]
+    nlpdata[("nlp.bill_chunks\nnlp.bill_embeddings\npgvector HNSW")]
+
+    src --> scraper --> pg --> api --> cf
+    pg <--> redis <--> api
+    nlp --> nlpdata --> pg
 ```
 
-## Getting Started
+## What it does
 
-**Quick start:**
+- **Scraper** — Kubernetes CronJob that fetches bill and vote data from GovInfo and congress.gov, parses XML/JSON, and upserts normalized rows into Postgres. Bills from the 93rd Congress; votes from the 101st. Skips unchanged files using SHA-256 hashes.
+- **Database** — PostgreSQL is the system of record. Hosts the `public` schema (bills, votes, members, committees) and the `nlp` schema (bill chunks and pgvector embeddings).
+- **API** — FastAPI service (Python/uvicorn) serving bills, votes, search, member profiles, committee pages, parameterized explore queries, and semantic search. Hot routes cached in Redis.
+- **NLP / Semantic Search** — Nightly pipeline (freya cluster) fetches bill text, chunks it, generates embeddings via OpenAI `text-embedding-3-small`, and upserts into `nlp.bill_embeddings`. Queries use the pgvector HNSW index for cosine similarity.
+- **Frontend** — Nuxt 4 static site deployed to Cloudflare Pages. Also runs as an nginx container on the freya cluster for internal use.
+
+## Getting started locally
 
 ```bash
 # API
-cd backend/api_fastapi && pip install -e .
-POSTGRESURI=localhost REDIS_URL=redis://localhost:6379 uvicorn csearch_api.main:app --reload --port 3000
+cd backend/api_fastapi
+pip install -e .
+POSTGRESURI=localhost DB_USER=csearch DB_PASSWORD=... DB_NAME=csearch \
+  REDIS_URL=redis://localhost:6379 \
+  uvicorn csearch_api.main:app --reload --port 3000
 
 # Frontend
-cd frontend && npm install
+cd frontend
+npm install
 NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 
-# Scraper
+# Scraper (tests only — run the full scraper via k8s CronJob)
 cd backend/scraper && cargo test
 ```
 
-**Reading order for new contributors:**
-
-1. **This file** -- project overview and repo layout
-2. **[`docs/engineering-guide.md`](docs/engineering-guide.md)** -- mental model, source-of-truth map, common tasks, debugging
-3. **[`docs/deployment.md`](docs/deployment.md)** -- Argo CD flow, useful commands, change checklist
-4. **[`docs/caching.md`](docs/caching.md)** -- Redis behavior, invalidation, failure model
-5. **[`ARCHITECTURE.md`](ARCHITECTURE.md)** -- full runtime architecture, data flows, component details
-
-Then the README for the area you're changing:
-[`backend/scraper/`](backend/scraper/README.md) |
-[`backend/api_fastapi/`](backend/api_fastapi/README.md) |
-[`backend/nlp/`](backend/nlp/README.md) |
-[`frontend/`](frontend/README.md)
-
-## Repository Layout
+## Repository layout
 
 | Path | Description |
 | --- | --- |
 | `backend/scraper/` | Rust ingest pipeline with vendored Python scraper. Owns schema bootstrap, parsing, hash-based skip logic, and Redis cache invalidation. |
-| `backend/api_fastapi/` | FastAPI service (Python/uvicorn) with asyncpg queries, Redis route caching, and structured JSON logging. |
-| `backend/nlp/` | Git submodule — pgvector embedding pipeline and NLP implementation notes. |
-| `frontend/` | Nuxt 4 app -- static S3/CloudFront publishing, nginx container deploys, and local dev. |
-| `argo/` | Argo CD `Application` manifests (deployment control plane). |
+| `backend/api_fastapi/` | FastAPI service (Python/uvicorn). asyncpg queries, Redis route caching, structured JSON logging. |
+| `backend/nlp/` | Git submodule (`github.com/s4njee/csearch-nlp`). pgvector embedding pipeline and NLP implementation notes. |
+| `frontend/` | Nuxt 4 app. Deploys to Cloudflare Pages (csearch.org) and as an nginx container for cluster environments. |
+| `argo/` | Argo CD `Application` manifests — the deployment entry point. |
 | `k8s/` | Kubernetes workload manifests synced by Argo. |
-| `k8s/logging/` | Fluent Bit config, DaemonSet, collector, and optional Grafana dashboards. |
-| `docs/` | Engineering onboarding and operational docs. |
+| `k8s/netcup-core/` | API + Redis for netcup (production). |
+| `k8s/netcup-db/` | Postgres StatefulSet for netcup. |
+| `k8s/netcup-scraper/` | Scraper CronJob for netcup. |
+| `k8s/netcup-test-frontend/` | nginx frontend for `test.csearch.org` on netcup. |
+| `k8s/mars/` | API + Redis + scraper for freya cluster. |
+| `k8s/logging/` | Fluent Bit DaemonSet, collector, Grafana dashboards. |
 
-## Components
+## Key conventions
 
-**Scraper** -- Kubernetes CronJob. Fetches bill/vote source files via the vendored Python scraper, skips unchanged files using SHA-256 hashes, and upserts normalized data into Postgres. Covers bills from the 93rd Congress and votes from the 101st onward.
+- `backend/scraper/schema.sql` is the source of truth for the database schema.
+- `backend/scraper/explore.sql` is the source of truth for explore queries. The API reads a copy at `backend/api/sql/explore.sql`.
+- `backend/scraper/congress/` is vendored upstream code — do not edit.
+- `argo/applications/` is the deployment entry point for all environments.
+- NLP embeddings use `text-embedding-3-small` (1536 dimensions). Do not mix models or dimensions in `nlp.bill_embeddings`.
+- All images are pushed to `registry.s8njee.com`. CI builds on every push to `main`.
+- Secrets are managed via Bitnami SealedSecrets — never commit plaintext secrets.
 
-**Database** -- Postgres is the system of record. Schema bootstrapped from `backend/scraper/schema.sql`. Also hosts the `nlp` schema for vector embeddings via the `pgvector` extension.
+## Further reading
 
-**API** -- FastAPI service (Python/uvicorn) over Postgres. Serves bill/vote lists and detail, full-text search, member/committee pages, and explore queries. Hot routes cached in Redis (24h TTL).
-
-**NLP / Semantic Search** -- Nightly CronJob (`tarp-nightly-updater`) fetches bill text from GovInfo, chunks it, generates embeddings via OpenAI `text-embedding-3-small`, and upserts into `nlp.bill_chunks` + `nlp.bill_embeddings` in Postgres. Vector similarity queries use the HNSW index via `pgvector`. See [`backend/nlp/`](backend/nlp/) for implementation details.
-
-**Frontend** -- Nuxt 4 static site at csearch.org (S3 + CloudFront). Also supports nginx container deploys for cluster environments like test.csearch.org.
-
-**Logging** -- Structured JSON to stdout. Fluent Bit tails container logs and ships to the in-cluster collector or S3.
-
-## Key Conventions
-
-- Scraper runtime is handwritten Rust under `backend/scraper/src/`.
-- `backend/scraper/Cargo.toml` is source of truth for scraper dependencies.
-- `backend/scraper/explore.sql` is source of truth for explore queries; `backend/api_fastapi/src/csearch_api/` reads a copy at `backend/api/sql/explore.sql`.
-- `backend/scraper/congress/` is vendored upstream code.
-- `argo/applications/` is the default deployment entry point.
-- NLP embeddings use `text-embedding-3-small` (1536 dimensions). Do not mix embedding models or dimensions in `nlp.bill_embeddings`.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — runtime architecture, data flows, component details, caching
+- [`DEPLOY.md`](DEPLOY.md) — how to build and deploy each component, CI setup, secrets
+- [`backend/scraper/README.md`](backend/scraper/README.md) — scraper internals
+- [`backend/nlp/`](backend/nlp/) — NLP pipeline implementation and operational notes
 
 ## License
 
