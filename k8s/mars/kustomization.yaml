@@ -12,10 +12,10 @@ resources:
 images:
   - name: registry.s8njee.com/csearch-api
     newName: registry.s8njee.com/csearch-api
-    newTag: 7f7b185c16a8fcbf35bff56ddfc8a8c73fbba7c3
+    newTag: 9dac6ff98d125974ed0aad1c586cec117465989b
   - name: registry.s8njee.com/csearch-updater
     newName: registry.s8njee.com/csearch-updater
-    newTag: 7f7b185c16a8fcbf35bff56ddfc8a8c73fbba7c3
+    newTag: 9dac6ff98d125974ed0aad1c586cec117465989b
   - name: registry.s8njee.com/csearch-frontend
     newName: registry.s8njee.com/csearch-frontend
-    newTag: 7f7b185c16a8fcbf35bff56ddfc8a8c73fbba7c3
+    newTag: 9dac6ff98d125974ed0aad1c586cec117465989b
