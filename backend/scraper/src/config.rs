@@ -17,6 +17,12 @@ use std::sync::{Mutex, OnceLock};
 use anyhow::{Result, bail};
 use chrono::Datelike;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BillWriteMode {
+    Incremental,
+    Seed,
+}
+
 // ============================================================================
 // Config struct
 // ============================================================================
@@ -49,6 +55,8 @@ pub struct Config {
     pub db_password: String,
     pub db_name: String,
     pub db_write_concurrency: u32,
+    pub bill_write_mode: BillWriteMode,
+    pub bill_seed_chunk_size: usize,
 
     /// `u16` = unsigned 16-bit integer (0–65535). Rust has explicit integer
     /// sizes unlike Python (arbitrary precision) or JS (all numbers are f64).
@@ -127,6 +135,12 @@ impl Config {
                 .ok()
                 .and_then(|value| value.parse().ok())
                 .unwrap_or(4),
+            bill_write_mode: bill_write_mode_from_env(),
+            bill_seed_chunk_size: env::var("BILL_SEED_CHUNK_SIZE")
+                .ok()
+                .and_then(|value| value.parse().ok())
+                .filter(|value| *value > 0)
+                .unwrap_or(50),
             // `.ok()` converts `Result` to `Option` (discarding the error).
             // `.and_then(...)` chains an operation on the inner value if present.
             // `.unwrap_or(5432)` provides the default if parsing fails or var is missing.
@@ -200,6 +214,17 @@ pub fn env_enabled(name: &str, default_value: bool) -> bool {
     }
 }
 
+fn bill_write_mode_from_env() -> BillWriteMode {
+    let Ok(value) = env::var("BILL_WRITE_MODE") else {
+        return BillWriteMode::Incremental;
+    };
+
+    match value.trim().to_ascii_lowercase().as_str() {
+        "seed" | "batched" | "batch" => BillWriteMode::Seed,
+        _ => BillWriteMode::Incremental,
+    }
+}
+
 // ============================================================================
 // Tests
 // ============================================================================
@@ -251,6 +276,9 @@ mod tests {
         assert_eq!(cfg.postgres_uri, "localhost");
         assert!(!cfg.run_votes);
         assert!(cfg.run_bills);
+        assert_eq!(cfg.db_write_concurrency, 4);
+        assert_eq!(cfg.bill_write_mode, BillWriteMode::Incremental);
+        assert_eq!(cfg.bill_seed_chunk_size, 50);
         assert_eq!(cfg.log_level, "debug");
     }
 

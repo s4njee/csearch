@@ -44,7 +44,9 @@ data:
     [FILTER]
         Name                grep
         Match               kube.*
-        Regex               $kubernetes['labels']['app.kubernetes.io/name'] ^(csearch-api|csearch-updater)$
+        Regex               $kubernetes['labels']['app.kubernetes.io/name'] ^csearch-api$
+        Regex               msg ^request completed$
+        Exclude             route ^/health$
 
     [OUTPUT]
         Name          http

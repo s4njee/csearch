@@ -13,19 +13,12 @@ fi
 source "$ENV_FILE"
 
 echo "==> Building..."
-NUXT_API_SERVER="$NUXT_API_SERVER" npx nuxt generate
+NUXT_API_SERVER="$NUXT_API_SERVER" npm run generate
 
 echo "==> Writing deploy timestamp..."
 echo "{\"updated_at\": \"$(TZ=America/Chicago date +%Y-%m-%dT%H:%M:%S%z)\"}" > .output/public/meta.json
 
-echo "==> Syncing to S3..."
-aws s3 sync .output/public/ "$S3_BUCKET" --delete
-
-echo "==> Invalidating CloudFront..."
-aws cloudfront create-invalidation \
-  --distribution-id "$CF_DIST_CSEARCH" \
-  --paths "/*" \
-  --query "Invalidation.{Id:Id,Status:Status}" \
-  --output table
+echo "==> Deploying to Cloudflare Pages..."
+npx wrangler pages deploy .output/public --project-name "${CF_PAGES_PROJECT:-csearch}"
 
 echo "==> Done."

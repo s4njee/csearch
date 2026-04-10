@@ -1,4 +1,4 @@
-name: Build And Deploy Mars Images
+name: Build Images
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/api_fastapi/Dockerfile
+          file: backend/api/Dockerfile
           push: true
           platforms: linux/amd64
           tags: |

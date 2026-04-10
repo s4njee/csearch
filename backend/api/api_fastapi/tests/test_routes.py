@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
 from csearch_api.main import create_app
+from csearch_api.settings import Settings
+from csearch_api.routes import semantic as semantic_route
 
 
 @dataclass
@@ -83,6 +86,11 @@ def build_client(db: FakeDB | None = None):
     return TestClient(app)
 
 
+def build_client_with_settings(db: FakeDB | None = None, settings: Settings | None = None):
+    app = create_app(settings=settings or Settings(openai_api_key="test-key"), db=db or FakeDB(), cache=FakeCache())
+    return TestClient(app)
+
+
 def test_root():
     client = build_client()
     response = client.get("/")
@@ -150,6 +158,60 @@ def test_bill_detail():
     assert len(body["cosponsors"]) == 1
     assert len(body["votes"]) == 1
     assert len(body["committees"]) == 1
+
+
+def test_semantic_search_returns_bill_metadata(monkeypatch):
+    class FakeEmbeddings:
+        async def create(self, model: str, input: str):
+            return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = FakeEmbeddings()
+
+    monkeypatch.setattr(semantic_route, "AsyncOpenAI", FakeOpenAI)
+
+    db = SequencedDB(
+        fetch_results=[
+            [{
+                "bill_id": "hr42-119",
+                "congress": 119,
+                "bill_type": "hr",
+                "bill_number": "42",
+                "title": "Test Infrastructure Act",
+                "status": "active",
+                "body": "Build test infrastructure",
+                "chunk_type": "section",
+                "section_header": "Summary",
+                "billid": 1001,
+                "shorttitle": "Test Infrastructure Act",
+                "officialtitle": "A bill to invest in test infrastructure",
+                "introducedat": "2025-01-15",
+                "summary_text": "Provides funding for automated testing infrastructure.",
+                "sponsor_name": "Jane Doe",
+                "sponsor_party": "D",
+                "sponsor_state": "CA",
+                "sponsor_bioguide_id": "D000001",
+                "bill_status": "passed",
+                "statusat": "2025-03-01",
+                "policy_area": "Science, Technology, Communications",
+                "latest_action_date": "2025-03-01",
+                "origin_chamber": "House",
+                "cosponsor_count": 12,
+                "similarity": 0.98,
+            }],
+        ],
+    )
+    client = build_client_with_settings(db)
+
+    response = client.post("/search/semantic", json={"query": "testing infrastructure"})
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["sponsor_name"] == "Jane Doe"
+    assert body[0]["cosponsor_count"] == 12
+    assert body[0]["policy_area"] == "Science, Technology, Communications"
+    assert "JOIN public.bills" in db.last_query
 
 
 def test_votes_latest_and_detail_and_explore():

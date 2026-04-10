@@ -72,6 +72,7 @@ module.exports = async function (fastify, opts) {
         query: searchQuery,
         table,
         filter,
+        clientIp: request.ip,
         resultCount: results.length
       }, 'search executed')
       return results
@@ -89,6 +90,7 @@ module.exports = async function (fastify, opts) {
         query: searchQuery,
         table,
         filter,
+        clientIp: request.ip,
         resultCount: results.length
       }, 'search executed')
       return results
