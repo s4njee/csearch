@@ -5,6 +5,7 @@ resources:
   - redis.yaml
   - api.yaml
   - api-ingress.yaml
+  - csearch-api-openai-sealedsecret.yaml
 
 images:
   - name: registry.s8njee.com/csearch-api

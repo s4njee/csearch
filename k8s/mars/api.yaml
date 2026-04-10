@@ -68,6 +68,11 @@ spec:
                   key: password
             - name: DB_NAME
               value: csearch
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: csearch-api-openai
+                  key: OPENAI_API_KEY
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
