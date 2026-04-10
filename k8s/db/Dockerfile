@@ -1,4 +1,4 @@
-FROM postgres:15
+FROM postgres:18
 
 # Build this image from the repo root:
 # docker build -f k8s/db/Dockerfile .
