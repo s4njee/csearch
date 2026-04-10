@@ -119,6 +119,18 @@
   color: var(--accent-dim);
 }
 
+.similarity-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--accent-primary);
+  color: var(--accent-primary);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
 .family-card__route {
   white-space: nowrap;
   overflow: hidden;
