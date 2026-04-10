@@ -42,6 +42,32 @@ export function useCongressApi() {
       apiFetch<BillRecord[]>(withQuery(`/search/${billType}/${filter}`, { query })),
     searchAllBills: (query: string) =>
       apiFetch<BillRecord[]>(withQuery('/search/all/relevance', { query })),
+    semanticSearch: async (query: string): Promise<BillRecord[]> => {
+      const rows = await $fetch<Array<{
+        bill_id: string
+        congress: number
+        title: string
+        status: string
+        body: string
+        chunk_type: string
+        section_header: string
+        similarity: number
+      }>>(`${apiBase}/search/semantic`, { method: 'POST', body: { query } })
+      return rows.map((row) => {
+        const m = row.bill_id.match(/^([a-z]+)(\d+)-(\d+)$/)
+        return {
+          billid: row.bill_id,
+          billtype: m ? m[1] : '',
+          billnumber: m ? m[2] : '',
+          congress: String(row.congress),
+          officialtitle: row.title,
+          summary_text: row.body,
+          statusat: '',
+          bill_status: row.status,
+          similarity: row.similarity,
+        }
+      })
+    },
     getBill: (billType: string, congress: string, billNumber: string) =>
       apiFetch<BillDetail>(`/bills/${billType}/${congress}/${billNumber}`),
     fetchBillsByNumber: (number: string) =>
