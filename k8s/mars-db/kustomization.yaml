@@ -3,8 +3,8 @@ kind: Kustomization
 
 resources:
   - postgres-config.yaml
-  - cnpg-cluster.yaml
-  - cnpg-pooler.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
 
 configMapGenerator:
   - name: postgres-schema

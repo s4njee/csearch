@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/s4njee/csearch.git
-    targetRevision: main
+    targetRevision: optimize
     path: k8s/mars-db
   destination:
     server: https://kubernetes.default.svc

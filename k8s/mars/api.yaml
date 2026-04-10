@@ -40,7 +40,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: registry.s8njee.com/csearch-api:latest
+          image: registry.s8njee.com/csearch-fastapi:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -55,25 +55,19 @@ spec:
             - name: REDIS_URL
               value: redis://csearch-redis:6379
             - name: POSTGRESURI
-              valueFrom:
-                configMapKeyRef:
-                  name: postgres-config
-                  key: POSTGRES_POOLER_HOST
+              value: pg-cluster-rw.default.svc.cluster.local
             - name: DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: pg-cluster-app
+                  name: postgres-auth
                   key: username
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: pg-cluster-app
+                  name: postgres-auth
                   key: password
             - name: DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: pg-cluster-app
-                  key: dbname
+              value: csearch
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
