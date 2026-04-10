@@ -15,12 +15,22 @@ backend/scraper/scraper
 
 # Python virtualenv and build artifacts
 **/env/
+**/__pycache__/
+**/*.pyc
 backend/scraper/build/
 backend/scraper/cache/
 backend/scraper/*.egg-info/
+backend/scraper/congress/cache/
+backend/scraper/congress/build/
+backend/scraper/congress/env/
+backend/scraper/congress/*.gob
 
 # Node modules
 **/node_modules/
+
+# Nuxt build output
+frontend/.nuxt/
+frontend/.output/
 
 # NYC test coverage
 **/.nyc_output/

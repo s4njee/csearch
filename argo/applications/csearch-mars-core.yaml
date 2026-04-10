@@ -3,6 +3,12 @@ kind: Application
 metadata:
   name: csearch-mars-core
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: fastapi=registry.s8njee.com/csearch-fastapi,scraper=registry.s8njee.com/csearch-updater,frontend=registry.s8njee.com/csearch-frontend
+    argocd-image-updater.argoproj.io/fastapi.update-strategy: digest
+    argocd-image-updater.argoproj.io/scraper.update-strategy: digest
+    argocd-image-updater.argoproj.io/frontend.update-strategy: digest
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   project: default
   source:

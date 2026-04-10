@@ -45,37 +45,6 @@ async function app(fastify, opts) {
     timeWindow: '1 minute'
   });
 
-  // Record one structured line per completed request so latency and cache
-  // behavior can be queried directly from stdout logs.
-  fastify.addHook('onResponse', (request, reply, done) => {
-    request.log.info({
-      responseTime: reply.elapsedTime,
-      statusCode: reply.statusCode,
-      cache: reply.getHeader('X-Cache') || 'NONE',
-      route: request.routeOptions?.url || request.url
-    }, 'request completed')
-    done()
-  });
-
-  // Keep error logs tied to the request context instead of relying on the
-  // default Fastify 500 handler alone.
-  fastify.setErrorHandler((error, request, reply) => {
-    const statusCode = error.statusCode || 500;
-    const log = statusCode >= 500 ? request.log.error.bind(request.log) : request.log.warn.bind(request.log);
-
-    log({
-      err: error,
-      route: request.routeOptions?.url || request.url,
-      statusCode
-    }, 'request failed');
-
-    if (error.headers) {
-      reply.headers(error.headers);
-    }
-
-    reply.status(statusCode).send(error);
-  });
-
   // 2. Graceful Shutdown (Zero-Downtime Rollout connection draining)
   const db = require('./controllers/db');
   const cache = require('./utils/cache');

@@ -24,7 +24,7 @@ The implementation lives in [`backend/api/utils/cache.js`](../backend/api/utils/
 
 ### Scraper-driven invalidation
 
-The scraper clears all `csearch:*` keys after a run that wrote at least one changed bill or vote row. This happens at the end of the ingest pipeline in `backend/scraper/main.go` and `backend/scraper/runtime.go`.
+The scraper clears all `csearch:*` keys after a run that wrote at least one changed bill or vote row. This happens at the end of the ingest pipeline in `backend/scraper/src/main.rs` and `backend/scraper/src/redis_cache.rs`.
 
 ### Manual invalidation
 
@@ -97,8 +97,8 @@ POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 npm run dev
 | `backend/api/routes/latestVote.js` | Latest vote caching |
 | `backend/api/routes/exploreRoute.js` | Explore query caching |
 | `backend/api/routes/adminRoute.js` | Manual cache clear endpoint |
-| `backend/scraper/main.go` | Scraper-triggered invalidation |
-| `backend/scraper/runtime.go` | Redis connection and key clearing |
+| `backend/scraper/src/main.rs` | Scraper-triggered invalidation |
+| `backend/scraper/src/redis_cache.rs` | Redis connection and key clearing |
 
 ## Common Issues
 
