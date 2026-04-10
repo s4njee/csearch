@@ -4,7 +4,7 @@ import type { BillRecord, CommitteeRecord } from '~/types/congress'
 
 const route = useRoute()
 const router = useRouter()
-const { latestBills, searchBills, getCommittees } = useCongressApi()
+const { latestBills, semanticSearch, getCommittees } = useCongressApi()
 const { data: loadedCommittees } = await useAsyncData(
   'bill-committee-options',
   () => getCommittees(),
@@ -248,7 +248,7 @@ const categoryLabel = computed(() => {
 
 const headline = computed(() => {
   return searchQuery.value
-    ? `${categoryLabel.value} search`
+    ? 'Semantic bill search'
     : `Latest ${categoryLabel.value.toLowerCase()}`
 })
 
@@ -330,7 +330,7 @@ async function loadBills() {
 
   try {
     bills.value = searchQuery.value
-      ? await searchBills(selectedCategory.value, selectedSort.value, searchQuery.value)
+      ? await semanticSearch(searchQuery.value)
       : await latestBills(selectedCategory.value)
   }
   catch (error: any) {
@@ -407,7 +407,7 @@ watch(
         <div>
           <p class="eyebrow">Bill routes</p>
           <h1>{{ headline }}</h1>
-          <p class="lede">Browse or search legislation by type.</p>
+          <p class="lede">{{ searchQuery ? 'Ranked by semantic similarity across all congresses.' : 'Browse or search legislation by type.' }}</p>
         </div>
       </div>
 
@@ -589,13 +589,15 @@ watch(
         <div class="result-card__header">
           <div>
             <p class="result-card__meta">
-              {{ categoryShortLabel }} {{ bill.billnumber || '—' }} · Congress {{ bill.congress || '—' }}
+              {{ bill.billtype.toUpperCase() }} {{ bill.billnumber || '—' }} · Congress {{ bill.congress || '—' }}
+              <span v-if="bill.similarity != null" class="similarity-badge">
+                {{ Math.round(bill.similarity * 100) }}% match
+              </span>
             </p>
             <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="link-plain">
               <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
             </NuxtLink>
           </div>
-
         </div>
 
         <p class="result-card__summary">

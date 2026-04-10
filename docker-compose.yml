@@ -2,7 +2,7 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: k8s/db/Dockerfile
+      dockerfile: k8s/archive/legacy/db/Dockerfile
     environment:
       POSTGRES_DB: csearch
       POSTGRES_USER: postgres

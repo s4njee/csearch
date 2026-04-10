@@ -21,6 +21,7 @@ export interface BillRecord {
   cosponsor_count?: number | null
   bill_status?: string | null
   committee_codes?: string[] | null
+  similarity?: number | null
 }
 
 // ─── Bill detail (returned by /bills/:billtype/:congress/:billnumber) ─────────

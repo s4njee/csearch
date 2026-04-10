@@ -67,7 +67,7 @@ The NLP endpoint is ClusterIP (internal only) by default, so only services withi
 Answer: No auth is fine for now since we are deploying locally. Add note for prod deployment to reinvestigate this.
 
 **9. Separate repo or monorepo?**
-Keeping `csearch-nlp` as a subdirectory of `csearch-updater-root` (this repo) is simpler for ArgoCD — one repo to configure. But it mixes a Go/Node project with a Python project, and CI/CD pipelines get more complex. A standalone repo is cleaner but means ArgoCD watches two repos and the projects share no code. Given that the NLP service is read-only and has no code dependencies on the existing CSearch backend, a standalone repo is the cleaner choice.
+Keeping `csearch-nlp` as a subdirectory of `csearch-updater-root` (this repo) is simpler for ArgoCD — one repo to configure. But it mixes a Rust/Node project with a Python project, and CI/CD pipelines get more complex. A standalone repo is cleaner but means ArgoCD watches two repos and the projects share no code. Given that the NLP service is read-only and has no code dependencies on the existing CSearch backend, a standalone repo is the cleaner choice.
 
 Answer: Let's make a new repo for this project. Add to implementation plan.
 

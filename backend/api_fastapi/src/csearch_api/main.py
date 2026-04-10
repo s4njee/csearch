@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from openai import AsyncOpenAI
 from starlette.middleware.base import RequestResponseEndpoint
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -59,9 +60,11 @@ async def lifespan(app: FastAPI):
 def create_app(settings: Settings | None = None, db: Database | None = None, cache: Cache | None = None) -> FastAPI:
     _install_logging()
     app = FastAPI(lifespan=lifespan)
-    app.state.settings = settings or get_settings()
+    resolved_settings = settings or get_settings()
+    app.state.settings = resolved_settings
     app.state.db = db
     app.state.cache = cache
+    app.state.openai_client = AsyncOpenAI(api_key=resolved_settings.openai_api_key) if resolved_settings.openai_api_key else None
 
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])

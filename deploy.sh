@@ -39,7 +39,7 @@ docker buildx build \
   --platform linux/amd64 \
   --push \
   -t "${REGISTRY}/csearch-postgres:latest" \
-  -f k8s/db/Dockerfile \
+  -f k8s/archive/legacy/db/Dockerfile \
   .
 
 echo ""
@@ -80,6 +80,16 @@ docker buildx build \
   -f frontend/Dockerfile.deploy \
   frontend
 
+echo ""
+echo "==> Building csearch-log-collector (linux/amd64)..."
+docker buildx build \
+  --platform linux/amd64 \
+  --push \
+  -t "${REGISTRY}/csearch-log-collector:latest" \
+  -t "${REGISTRY}/csearch-log-collector:${VCS_REF}" \
+  -f backend/log-collector/Dockerfile \
+  .
+
 # ---------------------------------------------------------------------------
 # Registry pull secret
 # ---------------------------------------------------------------------------
@@ -99,14 +109,14 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "==> Applying database config and secrets..."
-envsubst < k8s/db/config.yaml | ${KUBECTL} apply -f -
+envsubst < k8s/archive/legacy/db/config.yaml | ${KUBECTL} apply -f -
 ${KUBECTL} create configmap postgres-schema \
   --from-file=001-schema.sql=backend/scraper/schema.sql \
   --dry-run=client -o yaml | ${KUBECTL} apply -f -
 
 echo "==> Applying database deployment and service..."
-${KUBECTL} apply -f k8s/db/statefulset.yaml
-${KUBECTL} apply -f k8s/db/service.yaml
+${KUBECTL} apply -f k8s/archive/legacy/db/statefulset.yaml
+${KUBECTL} apply -f k8s/archive/legacy/db/service.yaml
 
 echo "==> Waiting for postgres to be ready..."
 ${KUBECTL} rollout status statefulset/postgres --timeout=120s
@@ -116,14 +126,14 @@ ${KUBECTL} rollout status statefulset/postgres --timeout=120s
 # ---------------------------------------------------------------------------
 echo ""
 echo "==> Applying Redis deployment..."
-${KUBECTL} apply -f k8s/redis/deployment.yaml
+${KUBECTL} apply -f k8s/archive/legacy/redis/deployment.yaml
 
 echo "==> Waiting for Redis to be ready..."
 ${KUBECTL} rollout status deployment/csearch-redis --timeout=120s
 
 echo ""
 echo "==> Applying API deployment..."
-envsubst < k8s/api/deployment.yaml | ${KUBECTL} apply -f -
+envsubst < k8s/archive/legacy/api/deployment.yaml | ${KUBECTL} apply -f -
 
 echo "==> Restarting API pods to pick up new image..."
 ${KUBECTL} rollout restart deployment/csearch-api
@@ -137,7 +147,7 @@ ${KUBECTL} rollout status deployment/csearch-api --timeout=120s
 if [[ "$SKIP_SCRAPER" == "false" ]]; then
   echo ""
   echo "==> Applying scraper CronJob..."
-  ${KUBECTL} apply -f k8s/scraper/cronjob.yaml
+  ${KUBECTL} apply -f k8s/archive/legacy/scraper/cronjob.yaml
 else
   echo ""
   echo "==> Skipping scraper k8s resources."
@@ -216,7 +226,7 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "==> Applying frontend RBAC..."
-${KUBECTL} apply -f k8s/frontend/rbac.yaml
+${KUBECTL} apply -f k8s/archive/legacy/frontend/rbac.yaml
 
 echo ""
 echo "==> Deploying frontend..."

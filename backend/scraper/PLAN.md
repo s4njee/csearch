@@ -1,5 +1,7 @@
 # csearch-rscraper — Porting Plan
 
+Historical note: this is the migration plan used while replacing the previous Go implementation with the current Rust scraper in `src/`. It is kept for implementation history, not as the current operational guide.
+
 Step-by-step plan for rewriting the csearch Go scraper in Rust. Each step is self-contained and testable before moving on.
 
 ---

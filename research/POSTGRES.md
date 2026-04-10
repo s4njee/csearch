@@ -169,5 +169,5 @@ Each research item should ideally answer the same questions:
 
 - Does it lower query latency or operational risk in a measurable way?
 - Does it keep the schema understandable for future maintenance?
-- Does it avoid unnecessary complexity in the Go scraper and Node API?
+- Does it avoid unnecessary complexity in the Rust scraper and Node API?
 - Does it fit the current Kubernetes deployment model without fragile one-off ops work?
