@@ -69,6 +69,8 @@ spec:
           envFrom:
             - secretRef:
                 name: csearch-api-secrets
+            - secretRef:
+                name: csearch-api-openai
           readinessProbe:
             httpGet:
               path: /health
