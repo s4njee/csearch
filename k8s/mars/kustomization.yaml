@@ -12,10 +12,10 @@ resources:
 images:
   - name: registry.s8njee.com/csearch-fastapi
     newName: registry.s8njee.com/csearch-fastapi
-    newTag: latest
+    newTag: 0e882c91cad3db7c245d509d10fd83971c8e3208
   - name: registry.s8njee.com/csearch-updater
     newName: registry.s8njee.com/csearch-updater
-    newTag: latest
+    newTag: 0e882c91cad3db7c245d509d10fd83971c8e3208
   - name: registry.s8njee.com/csearch-frontend
     newName: registry.s8njee.com/csearch-frontend
-    newTag: latest
+    newTag: 0e882c91cad3db7c245d509d10fd83971c8e3208
