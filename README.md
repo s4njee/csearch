@@ -2,20 +2,20 @@
 
 A monorepo for ingesting, storing, querying, and presenting U.S. congressional bill and vote data.
 
-```
-GovInfo + congress.gov
-        |
-        v
-  scraper (Rust) --> PostgreSQL (netcup) --> FastAPI --> Cloudflare Pages (csearch.org)
-                          |                    ^
-                          +---- Redis ---------+
-                          |
-                    nlp.bill_chunks
-                    nlp.bill_embeddings (pgvector, HNSW)
-                          ^
-                          |
-                  NLP pipeline (nightly CronJob, freya)
-                  OpenAI text-embedding-3-small
+```mermaid
+flowchart LR
+    src["GovInfo +\ncongress.gov"]
+    scraper["Scraper (Rust)"]
+    pg[("PostgreSQL\nnetcup")]
+    redis[("Redis")]
+    api["FastAPI"]
+    cf["Cloudflare Pages\ncsearch.org"]
+    nlp["NLP Pipeline\nnightly CronJob · freya\nOpenAI text-embedding-3-small"]
+    nlpdata[("nlp.bill_chunks\nnlp.bill_embeddings\npgvector HNSW")]
+
+    src --> scraper --> pg --> api --> cf
+    pg <--> redis <--> api
+    nlp --> nlpdata --> pg
 ```
 
 ## What it does
@@ -30,7 +30,7 @@ GovInfo + congress.gov
 
 ```bash
 # API
-cd backend/api_fastapi
+cd backend/api
 pip install -e .
 POSTGRESURI=localhost DB_USER=csearch DB_PASSWORD=... DB_NAME=csearch \
   REDIS_URL=redis://localhost:6379 \
@@ -50,7 +50,7 @@ cd backend/scraper && cargo test
 | Path | Description |
 | --- | --- |
 | `backend/scraper/` | Rust ingest pipeline with vendored Python scraper. Owns schema bootstrap, parsing, hash-based skip logic, and Redis cache invalidation. |
-| `backend/api_fastapi/` | FastAPI service (Python/uvicorn). asyncpg queries, Redis route caching, structured JSON logging. |
+| `backend/api/` | FastAPI service (Python/uvicorn). asyncpg queries, Redis route caching, structured JSON logging. |
 | `backend/nlp/` | Git submodule (`github.com/s4njee/csearch-nlp`). pgvector embedding pipeline and NLP implementation notes. |
 | `frontend/` | Nuxt 4 app. Deploys to Cloudflare Pages (csearch.org) and as an nginx container for cluster environments. |
 | `argo/` | Argo CD `Application` manifests — the deployment entry point. |

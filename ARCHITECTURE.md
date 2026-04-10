@@ -128,7 +128,7 @@ Extensions: `pgvector`, `pg_trgm` (full-text search).
 
 - **Image:** `registry.s8njee.com/csearch-fastapi:latest`
 - **Runtime:** Python 3.11, uvicorn, asyncpg, pydantic-settings, openai, redis
-- **Source:** `backend/api_fastapi/src/csearch_api/`
+- **Source:** `backend/api/src/csearch_api/`
 - **netcup manifests:** `k8s/netcup-core/api.yaml` → Argo app `csearch-netcup-core` (branch `main`)
 - **freya manifests:** `k8s/mars/api.yaml` → Argo app `csearch-mars-core` (branch `fastapi-api-rewrite`)
 
@@ -245,7 +245,7 @@ POST /search/semantic
 
 ### Image lifecycle
 
-**netcup:** CI (`.github/workflows/mars-images.yml`) builds `csearch-fastapi:latest`, `csearch-updater:latest`, and `csearch-frontend:latest` on every push to `main` touching `backend/api_fastapi/**`, `backend/scraper/**`, or `frontend/**`. Argo picks up `:latest` on next sync.
+**netcup:** CI (`.github/workflows/mars-images.yml`) builds `csearch-fastapi:latest`, `csearch-updater:latest`, and `csearch-frontend:latest` on every push to `main` touching `backend/api/**`, `backend/scraper/**`, or `frontend/**`. Argo picks up `:latest` on next sync.
 
 **freya:** Argo Image Updater (`argocd-image-updater-controller` in `argocd` namespace) polls `registry.s8njee.com` every 2 minutes. When the `:latest` digest changes, it updates the Application spec in-cluster (no git commit) and Argo rolls out the new image automatically.
 

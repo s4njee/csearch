@@ -21,7 +21,7 @@ The existing Fastify service remains in `backend/api/` while the rewrite grows.
 ## Run locally
 
 ```bash
-cd backend/api_fastapi
+cd backend/api
 python -m pip install -e ".[dev]"
 uvicorn csearch_api.main:app --host 0.0.0.0 --port 3000
 ```
