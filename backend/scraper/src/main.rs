@@ -144,6 +144,9 @@ async fn run() -> anyhow::Result<()> {
     info!(
         run_votes = cfg.run_votes,
         run_bills = cfg.run_bills,
+        db_write_concurrency = cfg.db_write_concurrency,
+        bill_write_mode = ?cfg.bill_write_mode,
+        bill_seed_chunk_size = cfg.bill_seed_chunk_size,
         "scraper run starting"
     );
 

@@ -245,7 +245,7 @@ POST /search/semantic
 
 ### Image lifecycle
 
-**netcup:** CI (`.github/workflows/mars-images.yml`) builds `csearch-fastapi:latest`, `csearch-updater:latest`, and `csearch-frontend:latest` on every push to `main` touching `backend/api/**`, `backend/scraper/**`, or `frontend/**`. Argo picks up `:latest` on next sync.
+**netcup:** CI (`.github/workflows/build-images.yml`) builds `csearch-fastapi:latest`, `csearch-updater:latest`, and `csearch-frontend:latest` on every push to `main` touching `backend/api/**`, `backend/scraper/**`, or `frontend/**`. Argo picks up `:latest` on next sync.
 
 **freya:** Argo Image Updater (`argocd-image-updater-controller` in `argocd` namespace) polls `registry.s8njee.com` every 2 minutes. When the `:latest` digest changes, it updates the Application spec in-cluster (no git commit) and Argo rolls out the new image automatically.
 

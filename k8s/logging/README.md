@@ -4,7 +4,7 @@ This directory contains the logging assets that are actively used by the repo-ow
 
 The default model is:
 
-1. the API and scraper write structured JSON to stdout
+1. Traefik writes structured JSON access logs to stdout
 2. Fluent Bit tails Kubernetes container logs
 3. Fluent Bit filters to CSearch workloads
 4. Fluent Bit ships those records either:
@@ -18,12 +18,12 @@ Optional Grafana and Loki dashboards are also stored here, but they are not the 
 | File or directory | Purpose |
 | --- | --- |
 | `fluent-bit-config.yaml` | Fluent Bit config for HTTP shipping |
-| `fluent-bit-config-s3.yaml` | Fluent Bit config for direct S3 output |
+| `fluent-bit-config-s3.yaml` | Fluent Bit config for ingress access logs to S3 |
 | `fluent-bit-daemonset.yaml` | Fluent Bit DaemonSet |
 | `fluent-bit-rbac.yaml` | RBAC for the DaemonSet |
 | `collector-deployment.yaml` | Tiny log collector deployment |
 | `collector-service.yaml` | Tiny log collector service |
-| `dashboards/` | Optional Grafana dashboards for API and scraper logs |
+| `dashboards/` | Optional Grafana dashboards for API logs, plus scraper-oriented examples |
 
 ## Deploy Modes
 
@@ -51,6 +51,8 @@ Behavior:
 - renders `fluent-bit-config-s3.yaml`
 - configures Fluent Bit's native `s3` output
 - optionally creates the `csearch-fluent-bit-aws` secret when static AWS credentials are provided
+- collects Traefik ingress access logs
+- writes plain JSON objects in a flat `/csearch/ingress/` prefix
 
 Important detail:
 
@@ -67,9 +69,9 @@ The current config intentionally stays narrow:
 
 - it tails `/var/log/containers/*.log`
 - it enriches records with Kubernetes metadata
-- it only keeps workloads whose `app.kubernetes.io/name` is:
-  - `csearch-api`
-  - `csearch-updater`
+- it only keeps workloads whose `app.kubernetes.io/name` is `traefik`
+- it ships only Traefik access logs with a `ClientAddr`
+- the tiny collector remains available for other shipping paths
 
 It does not read application files directly from `backend/scraper/congress/data` or other host paths.
 
@@ -108,7 +110,7 @@ kubectl get deployment csearch-log-collector
 kubectl logs deployment/csearch-log-collector
 ```
 
-Inspect API and scraper logs directly:
+Inspect API and scraper logs directly before collection:
 
 ```bash
 kubectl logs -l app.kubernetes.io/name=csearch-api --since=1h | jq .
@@ -123,7 +125,7 @@ They assume:
 
 - a datasource named `Loki`
 - labels such as `namespace`, `pod`, `container`, and `app`
-- JSON log bodies from the API and scraper
+- JSON log bodies from the API and scraper, if you wire a shipper that includes scraper logs
 
 Important detail:
 

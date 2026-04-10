@@ -77,7 +77,7 @@ func (c *collector) ingest(w http.ResponseWriter, r *http.Request) {
 		body = append(body, '\n')
 	}
 
-	body = filterHealthRequests(body)
+	body = filterAPIHits(body)
 	if len(body) == 0 {
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write([]byte("accepted\n"))
@@ -126,39 +126,26 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
+		if !shouldLogCollectorRequest(r.URL.Path) {
+			return
+		}
 		log.Printf("request completed method=%s path=%s remote=%s duration_ms=%.2f", r.Method, r.URL.Path, r.RemoteAddr, float64(time.Since(start).Microseconds())/1000)
 	})
 }
 
-func filterHealthRequests(body []byte) []byte {
+func shouldLogCollectorRequest(path string) bool {
+	return path != "/healthz" && path != "/ingest"
+}
+
+func filterAPIHits(body []byte) []byte {
 	lines := bytes.Split(body, []byte{'\n'})
 	kept := make([][]byte, 0, len(lines))
-	healthReqIDs := make(map[string]struct{})
 
 	for _, line := range lines {
 		if len(line) == 0 {
 			continue
 		}
-		health, reqID := healthRequestInfo(line)
-		if health && reqID != "" {
-			healthReqIDs[reqID] = struct{}{}
-		}
-	}
-
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-		health, reqID := healthRequestInfo(line)
-		if health {
-			continue
-		}
-		if reqID != "" {
-			if _, ok := healthReqIDs[reqID]; ok {
-				continue
-			}
-		}
-		if !health {
+		if apiHit(line) {
 			kept = append(kept, line)
 		}
 	}
@@ -169,36 +156,42 @@ func filterHealthRequests(body []byte) []byte {
 	return append(bytes.Join(kept, []byte{'\n'}), '\n')
 }
 
-func healthRequestInfo(line []byte) (bool, string) {
+func apiHit(line []byte) bool {
 	var entry map[string]any
 	if err := json.Unmarshal(line, &entry); err != nil {
-		return false, ""
+		return false
 	}
 
-	reqID, _ := entry["reqId"].(string)
 	kubernetes, ok := entry["kubernetes"].(map[string]any)
 	if !ok {
-		return false, reqID
+		return false
 	}
 	labels, ok := kubernetes["labels"].(map[string]any)
 	if !ok {
-		return false, reqID
+		return false
 	}
 	appName, _ := labels["app.kubernetes.io/name"].(string)
 	if appName != "csearch-api" {
-		return false, reqID
+		return false
+	}
+
+	msg, _ := entry["msg"].(string)
+	if msg != "request completed" {
+		return false
 	}
 
 	if route, _ := entry["route"].(string); route == "/health" {
-		return true, reqID
+		return false
 	}
 
-	req, ok := entry["req"].(map[string]any)
-	if !ok {
-		return false, reqID
+	if req, ok := entry["req"].(map[string]any); ok {
+		url, _ := req["url"].(string)
+		if url == "/health" {
+			return false
+		}
 	}
-	url, _ := req["url"].(string)
-	return url == "/health", reqID
+
+	return true
 }
 
 func sanitizeSegment(value string) string {

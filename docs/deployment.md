@@ -22,6 +22,8 @@ Synced Kustomize roots:
 - [`k8s/netcup-scraper/kustomization.yaml`](../k8s/netcup-scraper/kustomization.yaml)
 - [`k8s/netcup-test-frontend/kustomization.yaml`](../k8s/netcup-test-frontend/kustomization.yaml)
 
+Legacy root-level manifests that predate the Argo layout now live under [`k8s/archive/legacy/`](../k8s/archive/legacy/). The old `deploy.sh` flow still points there for reference.
+
 ## How Deployment Works
 
 1. Change app code or the relevant Argo-managed manifest
@@ -30,7 +32,7 @@ Synced Kustomize roots:
 
 Argo reacts to Git state, not to registry updates alone. If you rely on a new image tag, that tag change still needs to be represented in Git for Argo to act on it.
 
-The current netcup applications point at `targetRevision: codex/claude`, so manifest changes must land on that branch for Argo to deploy them.
+The watched branch is environment-specific. Check the relevant `Application` manifest or the live Argo app before assuming a `targetRevision`.
 
 ## Image Build Commands
 
@@ -123,7 +125,7 @@ kubectl --context mars apply -n argocd -f https://raw.githubusercontent.com/argo
 kubectl get pods
 
 # Trigger a manual scraper run
-kubectl create job csearch-updater-manual-$(date +%s) --from=cronjob/csearch-updater
+kubectl create job csearch-rscraper-manual-$(date +%s) --from=cronjob/csearch-rscraper
 
 # Tail scraper job logs
 kubectl logs -f job/<job-name>
@@ -148,5 +150,5 @@ When you change an Argo-managed environment:
 - **Registry**: `$REGISTRY` (set in `.env.prod`)
 - **Server**: `$CLUSTER_HOST` (set in `.env.prod`)
 - **Namespace**: `default`
-- **Congress data on host**: `/root/congress/`
-- **kubectl context**: `mars`
+- **Congress data on host**: environment-specific; inspect the active scraper manifest for the target cluster
+- **kubectl context**: environment-specific

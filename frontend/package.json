@@ -3,9 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "node scripts/write-runtime-config.mjs",
+    "pregenerate": "node scripts/write-runtime-config.mjs",
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
+    "pages:deploy": "npm run generate && npx wrangler pages deploy .output/public --project-name \"${CF_PAGES_PROJECT:-csearch}\"",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },

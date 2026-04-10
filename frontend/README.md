@@ -16,8 +16,8 @@ This frontend has multiple runtime shapes, and they do not all resolve the API b
 | --- | --- | --- |
 | Local `nuxt dev` | development with hot reload | `package.json`, `nuxt.config.ts` |
 | nginx container | cluster-hosted frontend deployments | `Dockerfile.nginx`, `docker-entrypoint.sh`, `k8s/netcup-test-frontend/` |
-| Static site publish | public site publishing | `deploy.sh` |
-| Deploy container | scheduled static publishing job | `Dockerfile.deploy`, `deploy-container.sh`, `k8s/frontend/deploy-cronjob.yaml` |
+| Cloudflare Pages | public site publishing | `deploy.sh`, `scripts/write-runtime-config.mjs` |
+| Deploy container | scheduled static publishing job | `Dockerfile.deploy`, `deploy-container.sh`, `k8s/archive/legacy/frontend/deploy-cronjob.yaml` |
 
 ## API Base Resolution
 
@@ -35,6 +35,7 @@ Relevant files:
 - `docker-entrypoint.sh`
 
 This matters because nginx container deployments inject the runtime value at container startup.
+Cloudflare Pages builds write the same config file during `nuxt generate`, so the browser still reads the API base from `runtime-config.js`.
 
 ## Key Files
 
@@ -127,7 +128,7 @@ docker buildx build --platform linux/amd64 --push \
 
 ### Public static publish
 
-The public site still uses a static publish flow:
+The public site now deploys to Cloudflare Pages:
 
 ```bash
 cd frontend
@@ -137,18 +138,25 @@ bash deploy.sh
 That flow:
 
 1. loads `../.env.prod`
-2. runs `npx nuxt generate`
-3. writes a deploy timestamp to `.output/public/meta.json`
-4. syncs `.output/public/` to S3
-5. invalidates CloudFront
+2. writes `public/runtime-config.js` from `NUXT_API_SERVER`
+3. runs `npx nuxt generate`
+4. writes a deploy timestamp to `.output/public/meta.json`
+5. deploys `.output/public/` to Cloudflare Pages
+
+For Git-based Pages deploys, configure:
+
+- build command: `npm run generate`
+- build output directory: `.output/public`
+- `NUXT_API_SERVER` in the Pages environment variables
+- `CF_PAGES_PROJECT` if you use the local `deploy.sh` wrapper
 
 ### Scheduled deploy container
 
-There is also a deploy-container image for automated static publishing:
+There is also a legacy deploy-container image for automated static publishing:
 
 - image build file: `Dockerfile.deploy`
 - runtime script: `deploy-container.sh`
-- CronJob: `../k8s/frontend/deploy-cronjob.yaml`
+- CronJob: `../k8s/archive/legacy/frontend/deploy-cronjob.yaml`
 
 ## How To Make Common Changes
 
@@ -172,7 +180,8 @@ Start with:
 - `composables/useApiBase.ts`
 - `composables/useCongressApi.ts`
 - `nuxt.config.ts`
-- `docker-entrypoint.sh`
+- `scripts/write-runtime-config.mjs`
+- `docker-entrypoint.sh` for nginx deployments
 - the manifest or environment that sets `NUXT_API_SERVER`
 
 ## Troubleshooting
