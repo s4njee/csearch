@@ -76,10 +76,10 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 512Mi
-            limits:
-              cpu: "1"
               memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: postgres-data
@@ -87,10 +87,16 @@ spec:
               name: postgres-schema
               subPath: 001-schema.sql
               readOnly: true
+            - mountPath: /dev/shm
+              name: dshm
       volumes:
         - name: postgres-schema
           configMap:
             name: postgres-schema
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
   volumeClaimTemplates:
     - metadata:
         name: postgres-data
