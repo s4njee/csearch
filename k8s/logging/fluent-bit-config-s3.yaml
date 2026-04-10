@@ -44,21 +44,26 @@ data:
     [FILTER]
         Name                  grep
         Match                 kube.*
-        Regex                 $kubernetes['labels']['app.kubernetes.io/name'] ^(csearch-api|csearch-updater)$
+        Regex                 $kubernetes['labels']['app.kubernetes.io/name'] ^traefik$
+        Regex                 ClientAddr .+
+
+    [FILTER]
+        Name                  grep
+        Match                 kube.*
+        Regex                 $log['RequestPath'] ^/(search|bills|latest|explore|votes|committees|members)(/|$)
 
     [OUTPUT]
         Name                  s3
         Match                 kube.*
         Bucket                ${LOG_S3_BUCKET}
         Region                ${LOG_S3_REGION}
-        Compression           gzip
         Store_Dir             /var/fluent-bit/s3
         Store_Dir_Limit_Size  ${LOG_S3_STORE_DIR_LIMIT_SIZE}
         Total_File_Size       ${LOG_S3_TOTAL_FILE_SIZE}
         Upload_Timeout        ${LOG_S3_UPLOAD_TIMEOUT}
         Use_Put_Object        ${LOG_S3_USE_PUT_OBJECT}
         Preserve_Data_Ordering On
-        S3_Key_Format         /${CLUSTER_NAME}/$TAG/%Y/%m/%d/%H/%M/%S/$UUID.gz
+        S3_Key_Format         /${CLUSTER_NAME}/ingress/$UUID.json
         Static_File_Path      Off
         Retry_Limit           False
 
