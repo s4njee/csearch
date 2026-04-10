@@ -432,9 +432,6 @@ fn parse_bill_json(path: &Path) -> Result<ParsedBill> {
             .ok_or_else(|| anyhow!("missing action date for {}", path.display()))?;
 
         actions.push(InsertBillActionParams {
-            billtype: bill_type_lower.clone(),
-            billnumber: bill_number,
-            congress,
             acted_at,
             action_text: option_string(action.text),
             // `r#type` — using the raw identifier syntax because `type` is
@@ -461,9 +458,6 @@ fn parse_bill_json(path: &Path) -> Result<ParsedBill> {
         }
 
         cosponsors.push(InsertBillCosponsorParams {
-            billtype: bill_type_lower.clone(),
-            billnumber: bill_number,
-            congress,
             bioguide_id: String::new(),
             full_name: option_string(name),
             state: option_string(cosponsor.state),
@@ -698,9 +692,6 @@ fn build_parsed_bill(
         };
 
         parsed_actions.push(InsertBillActionParams {
-            billtype: bill_type.clone(),
-            billnumber: number,
-            congress,
             acted_at,
             action_text: option_string(action.text),
             action_type: option_string(action.item_type),
@@ -717,9 +708,6 @@ fn build_parsed_bill(
         }
 
         parsed_cosponsors.push(InsertBillCosponsorParams {
-            billtype: bill_type.clone(),
-            billnumber: number,
-            congress,
             bioguide_id: cosponsor.bioguide_id,
             full_name: option_string(cosponsor.full_name),
             state: option_string(cosponsor.state),
@@ -757,9 +745,6 @@ fn build_parsed_bill(
         }
 
         parsed_subjects.push(InsertBillSubjectParams {
-            billtype: bill_type.clone(),
-            billnumber: number,
-            congress,
             subject: subject.name,
         });
     }
@@ -823,7 +808,7 @@ async fn insert_parsed_bill(pool: &PgPool, parsed_bill: &ParsedBill) -> Result<(
     // Start a database transaction.
     let mut tx = pool.begin().await?;
 
-    // Step 1: Upsert the bill.
+    // Step 1: Upsert the bill row.
     db::insert_bill(&mut tx, bill).await.with_context(|| {
         format!(
             "InsertBill failed for {}-{}-{}",
@@ -831,102 +816,65 @@ async fn insert_parsed_bill(pool: &PgPool, parsed_bill: &ParsedBill) -> Result<(
         )
     })?;
 
-    // Step 2: Re-insert actions.
-    // First clear the latest_action_id (it references bill_actions, so we
-    // must clear it before deleting actions to avoid FK constraint issues).
-    db::clear_bill_latest_action(
+    // Step 2: Replace actions (clear latest_action, delete old, batch insert
+    // new, set latest_action) — all in one SQL round-trip.
+    db::replace_bill_actions(
         &mut tx,
         &bill.billtype,
         bill.billnumber,
         bill.congress,
+        &parsed_bill.actions,
         parsed_bill.latest_action_date,
+        &parsed_bill.latest_action_text,
     )
     .await
-    .context("ClearBillLatestAction failed")?;
+    .context("ReplaceBillActions failed")?;
 
-    db::delete_bill_actions(&mut tx, &bill.billtype, bill.billnumber, bill.congress)
-        .await
-        .context("DeleteBillActions failed")?;
+    // Step 3: Replace cosponsors — one round-trip.
+    db::replace_bill_cosponsors(
+        &mut tx,
+        &bill.billtype,
+        bill.billnumber,
+        bill.congress,
+        &parsed_bill.cosponsors,
+    )
+    .await
+    .context("ReplaceBillCosponsors failed")?;
 
-    // Insert each action and track which one is the "latest".
-    let mut latest_action_id = None;
-    for action in &parsed_bill.actions {
-        let action_id = db::insert_bill_action(&mut tx, action)
-            .await
-            .context("InsertBillAction failed")?;
-        // Match the latest action by date and text.
-        if parsed_bill.latest_action_date == Some(action.acted_at)
-            && (latest_action_id.is_none()
-                || action.action_text.as_deref() == Some(parsed_bill.latest_action_text.as_str()))
-        {
-            latest_action_id = Some(action_id);
-        }
-    }
+    // Step 4: Upsert committees + replace bill_committees — one round-trip.
+    let committee_params: Vec<InsertCommitteeParams> = parsed_bill
+        .committees
+        .iter()
+        .map(|c| InsertCommitteeParams {
+            committee_code: c.committee_code.clone(),
+            committee_name: option_string(c.committee_name.clone()),
+            chamber: option_string(c.chamber.clone()),
+        })
+        .collect();
+    db::replace_bill_committees(
+        &mut tx,
+        &bill.billtype,
+        bill.billnumber,
+        bill.congress,
+        &committee_params,
+    )
+    .await
+    .context("ReplaceBillCommittees failed")?;
 
-    // Update the bill's latest_action_id to point to the correct action row.
-    if latest_action_id.is_some() {
-        db::update_bill_latest_action(
-            &mut tx,
-            &bill.billtype,
-            bill.billnumber,
-            bill.congress,
-            latest_action_id,
-            parsed_bill.latest_action_date,
-        )
-        .await
-        .context("UpdateBillLatestAction failed")?;
-    }
-
-    // Step 3: Re-insert cosponsors.
-    db::delete_bill_cosponsors(&mut tx, &bill.billtype, bill.billnumber, bill.congress)
-        .await
-        .context("DeleteBillCosponsors failed")?;
-    for cosponsor in &parsed_bill.cosponsors {
-        db::insert_bill_cosponsor(&mut tx, cosponsor)
-            .await
-            .context("InsertBillCosponsor failed")?;
-    }
-
-    // Step 4: Upsert committees + re-insert associations.
-    for committee in &parsed_bill.committees {
-        db::insert_committee(
-            &mut tx,
-            &InsertCommitteeParams {
-                committee_code: committee.committee_code.clone(),
-                committee_name: option_string(committee.committee_name.clone()),
-                chamber: option_string(committee.chamber.clone()),
-            },
-        )
-        .await
-        .context("InsertCommittee failed")?;
-    }
-
-    db::delete_bill_committees(&mut tx, &bill.billtype, bill.billnumber, bill.congress)
-        .await
-        .context("DeleteBillCommittees failed")?;
-    for committee in &parsed_bill.committees {
-        db::insert_bill_committee(
-            &mut tx,
-            &bill.billtype,
-            bill.billnumber,
-            bill.congress,
-            &committee.committee_code,
-        )
-        .await
-        .context("InsertBillCommittee failed")?;
-    }
-
-    // Step 5: Re-insert subjects.
-    db::delete_bill_subjects(&mut tx, &bill.billtype, bill.billnumber, bill.congress)
-        .await
-        .context("DeleteBillSubjects failed")?;
-    for subject in &parsed_bill.subjects {
-        db::insert_bill_subject(&mut tx, subject)
-            .await
-            .context("InsertBillSubject failed")?;
-    }
+    // Step 5: Replace subjects — one round-trip.
+    db::replace_bill_subjects(
+        &mut tx,
+        &bill.billtype,
+        bill.billnumber,
+        bill.congress,
+        &parsed_bill.subjects,
+    )
+    .await
+    .context("ReplaceBillSubjects failed")?;
 
     // Commit the transaction — all changes become permanent.
+    // Total: 6 round-trips (begin, upsert bill, actions, cosponsors,
+    // committees, subjects) instead of ~40+.
     tx.commit().await?;
     Ok(())
 }

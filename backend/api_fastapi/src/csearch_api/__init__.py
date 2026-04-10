@@ -1,0 +1,2 @@
+"""CSearch FastAPI service."""
+

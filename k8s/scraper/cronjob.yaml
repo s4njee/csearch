@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: csearch-updater
+  name: csearch-rscraper
   labels:
     app.kubernetes.io/name: csearch-updater
     app.kubernetes.io/component: scraper

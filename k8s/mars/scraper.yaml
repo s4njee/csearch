@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: csearch-goscraper
+  name: csearch-rscraper
   labels:
     app.kubernetes.io/name: csearch-updater
     app.kubernetes.io/component: scraper
@@ -20,6 +20,8 @@ spec:
             app.kubernetes.io/component: scraper
         spec:
           restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: freya
           imagePullSecrets:
             - name: registry-s8njee-pull
           dnsConfig:
@@ -34,7 +36,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: updater
-              image: registry.s8njee.com/csearch-updater:latest
+              image: registry.s8njee.com/csearch-updater:34b3201a9ac0e8dbbf4d897279016f7309642497
               imagePullPolicy: Always
               securityContext:
                 allowPrivilegeEscalation: false
@@ -48,10 +50,7 @@ spec:
                 - name: CONGRESSDIR
                   value: /srv/csearch
                 - name: POSTGRESURI
-                  valueFrom:
-                    configMapKeyRef:
-                      name: postgres-config
-                      key: POSTGRES_RW_HOST
+                  value: pg-cluster-rw.default.svc.cluster.local
                 - name: REDIS_URL
                   value: "redis://csearch-redis:6379"
                 - name: LOG_LEVEL
@@ -59,18 +58,19 @@ spec:
                 - name: DB_USER
                   valueFrom:
                     secretKeyRef:
-                      name: pg-cluster-app
+                      name: postgres-auth
                       key: username
                 - name: DB_PASSWORD
                   valueFrom:
                     secretKeyRef:
-                      name: pg-cluster-app
+                      name: postgres-auth
                       key: password
                 - name: DB_NAME
-                  valueFrom:
-                    secretKeyRef:
-                      name: pg-cluster-app
-                      key: dbname
+                  value: csearch
+                - name: DB_WRITE_CONCURRENCY
+                  value: "1"
+                - name: BILL_WRITE_MODE
+                  value: "incremental"
                 - name: RUN_BILLS
                   value: "true"
                 - name: RUN_VOTES

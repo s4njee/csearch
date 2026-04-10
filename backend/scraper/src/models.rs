@@ -98,12 +98,10 @@ pub struct InsertBillParams {
     pub officialtitle: Option<String>,
 }
 
-/// Parameters for inserting a bill action into the `bill_actions` table.
+/// Parameters for a single bill action row. The bill's billtype/billnumber/congress
+/// are passed separately to the batch insert function, not stored here.
 #[derive(Debug, Clone)]
 pub struct InsertBillActionParams {
-    pub billtype: String,
-    pub billnumber: i32,
-    pub congress: i32,
     pub acted_at: NaiveDate,           // When the action occurred (NOT optional)
     pub action_text: Option<String>,   // e.g., "Referred to Committee on..."
     pub action_type: Option<String>,   // e.g., "vote", "referral"
@@ -111,12 +109,9 @@ pub struct InsertBillActionParams {
     pub source_system_code: Option<String>,
 }
 
-/// Parameters for inserting a bill cosponsor into the `bill_cosponsors` table.
+/// Parameters for a single bill cosponsor row.
 #[derive(Debug, Clone)]
 pub struct InsertBillCosponsorParams {
-    pub billtype: String,
-    pub billnumber: i32,
-    pub congress: i32,
     pub bioguide_id: String,           // Unique ID for the legislator
     pub full_name: Option<String>,
     pub state: Option<String>,
@@ -125,12 +120,9 @@ pub struct InsertBillCosponsorParams {
     pub is_original_cosponsor: Option<bool>,
 }
 
-/// Parameters for inserting a bill subject into the `bill_subjects` table.
+/// Parameters for a single bill subject row.
 #[derive(Debug, Clone)]
 pub struct InsertBillSubjectParams {
-    pub billtype: String,
-    pub billnumber: i32,
-    pub congress: i32,
     pub subject: String,               // e.g., "Health", "Taxation"
 }
 
@@ -159,10 +151,10 @@ pub struct InsertVoteParams {
     pub votetype: Option<String>,
 }
 
-/// Parameters for inserting a vote member into the `vote_members` table.
+/// Parameters for a single vote member row. The voteid is passed
+/// separately to the batch insert function.
 #[derive(Debug, Clone)]
 pub struct InsertVoteMemberParams {
-    pub voteid: String,
     pub bioguide_id: String,
     pub display_name: Option<String>,
     pub party: Option<String>,
