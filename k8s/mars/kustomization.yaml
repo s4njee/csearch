@@ -13,10 +13,10 @@ resources:
 images:
   - name: registry.s8njee.com/csearch-fastapi
     newName: registry.s8njee.com/csearch-fastapi
-    newTag: f7285bb8037447e39f82e5fb1a614bbf270f70d3
+    newTag: 07b5b224330da2057ec071bbfcc2f79f89d0b28b
   - name: registry.s8njee.com/csearch-updater
     newName: registry.s8njee.com/csearch-updater
-    newTag: f7285bb8037447e39f82e5fb1a614bbf270f70d3
+    newTag: 07b5b224330da2057ec071bbfcc2f79f89d0b28b
   - name: registry.s8njee.com/csearch-frontend
     newName: registry.s8njee.com/csearch-frontend
-    newTag: f7285bb8037447e39f82e5fb1a614bbf270f70d3
+    newTag: 07b5b224330da2057ec071bbfcc2f79f89d0b28b
