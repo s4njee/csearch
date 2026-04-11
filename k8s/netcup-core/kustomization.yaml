@@ -8,6 +8,6 @@ resources:
   - csearch-api-openai-sealedsecret.yaml
 
 images:
-  - name: registry.s8njee.com/csearch-api
-    newName: registry.s8njee.com/csearch-api
+  - name: registry.s8njee.com/csearch-fastapi
+    newName: registry.s8njee.com/csearch-fastapi
     newTag: latest
