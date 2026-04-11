@@ -398,8 +398,8 @@ async function loadBills() {
           return
         }
 
-        loadProgress.value = Math.min(92, loadProgress.value + Math.max(1, Math.round((100 - loadProgress.value) / 7)))
-      }, 160)
+        loadProgress.value = Math.min(90, loadProgress.value + Math.max(1, Math.round((100 - loadProgress.value) / 12)))
+      }, 300)
     : null
 
   try {
