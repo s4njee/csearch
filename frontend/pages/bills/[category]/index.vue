@@ -257,9 +257,33 @@ const activeFacetCount = computed(() => [
   filterMinCosponsors.value !== '',
 ].filter(Boolean).length)
 
-const sortedBills = computed(() =>
-  sortDesc.value ? filteredBills.value : [...filteredBills.value].reverse(),
-)
+function dateValue(value: string | null | undefined) {
+  if (!value) {
+    return 0
+  }
+
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+function billSortDate(bill: BillRecord) {
+  return Math.max(
+    dateValue(bill.latest_action_date),
+    dateValue(bill.statusat),
+    dateValue(bill.introducedat),
+  )
+}
+
+const sortedBills = computed(() => {
+  if (selectedSort.value === 'date') {
+    return [...filteredBills.value].sort((a, b) => {
+      const diff = billSortDate(b) - billSortDate(a)
+      return sortDesc.value ? diff : -diff
+    })
+  }
+
+  return sortDesc.value ? filteredBills.value : [...filteredBills.value].reverse()
+})
 
 
 const totalPages = computed(() => Math.ceil(sortedBills.value.length / PAGE_SIZE))
