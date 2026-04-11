@@ -47,11 +47,11 @@ FastAPI backend at `https://api.csearch.org`. Managed by Argo CD app `csearch-ne
 
 ### Build and push image
 
-**CI** (`.github/workflows/mars-images.yml`) builds and pushes on every push to `main` touching `backend/api/**`:
+**CI** (`.github/workflows/mars-images.yml`) builds and pushes on every push to `main` touching `backend/api_fastapi/**`:
 
 ```bash
 # What CI does — build context is repo root to include backend/api/sql/explore.sql
-docker build -f backend/api/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
+docker build -f backend/api_fastapi/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
 docker push registry.s8njee.com/csearch-fastapi:latest
 ```
 
@@ -60,7 +60,7 @@ docker push registry.s8njee.com/csearch-fastapi:latest
 ```bash
 # On freya
 git clone https://github.com/s4njee/csearch.git && cd csearch
-docker build -f backend/api/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
+docker build -f backend/api_fastapi/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
 docker push registry.s8njee.com/csearch-fastapi:latest
 ```
 

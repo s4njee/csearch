@@ -1,0 +1,13 @@
+{
+  "bill_id": "hr1337-103",
+  "congress": 103,
+  "type": "hr",
+  "number": "1337",
+  "version": "ih",
+  "format": "html",
+  "source_url": "https://www.govinfo.gov/content/pkg/BILLS-103hr1337ih/html/BILLS-103hr1337ih.htm",
+  "short_title": null,
+  "official_title": "To provide demonstration grants to secondary schools for the purpose of extending the length of the academic year at such schools.",
+  "status": "REFERRED",
+  "bytes": 10032
+}

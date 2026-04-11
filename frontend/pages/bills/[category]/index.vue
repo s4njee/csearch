@@ -13,6 +13,8 @@ const { data: loadedCommittees } = await useAsyncData(
 const PAGE_SIZE = 100
 
 const loading = ref(false)
+const loadProgress = ref(0)
+const loadBytes = ref<number | null>(null)
 const errorMessage = ref('')
 const bills = ref<BillRecord[]>([])
 const draftQuery = ref('')
@@ -31,6 +33,44 @@ const filterPolicyArea = ref('')
 const filterMonth = ref('')
 const filterMinCosponsors = ref<number | ''>('')
 const committeeOptions = computed<CommitteeRecord[]>(() => loadedCommittees.value || [])
+
+function formatSemanticScore(score: number | null | undefined) {
+  if (score == null || Number.isNaN(score)) {
+    return ''
+  }
+
+  return score.toFixed(2)
+}
+
+function semanticScoreLabel(score: number | null | undefined) {
+  if (score == null || Number.isNaN(score)) {
+    return ''
+  }
+
+  return 'loose semantic signal'
+}
+
+function semanticRankLabel(index: number, total: number) {
+  if (total <= 0) {
+    return ''
+  }
+
+  const percentile = (index + 1) / total
+  if (percentile <= 0.2) return 'strong semantic signal'
+  if (percentile <= 0.5) return 'moderate semantic signal'
+  return 'loose semantic signal'
+}
+
+function semanticRankTone(index: number, total: number) {
+  if (total <= 0) {
+    return ''
+  }
+
+  const percentile = (index + 1) / total
+  if (percentile <= 0.2) return 'similarity-badge--strong'
+  if (percentile <= 0.5) return 'similarity-badge--moderate'
+  return 'similarity-badge--loose'
+}
 
 function getQueryStringParam(value: unknown) {
   return typeof value === 'string' ? value : ''
@@ -72,7 +112,9 @@ function buildBillQuery(query?: string, sort?: string) {
   if (selectedCongress.value) {
     nextQuery.congress = selectedCongress.value
   }
-  nextQuery.chamber = selectedChamber.value
+  if (!query) {
+    nextQuery.chamber = selectedChamber.value
+  }
 
   if (filterPolicyArea.value) {
     nextQuery.policyArea = filterPolicyArea.value
@@ -193,7 +235,7 @@ const availableCommittees = computed(() => {
 const filteredBills = computed(() => {
   return bills.value.filter(b => {
     if (selectedCongress.value && String(b.congress) !== selectedCongress.value) return false
-    if (selectedChamber.value && getBillTypeChamber(b.billtype) !== selectedChamber.value) return false
+    if (!searchQuery.value && selectedChamber.value && getBillTypeChamber(b.billtype) !== selectedChamber.value) return false
     if (selectedStatus.value && String(b.bill_status || '').toLowerCase() !== selectedStatus.value) return false
     if (filterPolicyArea.value && b.policy_area !== filterPolicyArea.value) return false
     if (selectedSponsorParty.value && b.sponsor_party !== selectedSponsorParty.value) return false
@@ -248,7 +290,7 @@ const categoryLabel = computed(() => {
 
 const headline = computed(() => {
   return searchQuery.value
-    ? 'Semantic bill search'
+    ? 'Bill search'
     : `Latest ${categoryLabel.value.toLowerCase()}`
 })
 
@@ -324,14 +366,53 @@ function summarizeText(value?: string | null, limit = 260) {
   return value.length > limit ? `${value.slice(0, limit).trim()}...` : value
 }
 
+function estimatePayloadBytes(rows: BillRecord[]) {
+  return new TextEncoder().encode(JSON.stringify(rows)).length
+}
+
+function formatByteCount(bytes: number | null) {
+  if (bytes == null || Number.isNaN(bytes)) {
+    return '—'
+  }
+
+  if (bytes < 1024) {
+    return `${bytes} B`
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 async function loadBills() {
   loading.value = true
+  loadProgress.value = 8
+  loadBytes.value = null
   errorMessage.value = ''
 
+  const progressTimer = import.meta.client
+    ? window.setInterval(() => {
+        if (!loading.value) {
+          return
+        }
+
+        loadProgress.value = Math.min(92, loadProgress.value + Math.max(1, Math.round((100 - loadProgress.value) / 7)))
+      }, 160)
+    : null
+
   try {
-    bills.value = searchQuery.value
-      ? await semanticSearch(searchQuery.value)
-      : await latestBills(selectedCategory.value)
+    if (!searchQuery.value) {
+      const rows = await latestBills(selectedCategory.value)
+      bills.value = rows
+      loadBytes.value = estimatePayloadBytes(rows)
+      return
+    }
+
+    const rows = await semanticSearch(searchQuery.value)
+    bills.value = rows
+    loadBytes.value = estimatePayloadBytes(rows)
   }
   catch (error: any) {
     bills.value = []
@@ -339,6 +420,10 @@ async function loadBills() {
   }
   finally {
     loading.value = false
+    loadProgress.value = 100
+    if (progressTimer != null) {
+      window.clearInterval(progressTimer)
+    }
   }
 }
 
@@ -425,10 +510,12 @@ watch(
         <label class="field field--compact">
           <span>Chamber</span>
           <select
-            :value="selectedChamber"
+            :value="searchQuery ? '' : selectedChamber"
             class="field-input"
+            :disabled="Boolean(searchQuery)"
             @change="navigateBillChamber(($event.target as HTMLSelectElement).value as 'house' | 'senate')"
           >
+            <option value="">Any</option>
             <option value="house">House</option>
             <option value="senate">Senate</option>
           </select>
@@ -577,7 +664,18 @@ watch(
     </section>
 
     <section v-else-if="loading" class="surface">
-      Loading bills...
+      <div class="load-status">
+        <div class="load-status__row">
+          <span>Loading bills</span>
+          <span>{{ loadProgress }}%</span>
+        </div>
+        <div class="load-status__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="loadProgress">
+          <div class="load-status__bar-fill" :style="{ width: `${loadProgress}%` }" />
+        </div>
+        <p class="load-status__meta">
+          Downloaded {{ formatByteCount(loadBytes) }}
+        </p>
+      </div>
     </section>
 
     <section v-else-if="!bills.length" class="surface">
@@ -585,13 +683,20 @@ watch(
     </section>
 
     <section v-else class="result-grid">
-      <article v-for="bill in pagedBills" :key="bill.billid" class="result-card">
+      <article v-for="(bill, index) in pagedBills" :key="bill.billid" class="result-card">
         <div class="result-card__header">
           <div>
             <p class="result-card__meta">
               {{ bill.billtype.toUpperCase() }} {{ bill.billnumber || '—' }} · Congress {{ bill.congress || '—' }}
-              <span v-if="bill.similarity != null" class="similarity-badge">
-                {{ Math.round(bill.similarity * 100) }}% match
+              <span
+                v-if="bill.similarity != null"
+                class="similarity-badge"
+                :class="semanticRankTone((currentPage - 1) * PAGE_SIZE + index, sortedBills.length)"
+              >
+                semantic score {{ formatSemanticScore(bill.similarity) }}
+                <span class="similarity-badge__hint">
+                  · {{ semanticRankLabel((currentPage - 1) * PAGE_SIZE + index, sortedBills.length) }}
+                </span>
               </span>
             </p>
             <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="link-plain">

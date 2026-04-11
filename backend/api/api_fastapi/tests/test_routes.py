@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 
 from csearch_api.main import create_app
 from csearch_api.settings import Settings
-from csearch_api.routes import semantic as semantic_route
 
 
 @dataclass
@@ -17,25 +16,30 @@ class FakeDB:
     row: dict | None = None
     last_query: str | None = None
     last_args: tuple = ()
+    last_kwargs: dict = field(default_factory=dict)
 
-    async def fetch(self, query: str, *args):
+    async def fetch(self, query: str, *args, **kwargs):
         self.last_query = query
         self.last_args = args
+        self.last_kwargs = kwargs
         return self.rows
 
-    async def fetchrow(self, query: str, *args):
+    async def fetchrow(self, query: str, *args, **kwargs):
         self.last_query = query
         self.last_args = args
+        self.last_kwargs = kwargs
         return self.row
 
-    async def fetchval(self, query: str, *args):
+    async def fetchval(self, query: str, *args, **kwargs):
         self.last_query = query
         self.last_args = args
+        self.last_kwargs = kwargs
         return self.single_value
 
-    async def raw(self, query: str, *args):
+    async def raw(self, query: str, *args, **kwargs):
         self.last_query = query
         self.last_args = args
+        self.last_kwargs = kwargs
         return {"rows": self.rows}
 
 
@@ -64,19 +68,19 @@ class SequencedDB:
         self.fetchval_results = list(fetchval_results or [])
         self.calls = []
 
-    async def fetch(self, query: str, *args):
+    async def fetch(self, query: str, *args, **kwargs):
         self.calls.append(("fetch", query, args))
         return self.fetch_results.pop(0) if self.fetch_results else []
 
-    async def fetchrow(self, query: str, *args):
+    async def fetchrow(self, query: str, *args, **kwargs):
         self.calls.append(("fetchrow", query, args))
         return self.fetchrow_results.pop(0) if self.fetchrow_results else None
 
-    async def fetchval(self, query: str, *args):
+    async def fetchval(self, query: str, *args, **kwargs):
         self.calls.append(("fetchval", query, args))
         return self.fetchval_results.pop(0) if self.fetchval_results else 1
 
-    async def raw(self, query: str, *args):
+    async def raw(self, query: str, *args, **kwargs):
         self.calls.append(("raw", query, args))
         return self.raw_results.pop(0) if self.raw_results else {"rows": []}
 
@@ -160,49 +164,48 @@ def test_bill_detail():
     assert len(body["committees"]) == 1
 
 
-def test_semantic_search_returns_bill_metadata(monkeypatch):
+def test_semantic_search_returns_bill_metadata():
     class FakeEmbeddings:
-        async def create(self, model: str, input: str):
+        async def create(self, model: str, input: list[str], dimensions: int):
+            assert model == "text-embedding-3-small"
+            assert input == ["testing infrastructure"]
+            assert dimensions == 1536
             return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
 
     class FakeOpenAI:
         def __init__(self, api_key: str):
             self.embeddings = FakeEmbeddings()
 
-    monkeypatch.setattr(semantic_route, "AsyncOpenAI", FakeOpenAI)
-
-    db = SequencedDB(
-        fetch_results=[
-            [{
-                "bill_id": "hr42-119",
-                "congress": 119,
-                "bill_type": "hr",
-                "bill_number": "42",
-                "title": "Test Infrastructure Act",
-                "status": "active",
-                "body": "Build test infrastructure",
-                "chunk_type": "section",
-                "section_header": "Summary",
-                "billid": 1001,
-                "shorttitle": "Test Infrastructure Act",
-                "officialtitle": "A bill to invest in test infrastructure",
-                "introducedat": "2025-01-15",
-                "summary_text": "Provides funding for automated testing infrastructure.",
-                "sponsor_name": "Jane Doe",
-                "sponsor_party": "D",
-                "sponsor_state": "CA",
-                "sponsor_bioguide_id": "D000001",
-                "bill_status": "passed",
-                "statusat": "2025-03-01",
-                "policy_area": "Science, Technology, Communications",
-                "latest_action_date": "2025-03-01",
-                "origin_chamber": "House",
-                "cosponsor_count": 12,
-                "similarity": 0.98,
-            }],
-        ],
-    )
-    client = build_client_with_settings(db)
+    db = FakeDB(rows=[{
+        "bill_id": "hr42-119",
+        "congress": 119,
+        "bill_type": "hr",
+        "bill_number": "42",
+        "title": "Test Infrastructure Act",
+        "status": "active",
+        "body": "Build test infrastructure",
+        "chunk_type": "section",
+        "section_header": "Summary",
+        "billid": 1001,
+        "shorttitle": "Test Infrastructure Act",
+        "officialtitle": "A bill to invest in test infrastructure",
+        "introducedat": "2025-01-15",
+        "summary_text": "Provides funding for automated testing infrastructure.",
+        "sponsor_name": "Jane Doe",
+        "sponsor_party": "D",
+        "sponsor_state": "CA",
+        "sponsor_bioguide_id": "D000001",
+        "bill_status": "passed",
+        "statusat": "2025-03-01",
+        "policy_area": "Science, Technology, Communications",
+        "latest_action_date": "2025-03-01",
+        "origin_chamber": "House",
+        "cosponsor_count": 12,
+        "similarity": 0.98,
+    }])
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
 
     response = client.post("/search/semantic", json={"query": "testing infrastructure"})
     assert response.status_code == 200
@@ -212,6 +215,10 @@ def test_semantic_search_returns_bill_metadata(monkeypatch):
     assert body[0]["cosponsor_count"] == 12
     assert body[0]["policy_area"] == "Science, Technology, Communications"
     assert "JOIN public.bills" in db.last_query
+    assert db.last_args[3] == 2500
+    assert db.last_args[4] == 100
+    assert db.last_kwargs["timeout"] == 10.0
+    assert db.last_kwargs["hnsw_ef_search"] == 1000
 
 
 def test_votes_latest_and_detail_and_explore():

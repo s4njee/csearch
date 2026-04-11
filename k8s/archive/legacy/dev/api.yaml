@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-dev
+spec:
+  selector:
+    app: api-dev
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-dev
+  template:
+    metadata:
+      labels:
+        app: api-dev
+    spec:
+      imagePullSecrets:
+        - name: registry-s8njee-pull
+      containers:
+        - name: api
+          image: registry.s8njee.com/csearch-api:redis
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "3000"
+            - name: LOG_LEVEL
+              value: debug
+            - name: REDIS_URL
+              value: redis://redis-dev:6379
+            - name: POSTGRESURI
+              value: postgres
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASSWORD
+              value: postgres
+            - name: DB_NAME
+              value: csearch
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-dev
+spec:
+  selector:
+    app: redis-dev
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-dev
+  template:
+    metadata:
+      labels:
+        app: redis-dev
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - redis-server
+            - --maxmemory
+            - 128mb
+            - --maxmemory-policy
+            - allkeys-lru
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 192Mi

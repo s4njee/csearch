@@ -1,0 +1,13 @@
+{
+  "bill_id": "hr1105-103",
+  "congress": 103,
+  "type": "hr",
+  "number": "1105",
+  "version": "ih",
+  "format": "html",
+  "source_url": "https://www.govinfo.gov/content/pkg/BILLS-103hr1105ih/html/BILLS-103hr1105ih.htm",
+  "short_title": null,
+  "official_title": "To amend the Congressional Budget Act of 1974 to require a three-fifths vote in the House of Representatives to waive any point of order under this Act.",
+  "status": "REFERRED",
+  "bytes": 1860
+}
