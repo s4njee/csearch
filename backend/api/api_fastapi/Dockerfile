@@ -5,11 +5,11 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-COPY backend/api_fastapi/pyproject.toml /app/backend/api_fastapi/pyproject.toml
-COPY backend/api_fastapi/src /app/backend/api_fastapi/src
+COPY backend/api/api_fastapi/pyproject.toml /app/backend/api/api_fastapi/pyproject.toml
+COPY backend/api/api_fastapi/src /app/backend/api/api_fastapi/src
 COPY backend/api/sql/explore.sql /app/backend/api/sql/explore.sql
 
-RUN pip install --no-cache-dir -e /app/backend/api_fastapi
+RUN pip install --no-cache-dir -e /app/backend/api/api_fastapi
 
 EXPOSE 3000
 
