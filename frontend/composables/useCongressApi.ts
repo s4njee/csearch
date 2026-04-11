@@ -27,12 +27,42 @@ function withQuery(path: string, query: Record<string, string | number | undefin
 
 const SEMANTIC_SEARCH_LIMIT = 50
 const SEMANTIC_SEARCH_TIMEOUT_MS = 10000
+const SEMANTIC_SEARCH_RETRIES = 1
 
 export function useCongressApi() {
   const apiBase = useApiBase()
 
   async function apiFetch<T>(path: string): Promise<T> {
     return await $fetch<T>(`${apiBase}${path}`)
+  }
+
+  function isTimeoutError(error: any) {
+    return error?.name === 'TimeoutError'
+      || error?.name === 'AbortError'
+      || error?.cause?.name === 'TimeoutError'
+      || error?.message?.toLowerCase?.().includes('timeout')
+  }
+
+  async function fetchSemanticRows(query: string) {
+    let lastError: unknown
+
+    for (let attempt = 0; attempt <= SEMANTIC_SEARCH_RETRIES; attempt += 1) {
+      try {
+        return await $fetch<Array<Record<string, any>>>(`${apiBase}/search/semantic`, {
+          method: 'POST',
+          body: { query, limit: SEMANTIC_SEARCH_LIMIT },
+          timeout: SEMANTIC_SEARCH_TIMEOUT_MS,
+        })
+      }
+      catch (error: any) {
+        lastError = error
+        if (!isTimeoutError(error) || attempt === SEMANTIC_SEARCH_RETRIES) {
+          throw error
+        }
+      }
+    }
+
+    throw lastError
   }
 
   function normalizeSemanticBill(row: Record<string, any>): BillRecord {
@@ -77,20 +107,11 @@ export function useCongressApi() {
       apiFetch<BillRecord[]>(withQuery('/search/all/relevance', { query })),
     semanticSearch: async (query: string): Promise<BillRecord[]> => {
       try {
-        const rows = await $fetch<Array<Record<string, any>>>(`${apiBase}/search/semantic`, {
-          method: 'POST',
-          body: { query, limit: SEMANTIC_SEARCH_LIMIT },
-          timeout: SEMANTIC_SEARCH_TIMEOUT_MS,
-        })
+        const rows = await fetchSemanticRows(query)
         return rows.map(normalizeSemanticBill)
       }
       catch (error: any) {
-        const isTimeout = error?.name === 'TimeoutError'
-          || error?.name === 'AbortError'
-          || error?.cause?.name === 'TimeoutError'
-          || error?.message?.toLowerCase?.().includes('timeout')
-
-        if (isTimeout) {
+        if (isTimeoutError(error)) {
           throw error
         }
 
