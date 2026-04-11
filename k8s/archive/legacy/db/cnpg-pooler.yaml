@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PgBouncer Connection Pooling (CloudNativePG Operator)
+# 
+# Connect your Fastify API to this `csearch-pooler` service instead of connecting 
+# directly to the Postgres instances! It multiplexes thousands of active Node.js 
+# HTTP requests into a safe limit of static PostgreSQL sockets.
+# ─────────────────────────────────────────────────────────────────────────────
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: csearch-pooler
+  namespace: default
+  labels:
+    app.kubernetes.io/name: pgbouncer
+spec:
+  # Must match the CNPG cluster metadata name exactly!
+  cluster:
+    name: pg-cluster
+  
+  # Transaction pooling is the golden standard for REST APIs like Fastify. 
+  # It safely shares active DB connections between completely different user HTTP requests.
+  type: rw
+  instances: 2
+  
+  pgbouncer:
+    poolMode: transaction
+    parameters:
+      max_client_conn: "1000"
+      default_pool_size: "50"
+      server_idle_timeout: "60"

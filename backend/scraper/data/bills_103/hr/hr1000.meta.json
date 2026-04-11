@@ -1,0 +1,13 @@
+{
+  "bill_id": "hr1000-103",
+  "congress": 103,
+  "type": "hr",
+  "number": "1000",
+  "version": "ih",
+  "format": "html",
+  "source_url": "https://www.govinfo.gov/content/pkg/BILLS-103hr1000ih/html/BILLS-103hr1000ih.htm",
+  "short_title": "Asbestos Management Incentive Act",
+  "official_title": "To protect financial institutions from liability for damages caused by failure to remove asbestos from a residential or commercial building in which the financial institution holds a security interest if an accredited asbestos management planner has recommended in-place management of the asbestos, and for other purposes.",
+  "status": "REFERRED",
+  "bytes": 20472
+}

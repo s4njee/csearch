@@ -1,0 +1,13 @@
+{
+  "bill_id": "hr100-103",
+  "congress": 103,
+  "type": "hr",
+  "number": "100",
+  "version": "ih",
+  "format": "html",
+  "source_url": "https://www.govinfo.gov/content/pkg/BILLS-103hr100ih/html/BILLS-103hr100ih.htm",
+  "short_title": null,
+  "official_title": "To amend the Internal Revenue Code of 1986 to permanently extend certain tax provisions relating to the Low-Income Housing Credit and Qualified Mortgage Bonds, and for other purposes.",
+  "status": "REFERRED",
+  "bytes": 2530
+}

@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter()
+
+DEFAULT_RESULT_LIMIT = 100
+MAX_RESULT_LIMIT = 500
+MIN_CANDIDATE_LIMIT = 1000
+MAX_CANDIDATE_LIMIT = 5000
+CANDIDATE_MULTIPLIER = 25
+SEMANTIC_DB_TIMEOUT_SECONDS = 10.0
+SEMANTIC_HNSW_EF_SEARCH = 1000
 
 # top_k scans only nlp.bill_embeddings with no joins or filters so the
 # HNSW index is used. Joining and congress filtering happen afterwards on
@@ -13,7 +21,7 @@ _SEARCH_SQL = """
         SELECT chunk_id, 1 - (embedding <=> $1::vector) AS similarity
         FROM nlp.bill_embeddings
         ORDER BY embedding <=> $1::vector
-        LIMIT 200
+        LIMIT $4
     ),
     ranked AS (
         SELECT DISTINCT ON (c.bill_id)
@@ -33,6 +41,14 @@ _SEARCH_SQL = """
         ORDER BY c.bill_id, tk.similarity DESC
     )
     SELECT
+        r.bill_id AS bill_id,
+        r.bill_type AS bill_type,
+        r.bill_number AS bill_number,
+        r.title AS title,
+        r.status AS status,
+        r.body AS body,
+        r.chunk_type AS chunk_type,
+        r.section_header AS section_header,
         b.billid,
         b.shorttitle,
         b.officialtitle,
@@ -71,7 +87,7 @@ _SEARCH_SQL = """
      AND b.billnumber::text = r.bill_number
      AND b.congress = r.congress
     ORDER BY r.similarity DESC
-    LIMIT 20
+    LIMIT $5
 """
 
 
@@ -79,6 +95,20 @@ class SemanticSearchRequest(BaseModel):
     query: str
     congress_min: int | None = None
     congress_max: int | None = None
+    limit: int | None = Field(default=None, ge=1, le=MAX_RESULT_LIMIT)
+
+
+def _normalize_limit(limit: int | None) -> int:
+    if limit is None:
+        return DEFAULT_RESULT_LIMIT
+    return min(limit, MAX_RESULT_LIMIT)
+
+
+def _candidate_limit(result_limit: int) -> int:
+    return min(
+        max(MIN_CANDIDATE_LIMIT, result_limit * CANDIDATE_MULTIPLIER),
+        MAX_CANDIDATE_LIMIT,
+    )
 
 
 @router.post("/search/semantic")
@@ -87,16 +117,30 @@ async def semantic_search(request: Request, body: SemanticSearchRequest):
     if not settings.openai_api_key:
         raise HTTPException(status_code=503, detail={"error": "Semantic search not configured: OPENAI_API_KEY not set"})
 
+    query = body.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail={"error": "Missing required query"})
+
     resp = await request.app.state.openai_client.embeddings.create(
         model="text-embedding-3-small",
-        input=body.query,
+        input=[query],
+        dimensions=1536,
     )
     vector = resp.data[0].embedding
     vector_str = "[" + ",".join(f"{v:.17g}" for v in vector) + "]"
 
     congress_min = body.congress_min if body.congress_min is not None else 0
     congress_max = body.congress_max if body.congress_max is not None else 999
+    result_limit = _normalize_limit(body.limit)
+    candidate_limit = _candidate_limit(result_limit)
 
     return await request.app.state.db.fetch(
-        _SEARCH_SQL, vector_str, congress_min, congress_max
+        _SEARCH_SQL,
+        vector_str,
+        congress_min,
+        congress_max,
+        candidate_limit,
+        result_limit,
+        timeout=SEMANTIC_DB_TIMEOUT_SECONDS,
+        hnsw_ef_search=SEMANTIC_HNSW_EF_SEARCH,
     )

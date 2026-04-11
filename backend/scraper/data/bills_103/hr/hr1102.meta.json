@@ -1,0 +1,13 @@
+{
+  "bill_id": "hr1102-103",
+  "congress": 103,
+  "type": "hr",
+  "number": "1102",
+  "version": "eh",
+  "format": "html",
+  "source_url": "https://www.govinfo.gov/content/pkg/BILLS-103hr1102eh/html/BILLS-103hr1102eh.htm",
+  "short_title": "Court Arbitration Authorization Act of 1993",
+  "official_title": "To make permanent chapter 44 of title 28, United States Code, relating to arbitration.",
+  "status": "PASS_OVER:HOUSE",
+  "bytes": 3280
+}
