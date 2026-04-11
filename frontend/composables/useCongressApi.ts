@@ -84,7 +84,16 @@ export function useCongressApi() {
         })
         return rows.map(normalizeSemanticBill)
       }
-      catch {
+      catch (error: any) {
+        const isTimeout = error?.name === 'TimeoutError'
+          || error?.name === 'AbortError'
+          || error?.cause?.name === 'TimeoutError'
+          || error?.message?.toLowerCase?.().includes('timeout')
+
+        if (isTimeout) {
+          throw error
+        }
+
         return await apiFetch<BillRecord[]>(withQuery('/search/all/relevance', { query }))
       }
     },
