@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: csearch
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d csearch"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  rscraper:
+    build:
+      context: ../../..
+      dockerfile: backend/scraper/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CONGRESSDIR: /srv/csearch
+      POSTGRESURI: postgres
+      DB_USER: csearch
+      DB_PASSWORD: postgres
+      DB_NAME: csearch
+      DB_PORT: "5432"
+      RUN_BILLS: "true"
+      RUN_VOTES: "false"
+      LOG_LEVEL: info
+      REDIS_URL: redis://unused:6379
+      DB_WRITE_CONCURRENCY: "1"
+      BILL_WRITE_MODE: seed
+      BILL_SEED_CHUNK_SIZE: "50"
+    volumes:
+      - ${SMOKE_RUNTIME_DIR:?set SMOKE_RUNTIME_DIR}/data:/srv/csearch/data
+      - ${SOURCE_CONGRESS_DIR:?set SOURCE_CONGRESS_DIR}:/srv/csearch/congress
+    restart: "no"
+
+volumes:
+  pgdata:

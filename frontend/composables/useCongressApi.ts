@@ -25,6 +25,8 @@ function withQuery(path: string, query: Record<string, string | number | undefin
   return suffix ? `${path}?${suffix}` : path
 }
 
+const SEMANTIC_SEARCH_LIMIT = 100
+
 export function useCongressApi() {
   const apiBase = useApiBase()
 
@@ -73,8 +75,17 @@ export function useCongressApi() {
     searchAllBills: (query: string) =>
       apiFetch<BillRecord[]>(withQuery('/search/all/relevance', { query })),
     semanticSearch: async (query: string): Promise<BillRecord[]> => {
-      const rows = await $fetch<Array<Record<string, any>>>(`${apiBase}/search/semantic`, { method: 'POST', body: { query } })
-      return rows.map(normalizeSemanticBill)
+      try {
+        const rows = await $fetch<Array<Record<string, any>>>(`${apiBase}/search/semantic`, {
+          method: 'POST',
+          body: { query, limit: SEMANTIC_SEARCH_LIMIT },
+          timeout: 4000,
+        })
+        return rows.map(normalizeSemanticBill)
+      }
+      catch {
+        return await apiFetch<BillRecord[]>(withQuery('/search/all/relevance', { query }))
+      }
     },
     getBill: (billType: string, congress: string, billNumber: string) =>
       apiFetch<BillDetail>(`/bills/${billType}/${congress}/${billNumber}`),

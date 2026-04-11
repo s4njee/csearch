@@ -2,7 +2,7 @@
 import { API_FAMILIES, BILL_TYPE_OPTIONS, VOTE_CHAMBER_OPTIONS } from '~/types/congress'
 
 const router = useRouter()
-const { fetchBillsByNumber, searchAllBills, searchVotesFuzzy } = useCongressApi()
+const { fetchBillsByNumber, searchVotesFuzzy } = useCongressApi()
 
 const { data: meta } = await useFetch<{ updated_at: string }>('/meta.json', { server: false })
 const updatedAt = computed(() => meta.value?.updated_at ?? null)
@@ -59,8 +59,9 @@ watch(billQuery, (val) => {
         }
       }
       else {
-        // Free text — full-text search across all bill types
-        suggestions.value = await searchAllBills(trimmed) as any[]
+        // Free text search runs on submit to avoid blocking on slow global lookups.
+        suggestions.value = []
+        showSuggestions.value = false
       }
       showSuggestions.value = suggestions.value.length > 0
     }
