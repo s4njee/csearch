@@ -26,6 +26,7 @@ function withQuery(path: string, query: Record<string, string | number | undefin
 }
 
 const SEMANTIC_SEARCH_LIMIT = 100
+const SEMANTIC_SEARCH_TIMEOUT_MS = 10000
 
 export function useCongressApi() {
   const apiBase = useApiBase()
@@ -79,7 +80,7 @@ export function useCongressApi() {
         const rows = await $fetch<Array<Record<string, any>>>(`${apiBase}/search/semantic`, {
           method: 'POST',
           body: { query, limit: SEMANTIC_SEARCH_LIMIT },
-          timeout: 4000,
+          timeout: SEMANTIC_SEARCH_TIMEOUT_MS,
         })
         return rows.map(normalizeSemanticBill)
       }
