@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: csearch-updater
     app.kubernetes.io/component: scraper
 spec:
+  suspend: true
   timeZone: "America/Chicago"
   # GovInfo BILLSTATUS typically updates later in the early morning, so run after that window.
   schedule: "0 5 * * *"
