@@ -35,7 +35,7 @@ jobs:
       - name: Build and push FastAPI image
         uses: docker/build-push-action@v6
         with:
-          context: backend/api
+          context: .
           file: backend/api/api_fastapi/Dockerfile
           push: true
           platforms: linux/amd64
