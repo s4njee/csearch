@@ -5,13 +5,13 @@ from pydantic import BaseModel, Field
 
 router = APIRouter()
 
-DEFAULT_RESULT_LIMIT = 100
+DEFAULT_RESULT_LIMIT = 50
 MAX_RESULT_LIMIT = 500
-MIN_CANDIDATE_LIMIT = 1000
-MAX_CANDIDATE_LIMIT = 5000
-CANDIDATE_MULTIPLIER = 25
+MIN_CANDIDATE_LIMIT = 500
+MAX_CANDIDATE_LIMIT = 2000
+CANDIDATE_MULTIPLIER = 10
 SEMANTIC_DB_TIMEOUT_SECONDS = 10.0
-SEMANTIC_HNSW_EF_SEARCH = 1000
+SEMANTIC_HNSW_EF_SEARCH = 500
 
 # top_k scans only nlp.bill_embeddings with no joins or filters so the
 # HNSW index is used. Joining and congress filtering happen afterwards on
