@@ -5,7 +5,7 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
-    argocd-image-updater.argoproj.io/image-list: fastapi=registry.s8njee.com/csearch-fastapi
+    argocd-image-updater.argoproj.io/image-list: fastapi=registry.s8njee.com/csearch-fastapi:latest
     argocd-image-updater.argoproj.io/fastapi.pull-secret: pullsecret:argocd/registry-s8njee-pull
     argocd-image-updater.argoproj.io/fastapi.update-strategy: digest
     argocd-image-updater.argoproj.io/write-back-method: argocd
