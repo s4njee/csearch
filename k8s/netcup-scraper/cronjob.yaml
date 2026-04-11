@@ -89,6 +89,8 @@ spec:
                   mountPath: /srv/csearch/congress
                 - name: congress-data
                   mountPath: /srv/csearch/data
+                - name: congress-data
+                  mountPath: /srv/csearch/congress/data
           volumes:
             - name: congress-code
               hostPath:
