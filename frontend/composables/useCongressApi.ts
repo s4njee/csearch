@@ -25,7 +25,7 @@ function withQuery(path: string, query: Record<string, string | number | undefin
   return suffix ? `${path}?${suffix}` : path
 }
 
-const SEMANTIC_SEARCH_LIMIT = 100
+const SEMANTIC_SEARCH_LIMIT = 50
 const SEMANTIC_SEARCH_TIMEOUT_MS = 10000
 
 export function useCongressApi() {
