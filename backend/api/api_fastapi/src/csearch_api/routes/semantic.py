@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
@@ -12,6 +14,11 @@ MAX_CANDIDATE_LIMIT = 2000
 CANDIDATE_MULTIPLIER = 10
 SEMANTIC_DB_TIMEOUT_SECONDS = 10.0
 SEMANTIC_HNSW_EF_SEARCH = 500
+SEMANTIC_WARMUP_QUERY = "bills about climate"
+SEMANTIC_WARMUP_RESULT_LIMIT = 1
+
+_warmup_vector_str: str | None = None
+_warmup_vector_lock = asyncio.Lock()
 
 # top_k scans only nlp.bill_embeddings with no joins or filters so the
 # HNSW index is used. Joining and congress filtering happen afterwards on
@@ -111,29 +118,38 @@ def _candidate_limit(result_limit: int) -> int:
     )
 
 
-@router.post("/search/semantic")
-async def semantic_search(request: Request, body: SemanticSearchRequest):
-    settings = request.app.state.settings
-    if not settings.openai_api_key:
-        raise HTTPException(status_code=503, detail={"error": "Semantic search not configured: OPENAI_API_KEY not set"})
-
-    query = body.query.strip()
-    if not query:
-        raise HTTPException(status_code=400, detail={"error": "Missing required query"})
-
+async def _embed_query(request: Request, query: str) -> str:
     resp = await request.app.state.openai_client.embeddings.create(
         model="text-embedding-3-small",
         input=[query],
         dimensions=1536,
     )
     vector = resp.data[0].embedding
-    vector_str = "[" + ",".join(f"{v:.17g}" for v in vector) + "]"
+    return "[" + ",".join(f"{v:.17g}" for v in vector) + "]"
 
-    congress_min = body.congress_min if body.congress_min is not None else 0
-    congress_max = body.congress_max if body.congress_max is not None else 999
-    result_limit = _normalize_limit(body.limit)
+
+async def _warmup_vector(request: Request) -> tuple[str, bool]:
+    global _warmup_vector_str
+
+    if _warmup_vector_str is not None:
+        return _warmup_vector_str, True
+
+    async with _warmup_vector_lock:
+        if _warmup_vector_str is None:
+            _warmup_vector_str = await _embed_query(request, SEMANTIC_WARMUP_QUERY)
+            return _warmup_vector_str, False
+
+    return _warmup_vector_str, True
+
+
+async def _semantic_rows(
+    request: Request,
+    vector_str: str,
+    congress_min: int,
+    congress_max: int,
+    result_limit: int,
+):
     candidate_limit = _candidate_limit(result_limit)
-
     return await request.app.state.db.fetch(
         _SEARCH_SQL,
         vector_str,
@@ -144,3 +160,52 @@ async def semantic_search(request: Request, body: SemanticSearchRequest):
         timeout=SEMANTIC_DB_TIMEOUT_SECONDS,
         hnsw_ef_search=SEMANTIC_HNSW_EF_SEARCH,
     )
+
+
+def _require_semantic_configured(request: Request) -> None:
+    settings = request.app.state.settings
+    if not settings.openai_api_key:
+        raise HTTPException(status_code=503, detail={"error": "Semantic search not configured: OPENAI_API_KEY not set"})
+
+
+@router.post("/search/semantic")
+async def semantic_search(request: Request, body: SemanticSearchRequest):
+    _require_semantic_configured(request)
+
+    query = body.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail={"error": "Missing required query"})
+
+    vector_str = await _embed_query(request, query)
+    congress_min = body.congress_min if body.congress_min is not None else 0
+    congress_max = body.congress_max if body.congress_max is not None else 999
+    result_limit = _normalize_limit(body.limit)
+
+    return await _semantic_rows(
+        request,
+        vector_str,
+        congress_min,
+        congress_max,
+        result_limit,
+    )
+
+
+@router.post("/search/semantic/warmup")
+async def semantic_search_warmup(request: Request):
+    _require_semantic_configured(request)
+
+    vector_str, cache_hit = await _warmup_vector(request)
+    rows = await _semantic_rows(
+        request,
+        vector_str,
+        0,
+        999,
+        SEMANTIC_WARMUP_RESULT_LIMIT,
+    )
+
+    return {
+        "ok": True,
+        "cache_hit": cache_hit,
+        "query": SEMANTIC_WARMUP_QUERY,
+        "rows": len(rows),
+    }

@@ -5,6 +5,7 @@ resources:
   - redis.yaml
   - api.yaml
   - api-ingress.yaml
+  - semantic-warmup-cronjob.yaml
   - csearch-api-openai-sealedsecret.yaml
 
 images:

@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: csearch-semantic-warmup
+  labels:
+    app.kubernetes.io/name: csearch-semantic-warmup
+    app.kubernetes.io/component: api-warmup
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 30
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: csearch-semantic-warmup
+            app.kubernetes.io/component: api-warmup
+        spec:
+          restartPolicy: Never
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: warmup
+              image: curlimages/curl:8.11.1
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000
+              args:
+                - --fail
+                - --silent
+                - --show-error
+                - --max-time
+                - "15"
+                - --request
+                - POST
+                - http://csearch-api/search/semantic/warmup
