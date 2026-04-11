@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 from csearch_api.main import create_app
+from csearch_api.routes import semantic
 from csearch_api.settings import Settings
 
 
@@ -215,10 +216,46 @@ def test_semantic_search_returns_bill_metadata():
     assert body[0]["cosponsor_count"] == 12
     assert body[0]["policy_area"] == "Science, Technology, Communications"
     assert "JOIN public.bills" in db.last_query
-    assert db.last_args[3] == 2500
-    assert db.last_args[4] == 100
+    assert db.last_args[3] == 500
+    assert db.last_args[4] == 50
     assert db.last_kwargs["timeout"] == 10.0
-    assert db.last_kwargs["hnsw_ef_search"] == 1000
+    assert db.last_kwargs["hnsw_ef_search"] == 500
+
+
+def test_semantic_warmup_reuses_cached_embedding():
+    semantic._warmup_vector_str = None
+
+    class FakeEmbeddings:
+        def __init__(self):
+            self.calls = 0
+
+        async def create(self, model: str, input: list[str], dimensions: int):
+            self.calls += 1
+            assert model == "text-embedding-3-small"
+            assert input == ["bills about climate"]
+            assert dimensions == 1536
+            return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = FakeEmbeddings()
+
+    db = FakeDB(rows=[{"bill_id": "hr42-119", "similarity": 0.98}])
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+
+    first = client.post("/search/semantic/warmup")
+    second = client.post("/search/semantic/warmup")
+
+    assert first.status_code == 200
+    assert first.json()["cache_hit"] is False
+    assert first.json()["rows"] == 1
+    assert second.status_code == 200
+    assert second.json()["cache_hit"] is True
+    assert app.state.openai_client.embeddings.calls == 1
+    assert db.last_args[3] == 500
+    assert db.last_args[4] == 1
 
 
 def test_votes_latest_and_detail_and_explore():
