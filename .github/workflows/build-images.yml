@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/mars-images.yml"
+      - ".github/workflows/build-images.yml"
       - "backend/api_fastapi/**"
       - "backend/scraper/**"
       - "frontend/**"
@@ -36,7 +36,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/api/Dockerfile
+          file: backend/api_fastapi/Dockerfile
           push: true
           platforms: linux/amd64
           tags: |
