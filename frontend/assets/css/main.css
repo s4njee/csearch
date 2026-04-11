@@ -625,6 +625,8 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-inline-size: 9rem;
+  white-space: nowrap;
   padding: 0.35rem 0.6rem;
   border-radius: 0;
   background: rgba(255, 255, 255, 0.06);
