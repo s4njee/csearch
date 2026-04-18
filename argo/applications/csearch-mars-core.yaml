@@ -4,17 +4,13 @@ metadata:
   name: csearch-mars-core
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: fastapi=registry.s8njee.com/csearch-fastapi,scraper=registry.s8njee.com/csearch-updater,frontend=registry.s8njee.com/csearch-frontend
-    argocd-image-updater.argoproj.io/fastapi.update-strategy: digest
-    argocd-image-updater.argoproj.io/scraper.update-strategy: digest
-    argocd-image-updater.argoproj.io/frontend.update-strategy: digest
-    argocd-image-updater.argoproj.io/write-back-method: argocd
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
     repoURL: https://github.com/s4njee/csearch.git
-    targetRevision: fastapi-api-rewrite
-    path: k8s/mars
+    targetRevision: freya
+    path: k8s/freya-core
   destination:
     server: https://kubernetes.default.svc
     namespace: default

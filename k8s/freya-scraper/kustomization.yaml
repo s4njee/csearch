@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cronjob.yaml
+  - orchestrator-cronjob.yaml
+
+images:
+  - name: registry.s8njee.com/csearch-updater
+    newName: registry.s8njee.com/csearch-updater
+    newTag: latest
+  - name: registry.s8njee.com/csearch-tarp-updater
+    newName: registry.s8njee.com/csearch-tarp-updater
+    newTag: latest
