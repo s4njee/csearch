@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+data:
+  POSTGRES_DB: csearch
+  POSTGRES_USER: postgres
+  POSTGRES_RW_HOST: postgres
+  POSTGRES_POOLER_HOST: postgres
+  PGDATA: /var/lib/postgresql/data/pgdata
