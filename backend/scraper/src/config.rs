@@ -214,6 +214,10 @@ pub fn current_congress() -> i32 {
     congress_for_year(chrono::Utc::now().year())
 }
 
+/// Maps a calendar year to its congress number.
+///
+/// Formula: `(year - 1789) / 2 + 1`
+/// Example: `congress_for_year(2025) == 119` (117th was 2021–2022, etc.)
 pub fn congress_for_year(year: i32) -> i32 {
     (year - 1789) / 2 + 1
 }
