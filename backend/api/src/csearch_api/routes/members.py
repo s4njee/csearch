@@ -4,6 +4,8 @@ import asyncio
 
 from fastapi import APIRouter, HTTPException, Request
 
+from csearch_api import queries
+
 router = APIRouter()
 
 
@@ -51,7 +53,7 @@ async def member_detail(request: Request, bioguide_id: str):
         raise HTTPException(status_code=404, detail={"error": "Member not found in recent records"})
 
     sponsored_bills_task = request.app.state.db.fetch(
-        """
+        f"""
         SELECT
             b.billid,
             b.billnumber::text AS billnumber,
@@ -65,13 +67,7 @@ async def member_detail(request: Request, bioguide_id: str):
             b.summary_text,
             b.policy_area,
             b.latest_action_date,
-            (
-                SELECT COUNT(*)::int
-                FROM bill_cosponsors cos
-                WHERE cos.billtype = b.billtype
-                  AND cos.billnumber = b.billnumber
-                  AND cos.congress = b.congress
-            ) AS cosponsor_count
+            {queries.COSPONSOR_COUNT_SQL}
         FROM bills AS b
         WHERE b.sponsor_bioguide_id = $1
         ORDER BY b.latest_action_date DESC NULLS LAST

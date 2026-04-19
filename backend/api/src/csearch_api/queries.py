@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from .constants import MIN_FUZZY_QUERY_LENGTH
 
+# --- Column helpers ---
+# Reusable SELECT fragments and subqueries shared across multiple routes.
+
 BILL_LIST_COLUMNS = """
     b.billid,
     b.shorttitle,
@@ -22,6 +25,11 @@ BILL_LIST_COLUMNS = """
     b.origin_chamber
 """
 
+# --- Subquery constants ---
+# Inline subqueries used in SELECT clauses across routes.
+# Keep in sync with schema.sql if table structures change.
+
+# Collect distinct committee codes as an array per bill.
 BILL_COMMITTEE_CODES_SQL = """
     (
         SELECT COALESCE(
@@ -35,6 +43,7 @@ BILL_COMMITTEE_CODES_SQL = """
     ) AS committee_codes
 """
 
+# Count confirmed cosponsors per bill.
 COSPONSOR_COUNT_SQL = """
     (
         SELECT COUNT(*)::int
