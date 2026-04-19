@@ -1,12 +1,16 @@
-FROM node:20-alpine
+FROM python:3.11-slim-bookworm
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-COPY --chown=node:node package*.json ./
-RUN npm install
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-COPY --chown=node:node . ./
+COPY backend/api/pyproject.toml /app/backend/api/pyproject.toml
+COPY backend/api/src /app/backend/api/src
+COPY backend/api/sql/explore.sql /app/backend/api/sql/explore.sql
 
-USER node
+RUN pip install --no-cache-dir -e /app/backend/api
 
-CMD ["npm", "start"]
+EXPOSE 3000
+
+CMD ["uvicorn", "csearch_api.main:app", "--host", "0.0.0.0", "--port", "3000"]

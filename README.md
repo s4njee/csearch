@@ -59,7 +59,9 @@ cd backend/scraper && cargo test
 | `k8s/netcup-db/` | Postgres StatefulSet for netcup. |
 | `k8s/netcup-scraper/` | Scraper CronJob for netcup. |
 | `k8s/netcup-test-frontend/` | nginx frontend for `test.csearch.org` on netcup. |
-| `k8s/mars/` | API + Redis + scraper for freya cluster. |
+| `k8s/freya-core/` | API + Redis for freya cluster (dev). |
+| `k8s/freya-db/` | Postgres StatefulSet for freya. |
+| `k8s/freya-scraper/` | Scraper CronJob for freya. |
 | `k8s/logging/` | Fluent Bit DaemonSet, collector, Grafana dashboards. |
 
 ## Key conventions

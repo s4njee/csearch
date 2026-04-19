@@ -7,7 +7,7 @@ This monorepo contains three active projects that together form the CSearch cong
 | Directory | Language | Role |
 |---|---|---|
 | `backend/scraper/` | Rust + Python | Data ingest pipeline — fetches, parses, and writes congress data to Postgres |
-| `backend/api/` | Node.js (Fastify) | REST API — serves bill and vote data from Postgres to the frontend |
+| `backend/api/` | Python (FastAPI) | REST API — serves bill and vote data from Postgres to the frontend |
 | `frontend/` | Nuxt 4 (Vue 3) | Static frontend — deployed to S3/CloudFront at csearch.org |
 
 Supporting infrastructure lives in `argo/` (Argo CD applications), `k8s/` (Kubernetes manifests), and archived legacy material under `k8s/archive/legacy/`, plus older scripts such as `deploy.sh`.
@@ -85,28 +85,33 @@ kubectl apply -f k8s/netcup-scraper/cronjob.yaml
 ## Project 2: backend/api
 
 ### What it does
-Fastify REST API serving bill and vote data from Postgres. Runs as a 2-replica Kubernetes Deployment, exposed at `https://api.csearch.org`.
+FastAPI REST API (Python/uvicorn) serving bill and vote data from Postgres with Redis caching. Runs as a 2-replica Kubernetes Deployment, exposed at `https://api.csearch.org`.
 
 ### Key files
-- `backend/api/routes/` — route handlers (bills, votes, latest, search, explore)
-- `backend/api/controllers/db.js` — knex Postgres connection
-- `backend/api/services/exploreQueries.js` — pre-built analytical SQL queries for the explore endpoint
+- `backend/api/src/csearch_api/routes/` — route handlers (bills, votes, members, committees, explore, semantic)
+- `backend/api/src/csearch_api/db.py` — asyncpg connection pool
+- `backend/api/src/csearch_api/cache.py` — Redis route caching
+- `backend/api/src/csearch_api/explore.py` — pre-built analytical query loader
+- `backend/api/src/csearch_api/settings.py` — config via environment variables
+- `backend/api/sql/explore.sql` — SQL for the `/explore` endpoint (source of truth in `backend/scraper/explore.sql`)
 
 ### Key endpoints
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/latest/:billtype` | 500 most recently active bills, sorted by `latest_action_date DESC NULLS LAST` |
-| `GET` | `/search/:table/:filter` | Full-text bill/vote search |
-| `GET` | `/bills/:billtype/:congress/:number` | Single bill detail with actions, cosponsors, votes |
-| `GET` | `/bills/bynumber/:number` | All bill types matching a bill number, sorted most recent first |
-| `GET` | `/explore/:query` | Pre-built analytical queries |
+| `GET` | `/latest/{billtype}` | 500 most recently active bills, sorted by `latest_action_date DESC NULLS LAST` |
+| `GET` | `/search/{table}/{filter}` | Full-text bill/vote search |
+| `GET` | `/bills/{billtype}/{congress}/{number}` | Single bill detail with actions, cosponsors, votes |
+| `GET` | `/bills/bynumber/{number}` | All bill types matching a bill number, sorted most recent first |
+| `GET` | `/explore/{query}` | Pre-built analytical queries |
+| `GET` | `/semantic` | pgvector semantic search over bill embeddings |
 
 ### Build and push (amd64)
 ```bash
+# Run from repo root — Dockerfile uses paths relative to root
 source .env.prod
-cd backend/api
 docker buildx build --platform linux/amd64 --push \
-  -t "$REGISTRY/csearch-api:latest" .
+  -t "$REGISTRY/csearch-fastapi:latest" \
+  -f backend/api/Dockerfile .
 ```
 
 ### Deploy to cluster
@@ -122,7 +127,10 @@ kubectl apply -f k8s/netcup-core/api.yaml
 ### Direct local run
 ```bash
 cd backend/api
-POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 npm run dev
+pip install -e .
+POSTGRESURI=localhost DB_USER=csearch DB_PASSWORD=... DB_NAME=csearch \
+  REDIS_URL=redis://localhost:6379 \
+  uvicorn csearch_api.main:app --reload --port 3000
 ```
 
 ---
@@ -204,10 +212,14 @@ NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 ### k8s manifest structure
 ```
 k8s/
-├── netcup-db/             — Default Argo-managed Postgres manifests
-├── netcup-core/           — Default Argo-managed API, Redis, and ingress
-├── netcup-scraper/        — Default Argo-managed scraper CronJob
-├── netcup-test-frontend/  — Default Argo-managed test frontend
+├── netcup-db/             — Argo-managed Postgres for netcup (production)
+├── netcup-core/           — Argo-managed API, Redis, and ingress for netcup
+├── netcup-scraper/        — Argo-managed scraper CronJob for netcup
+├── netcup-test-frontend/  — Argo-managed test frontend on netcup
+├── freya-db/              — Argo-managed Postgres for freya (dev)
+├── freya-core/            — Argo-managed API and Redis for freya
+├── freya-scraper/         — Argo-managed scraper CronJob for freya
+├── logging/               — Fluent Bit DaemonSet and Grafana dashboards
 └── registry-pull-secret.yaml
 ```
 
@@ -217,7 +229,10 @@ argo/applications/
 ├── csearch-netcup-db.yaml
 ├── csearch-netcup-core.yaml
 ├── csearch-netcup-scraper.yaml
-└── csearch-netcup-test-frontend.yaml
+├── csearch-netcup-test-frontend.yaml
+├── csearch-mars-db.yaml
+├── csearch-mars-core.yaml
+└── csearch-mars-scraper.yaml
 ```
 
 ### Useful kubectl commands

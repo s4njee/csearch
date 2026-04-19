@@ -1,6 +1,0 @@
-.git
-.gitignore
-.idea
-.nyc_output
-node_modules
-npm-debug.log
