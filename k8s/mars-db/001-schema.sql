@@ -33,35 +33,22 @@ CREATE TABLE bills (
     CONSTRAINT bill_pkey PRIMARY KEY (billtype, billnumber, congress)
 ) PARTITION BY LIST (congress);
 
--- One partition per congress, 93 through 119. A default partition absorbs any
--- future congress that does not yet have an explicit partition.
-CREATE TABLE bills_93  PARTITION OF bills FOR VALUES IN (93);
-CREATE TABLE bills_94  PARTITION OF bills FOR VALUES IN (94);
-CREATE TABLE bills_95  PARTITION OF bills FOR VALUES IN (95);
-CREATE TABLE bills_96  PARTITION OF bills FOR VALUES IN (96);
-CREATE TABLE bills_97  PARTITION OF bills FOR VALUES IN (97);
-CREATE TABLE bills_98  PARTITION OF bills FOR VALUES IN (98);
-CREATE TABLE bills_99  PARTITION OF bills FOR VALUES IN (99);
-CREATE TABLE bills_100 PARTITION OF bills FOR VALUES IN (100);
-CREATE TABLE bills_101 PARTITION OF bills FOR VALUES IN (101);
-CREATE TABLE bills_102 PARTITION OF bills FOR VALUES IN (102);
-CREATE TABLE bills_103 PARTITION OF bills FOR VALUES IN (103);
-CREATE TABLE bills_104 PARTITION OF bills FOR VALUES IN (104);
-CREATE TABLE bills_105 PARTITION OF bills FOR VALUES IN (105);
-CREATE TABLE bills_106 PARTITION OF bills FOR VALUES IN (106);
-CREATE TABLE bills_107 PARTITION OF bills FOR VALUES IN (107);
-CREATE TABLE bills_108 PARTITION OF bills FOR VALUES IN (108);
-CREATE TABLE bills_109 PARTITION OF bills FOR VALUES IN (109);
-CREATE TABLE bills_110 PARTITION OF bills FOR VALUES IN (110);
-CREATE TABLE bills_111 PARTITION OF bills FOR VALUES IN (111);
-CREATE TABLE bills_112 PARTITION OF bills FOR VALUES IN (112);
-CREATE TABLE bills_113 PARTITION OF bills FOR VALUES IN (113);
-CREATE TABLE bills_114 PARTITION OF bills FOR VALUES IN (114);
-CREATE TABLE bills_115 PARTITION OF bills FOR VALUES IN (115);
-CREATE TABLE bills_116 PARTITION OF bills FOR VALUES IN (116);
-CREATE TABLE bills_117 PARTITION OF bills FOR VALUES IN (117);
-CREATE TABLE bills_118 PARTITION OF bills FOR VALUES IN (118);
-CREATE TABLE bills_119 PARTITION OF bills FOR VALUES IN (119);
+-- One partition per congress from the first supported bill congress through
+-- the next rollover congress. The scraper also ensures partitions at startup
+-- so long-lived databases continue to work as new congresses begin.
+DO $$
+DECLARE
+    congress_number integer;
+    partition_ceiling integer := ((extract(year from current_date)::integer - 1789) / 2 + 1) + 1;
+BEGIN
+    FOR congress_number IN 93..partition_ceiling LOOP
+        EXECUTE format(
+            'CREATE TABLE bills_%s PARTITION OF bills FOR VALUES IN (%s)',
+            congress_number,
+            congress_number
+        );
+    END LOOP;
+END $$;
 CREATE TABLE bills_default PARTITION OF bills DEFAULT;
 
 -- Weighted full-text search vector for bill search and ranking.

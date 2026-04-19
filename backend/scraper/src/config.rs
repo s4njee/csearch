@@ -17,6 +17,10 @@ use std::sync::{Mutex, OnceLock};
 use anyhow::{Result, bail};
 use chrono::Datelike;
 
+pub const BILLS_START_CONGRESS: i32 = 93;
+pub const VOTES_START_CONGRESS: i32 = 101;
+const EXTRA_BILL_PARTITIONS: i32 = 1;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BillWriteMode {
     Incremental,
@@ -66,6 +70,12 @@ pub struct Config {
     /// Feature flags: whether to run the vote/bill pipelines.
     pub run_votes: bool,
     pub run_bills: bool,
+
+    /// Highest congress to sync and process in this run.
+    pub target_congress: i32,
+
+    /// Highest bill partition to ensure exists before writing.
+    pub bill_partition_ceiling: i32,
 
     /// Log level string (e.g., "info", "debug", "warn").
     pub log_level: String,
@@ -123,6 +133,17 @@ impl Config {
         // types:
         //   - `&str`: a borrowed, immutable view (like a pointer to chars)
         //   - `String`: an owned, growable string (like Python/JS strings)
+        let target_congress = env::var("TARGET_CONGRESS")
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .filter(|value| *value >= VOTES_START_CONGRESS)
+            .unwrap_or_else(current_congress);
+        let bill_partition_ceiling = env::var("BILL_PARTITION_CEILING")
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .filter(|value| *value >= target_congress)
+            .unwrap_or(target_congress + EXTRA_BILL_PARTITIONS);
+
         Ok(Self {
             congress_dir,
             postgres_uri,
@@ -151,6 +172,8 @@ impl Config {
                 .unwrap_or(5432),
             run_votes: env_enabled("RUN_VOTES", true),
             run_bills: env_enabled("RUN_BILLS", true),
+            target_congress,
+            bill_partition_ceiling,
             log_level: env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
         })
     }
@@ -188,7 +211,11 @@ impl Config {
 /// but with explicit size. Rust requires you to choose: i8, i16, i32, i64,
 /// i128, or isize (pointer-sized). No implicit conversions between them.
 pub fn current_congress() -> i32 {
-    (chrono::Utc::now().year() - 1789) / 2 + 1
+    congress_for_year(chrono::Utc::now().year())
+}
+
+pub fn congress_for_year(year: i32) -> i32 {
+    (year - 1789) / 2 + 1
 }
 
 /// Parses a boolean environment variable with a default value.
@@ -269,6 +296,8 @@ mod tests {
             env::set_var("RUN_VOTES", "false");
             env::set_var("RUN_BILLS", "true");
             env::set_var("LOG_LEVEL", "debug");
+            env::remove_var("TARGET_CONGRESS");
+            env::remove_var("BILL_PARTITION_CEILING");
         }
 
         let cfg = Config::load().unwrap();
@@ -279,7 +308,33 @@ mod tests {
         assert_eq!(cfg.db_write_concurrency, 4);
         assert_eq!(cfg.bill_write_mode, BillWriteMode::Incremental);
         assert_eq!(cfg.bill_seed_chunk_size, 50);
+        assert_eq!(cfg.target_congress, current_congress());
+        assert_eq!(cfg.bill_partition_ceiling, current_congress() + 1);
         assert_eq!(cfg.log_level, "debug");
+    }
+
+    #[test]
+    fn target_congress_can_be_overridden() {
+        let _guard = env_lock().lock().unwrap();
+        let temp_dir = TempDir::new().unwrap();
+
+        unsafe {
+            env::set_var("CONGRESSDIR", temp_dir.path());
+            env::set_var("POSTGRESURI", "localhost");
+            env::set_var("TARGET_CONGRESS", "121");
+            env::set_var("BILL_PARTITION_CEILING", "123");
+        }
+
+        let cfg = Config::load().unwrap();
+        assert_eq!(cfg.target_congress, 121);
+        assert_eq!(cfg.bill_partition_ceiling, 123);
+    }
+
+    #[test]
+    fn congress_for_year_rolls_over_in_odd_years() {
+        assert_eq!(congress_for_year(2026), 119);
+        assert_eq!(congress_for_year(2027), 120);
+        assert_eq!(congress_for_year(2029), 121);
     }
 
     #[test]
@@ -288,6 +343,8 @@ mod tests {
         unsafe {
             env::remove_var("CONGRESSDIR");
             env::set_var("POSTGRESURI", "localhost");
+            env::remove_var("TARGET_CONGRESS");
+            env::remove_var("BILL_PARTITION_CEILING");
         }
 
         let err = Config::load().unwrap_err();

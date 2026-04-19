@@ -27,8 +27,9 @@
 use anyhow::{Context, Result};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, Postgres, Transaction};
+use tracing::info;
 
-use crate::config::Config;
+use crate::config::{BILLS_START_CONGRESS, Config};
 use crate::models::{
     InsertBillActionParams, InsertBillCosponsorParams, InsertBillParams, InsertBillSubjectParams,
     InsertCommitteeParams, InsertVoteMemberParams, InsertVoteParams,
@@ -98,6 +99,7 @@ pub async fn open_pool(cfg: &Config) -> Result<PgPool> {
 
     // Run schema migration on startup.
     ensure_schema_compatibility(&pool).await?;
+    ensure_bill_partitions(&pool, cfg).await?;
     Ok(pool)
 }
 
@@ -107,6 +109,32 @@ async fn ensure_schema_compatibility(pool: &PgPool) -> Result<()> {
         .execute(pool)
         .await
         .context("ensure schema compatibility")?;
+    Ok(())
+}
+
+async fn ensure_bill_partitions(pool: &PgPool, cfg: &Config) -> Result<()> {
+    for congress in BILLS_START_CONGRESS..=cfg.bill_partition_ceiling {
+        let table_name = format!("bills_{congress}");
+        let exists: bool = sqlx::query_scalar("SELECT to_regclass($1) IS NOT NULL")
+            .bind(format!("public.{table_name}"))
+            .fetch_one(pool)
+            .await
+            .with_context(|| format!("check bill partition {table_name}"))?;
+
+        if exists {
+            continue;
+        }
+
+        sqlx::raw_sql(&format!(
+            "CREATE TABLE {table_name} PARTITION OF bills FOR VALUES IN ({congress})"
+        ))
+        .execute(pool)
+        .await
+        .with_context(|| format!("create bill partition {table_name}"))?;
+
+        info!(congress, partition = table_name, "created bill partition");
+    }
+
     Ok(())
 }
 
@@ -193,7 +221,8 @@ pub async fn replace_vote_members(
     members: &[InsertVoteMemberParams],
 ) -> Result<()> {
     let bioguide_ids: Vec<String> = members.iter().map(|m| m.bioguide_id.clone()).collect();
-    let display_names: Vec<Option<String>> = members.iter().map(|m| m.display_name.clone()).collect();
+    let display_names: Vec<Option<String>> =
+        members.iter().map(|m| m.display_name.clone()).collect();
     let parties: Vec<Option<String>> = members.iter().map(|m| m.party.clone()).collect();
     let states: Vec<Option<String>> = members.iter().map(|m| m.state.clone()).collect();
     let positions: Vec<String> = members.iter().map(|m| m.position.clone()).collect();
@@ -209,12 +238,12 @@ FROM UNNEST($2::text[], $3::text[], $4::text[], $5::text[], $6::text[])
 ON CONFLICT ON CONSTRAINT vote_members_pkey DO NOTHING
         "#,
     )
-    .bind(voteid)          // $1
-    .bind(&bioguide_ids)   // $2
-    .bind(&display_names)  // $3
-    .bind(&parties)        // $4
-    .bind(&states)         // $5
-    .bind(&positions)      // $6
+    .bind(voteid) // $1
+    .bind(&bioguide_ids) // $2
+    .bind(&display_names) // $3
+    .bind(&parties) // $4
+    .bind(&states) // $5
+    .bind(&positions) // $6
     .execute(&mut **tx)
     .await?;
     Ok(())
@@ -281,7 +310,6 @@ INSERT INTO bills (
     Ok(())
 }
 
-
 /// Deletes existing actions, batch-inserts new ones using UNNEST, and
 /// updates the bill's latest_action pointer — all in a single SQL round-trip
 /// via a CTE (Common Table Expression) chain.
@@ -314,7 +342,10 @@ pub async fn replace_bill_actions(
     let texts: Vec<Option<String>> = actions.iter().map(|a| a.action_text.clone()).collect();
     let types: Vec<Option<String>> = actions.iter().map(|a| a.action_type.clone()).collect();
     let codes: Vec<Option<String>> = actions.iter().map(|a| a.action_code.clone()).collect();
-    let sources: Vec<Option<String>> = actions.iter().map(|a| a.source_system_code.clone()).collect();
+    let sources: Vec<Option<String>> = actions
+        .iter()
+        .map(|a| a.source_system_code.clone())
+        .collect();
 
     sqlx::query(
         r#"
@@ -375,7 +406,8 @@ pub async fn replace_bill_cosponsors(
     let full_names: Vec<Option<String>> = cosponsors.iter().map(|c| c.full_name.clone()).collect();
     let states: Vec<Option<String>> = cosponsors.iter().map(|c| c.state.clone()).collect();
     let parties: Vec<Option<String>> = cosponsors.iter().map(|c| c.party.clone()).collect();
-    let dates: Vec<Option<chrono::NaiveDate>> = cosponsors.iter().map(|c| c.sponsorship_date).collect();
+    let dates: Vec<Option<chrono::NaiveDate>> =
+        cosponsors.iter().map(|c| c.sponsorship_date).collect();
     let originals: Vec<Option<bool>> = cosponsors.iter().map(|c| c.is_original_cosponsor).collect();
 
     sqlx::query(
@@ -420,8 +452,14 @@ pub async fn replace_bill_committees(
     congress: i32,
     committees: &[InsertCommitteeParams],
 ) -> Result<()> {
-    let codes: Vec<String> = committees.iter().map(|c| c.committee_code.clone()).collect();
-    let names: Vec<Option<String>> = committees.iter().map(|c| c.committee_name.clone()).collect();
+    let codes: Vec<String> = committees
+        .iter()
+        .map(|c| c.committee_code.clone())
+        .collect();
+    let names: Vec<Option<String>> = committees
+        .iter()
+        .map(|c| c.committee_name.clone())
+        .collect();
     let chambers: Vec<Option<String>> = committees.iter().map(|c| c.chamber.clone()).collect();
 
     sqlx::query(
@@ -443,12 +481,12 @@ FROM UNNEST($4::text[])
 ON CONFLICT ON CONSTRAINT bill_committees_pkey DO NOTHING
         "#,
     )
-    .bind(billtype)     // $1
-    .bind(billnumber)   // $2
-    .bind(congress)     // $3
-    .bind(&codes)       // $4  (used in both upserted_committees and final INSERT)
-    .bind(&names)       // $5
-    .bind(&chambers)    // $6
+    .bind(billtype) // $1
+    .bind(billnumber) // $2
+    .bind(congress) // $3
+    .bind(&codes) // $4  (used in both upserted_committees and final INSERT)
+    .bind(&names) // $5
+    .bind(&chambers) // $6
     .execute(&mut **tx)
     .await?;
     Ok(())
@@ -477,10 +515,10 @@ FROM UNNEST($4::text[])
 ON CONFLICT ON CONSTRAINT bill_subjects_pkey DO NOTHING
         "#,
     )
-    .bind(billtype)         // $1
-    .bind(billnumber)       // $2
-    .bind(congress)         // $3
-    .bind(&subject_names)   // $4
+    .bind(billtype) // $1
+    .bind(billnumber) // $2
+    .bind(congress) // $3
+    .bind(&subject_names) // $4
     .execute(&mut **tx)
     .await?;
     Ok(())

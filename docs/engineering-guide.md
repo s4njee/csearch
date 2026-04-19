@@ -203,7 +203,7 @@ Check that workload labels include `app.kubernetes.io/name`, that the Fluent Bit
 | Bills | 93rd Congress through current |
 | Votes | 101st Congress through current |
 
-The current congress number is computed dynamically from the current year: `(year - 1789) / 2 + 1`.
+The default target congress number is computed dynamically from the current year: `(year - 1789) / 2 + 1`. Set `TARGET_CONGRESS` to override the processing ceiling for a backfill or rollover test. The scraper ensures bill partitions through `BILL_PARTITION_CEILING`, which defaults to one congress beyond the target so the database is ready before the next congress starts.
 
 ## First-Day Checklist
 

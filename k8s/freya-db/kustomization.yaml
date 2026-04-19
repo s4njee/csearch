@@ -5,11 +5,17 @@ resources:
   - postgres-config.yaml
   - postgres-service.yaml
   - postgres-statefulset.yaml
+  - postgres-audit-history-migration-job.yaml
+  - postgres-b2-backup-cronjob.yaml
 
 configMapGenerator:
   - name: postgres-schema
     files:
       - 001-schema.sql
+      - 002-audit-history.sql
+  - name: postgres-backup-scripts
+    files:
+      - scripts/prune-b2-backups.sh
 
 generatorOptions:
   disableNameSuffixHash: true

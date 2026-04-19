@@ -147,6 +147,8 @@ async fn run() -> anyhow::Result<()> {
         db_write_concurrency = cfg.db_write_concurrency,
         bill_write_mode = ?cfg.bill_write_mode,
         bill_seed_chunk_size = cfg.bill_seed_chunk_size,
+        target_congress = cfg.target_congress,
+        bill_partition_ceiling = cfg.bill_partition_ceiling,
         "scraper run starting"
     );
 

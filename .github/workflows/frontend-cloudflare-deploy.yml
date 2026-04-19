@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/frontend-s3-deploy.yml"
+      - ".github/workflows/frontend-cloudflare-deploy.yml"
       - "frontend/**"
   schedule:
     # GitHub Actions cron uses UTC and cannot track America/Chicago DST directly.

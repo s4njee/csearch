@@ -44,6 +44,23 @@ spec:
                 name: postgres-config
             - secretRef:
                 name: postgres-auth
+          env:
+            - name: POSTGRES_INITDB_ARGS
+              value: "--auth-host=scram-sha-256"
+          command:
+            - /bin/bash
+            - -ceu
+            - |
+              hba_file="${PGDATA}/pg_hba.conf"
+              if [ -f "$hba_file" ] && ! grep -q "csearch freya pod replication" "$hba_file"; then
+                {
+                  echo ""
+                  echo "# csearch freya pod replication backups"
+                  echo "host replication ${POSTGRES_USER} 10.42.0.0/16 scram-sha-256"
+                  echo "host replication ${POSTGRES_USER} 10.43.0.0/16 scram-sha-256"
+                } >> "$hba_file"
+              fi
+              exec docker-entrypoint.sh postgres
           readinessProbe:
             exec:
               command:
@@ -83,9 +100,8 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: postgres-data
-            - mountPath: /docker-entrypoint-initdb.d/001-schema.sql
+            - mountPath: /docker-entrypoint-initdb.d
               name: postgres-schema
-              subPath: 001-schema.sql
               readOnly: true
             - mountPath: /dev/shm
               name: dshm
