@@ -7,7 +7,6 @@ on:
     paths:
       - ".github/workflows/build-images.yml"
       - "backend/api/**"
-      - "backend/api/api_fastapi/**"
       - "backend/scraper/**"
       - "backend/nlp/**"
       - "frontend/**"
@@ -38,7 +37,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/api/api_fastapi/Dockerfile
+          file: backend/api/Dockerfile
           push: true
           platforms: linux/amd64
           tags: |
