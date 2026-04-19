@@ -51,6 +51,9 @@ function semanticScoreLabel(score: number | null | undefined) {
   return 'loose semantic signal'
 }
 
+// Cosine similarity percentile thresholds chosen empirically:
+// top 20% of results (percentile <= 0.2) are treated as strong relevance,
+// top 50% (percentile <= 0.5) as moderate, and the rest as weak/loose.
 function semanticRankLabel(index: number, total: number) {
   if (total <= 0) {
     return ''
@@ -102,6 +105,7 @@ function normalizeStatus(value: unknown) {
 function buildBillQuery(query?: string, sort?: string) {
   const nextQuery: Record<string, string | number> = {}
 
+  // Search text and sort mode
   if (query) {
     nextQuery.query = query
   }
@@ -110,6 +114,8 @@ function buildBillQuery(query?: string, sort?: string) {
     nextQuery.sort = sort
   }
 
+  // Congress range and chamber (chamber is suppressed during free-text search
+  // because semantic results span all chambers)
   if (selectedCongress.value) {
     nextQuery.congress = selectedCongress.value
   }
@@ -117,6 +123,7 @@ function buildBillQuery(query?: string, sort?: string) {
     nextQuery.chamber = selectedChamber.value
   }
 
+  // Bill type / status filters
   if (filterPolicyArea.value) {
     nextQuery.policyArea = filterPolicyArea.value
   }
@@ -125,14 +132,17 @@ function buildBillQuery(query?: string, sort?: string) {
     nextQuery.status = selectedStatus.value
   }
 
+  // Cosponsor filter
   if (selectedSponsorParty.value) {
     nextQuery.party = selectedSponsorParty.value
   }
 
+  // Committee filter
   if (selectedCommittee.value) {
     nextQuery.committee = selectedCommittee.value
   }
 
+  // Sort order and date-range refinements
   if (filterMonth.value) {
     nextQuery.month = filterMonth.value
   }
@@ -433,6 +443,12 @@ async function submitSearch() {
   await router.push(getBillRoute(selectedCategory.value, query || undefined, selectedSort.value))
 }
 
+// Two separate watchers are needed because the data flow is bidirectional:
+// - The route watcher (below) syncs URL → component state, triggering a data
+//   reload whenever the browser URL changes (navigation, back/forward, deep links).
+// - The filter watcher (further below) syncs component state → URL, pushing a
+//   new URL whenever the user changes a filter, which in turn fires the route watcher.
+// Collapsing them into one watcher would create update loops or miss one direction.
 watch(
   () => [
     selectedCategory.value,

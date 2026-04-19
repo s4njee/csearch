@@ -1,3 +1,7 @@
+// Optionality convention used throughout this file:
+//   `| null`  — the field is always present in the API response but its value can be null
+//   `?`       — the field may be absent from the response entirely (property not included)
+
 // ─── Bill list (returned by /latest/:billtype and /search/:table/:filter) ─────
 
 export interface BillRecord {

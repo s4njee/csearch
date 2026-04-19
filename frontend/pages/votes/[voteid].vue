@@ -45,6 +45,8 @@ const positionCounts = computed(() => {
   return counts
 })
 
+// 'UNDEFINED' and 'NULL' are literal string values returned by the API when
+// party data is missing in the source data — they are not JavaScript undefined/null.
 const availableParties = computed(() => {
   if (!vote.value?.members) return []
   const parties = new Set(vote.value.members.map(m => String(m.party).toUpperCase()).filter(p => p && p !== 'UNDEFINED' && p !== 'NULL'))
