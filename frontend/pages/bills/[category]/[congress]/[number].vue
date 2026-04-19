@@ -27,41 +27,7 @@ const errorMessage = computed(() =>
     : '',
 )
 
-function formatDate(value?: string | null) {
-  if (!value)
-    return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime()))
-    return value
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
-}
-
-function partyLabel(party?: string | null) {
-  if (!party)
-    return null
-  const map: Record<string, string> = { D: 'Democrat', R: 'Republican', I: 'Independent' }
-  return map[party.toUpperCase()] || party
-}
-
-function voteResultClass(result?: string | null) {
-  const n = String(result || '').toLowerCase()
-  if (['passed', 'agreed', 'confirmed', 'approved', 'adopted', 'ratified'].some(w => n.includes(w)))
-    return 'vote-badge vote-badge--positive'
-  if (['failed', 'rejected', 'not agreed'].some(w => n.includes(w)))
-    return 'vote-badge vote-badge--negative'
-  return 'vote-badge'
-}
-
-function formatChamber(value?: string | null) {
-  const normalized = String(value || '').toLowerCase()
-  if (normalized === 'senate' || normalized === 's') {
-    return 'Senate'
-  }
-  if (normalized === 'house' || normalized === 'h') {
-    return 'House'
-  }
-  return value || 'Unknown chamber'
-}
+const { formatDate, formatChamber, partyLabel, voteResultClass } = useFormatters()
 
 function hasBioguideId(value?: string | null) {
   return typeof value === 'string' && /^[A-Z0-9]+$/i.test(value)

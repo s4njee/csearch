@@ -179,16 +179,7 @@ function submitVoteSearch() {
   })
 }
 
-function formatChamber(value?: string | null) {
-  const normalized = String(value || '').toLowerCase()
-  if (normalized === 'senate' || normalized === 's') {
-    return 'Senate'
-  }
-  if (normalized === 'house' || normalized === 'h') {
-    return 'House'
-  }
-  return value || 'Unknown chamber'
-}
+const { formatChamber } = useFormatters()
 </script>
 
 <template>
