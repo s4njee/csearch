@@ -43,6 +43,8 @@ export function useCongressApi() {
       || error?.message?.toLowerCase?.().includes('timeout')
   }
 
+  // The 10-second timeout avoids blocking the UI when the embedding endpoint is slow.
+  // One retry covers transient network errors without adding noticeable latency on success.
   async function fetchSemanticRows(query: string) {
     let lastError: unknown
 
@@ -65,6 +67,8 @@ export function useCongressApi() {
     throw lastError
   }
 
+  // Maps the flat API response from the semantic endpoint (which returns snake_case fields)
+  // into the standard BillRecord shape expected by the bills list.
   function normalizeSemanticBill(row: Record<string, any>): BillRecord {
     const billTypeMatch = String(row.bill_id || '').match(/^([a-z]+)(\d+)-(\d+)$/i)
     const billtype = String(row.billtype ?? row.bill_type ?? billTypeMatch?.[1] ?? '')
