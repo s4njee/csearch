@@ -125,7 +125,7 @@ git add k8s/netcup-core/csearch-api-openai-sealedsecret.yaml && git commit && gi
 
 ## API — freya (dev/secondary)
 
-FastAPI backend at `192.168.1.156:3000` (LAN only). ArgoCD app `csearch-mars-core` watches `k8s/freya-core` on `freya`.
+FastAPI backend at `192.168.1.156:3000` (LAN only). ArgoCD app `csearch-freya-core` watches `k8s/freya-core` on `freya`.
 
 **Image updates are automatic.** Argo Image Updater polls `registry.s8njee.com` every 2 minutes and rolls out new `csearch-fastapi:latest` digests without a Git commit.
 
@@ -159,7 +159,7 @@ Schema is bootstrapped by the scraper on first run from `backend/scraper/schema.
 
 ## Database — freya
 
-PostgreSQL StatefulSet managed by ArgoCD app `csearch-mars-db` watching `k8s/freya-db` on `freya`.
+PostgreSQL StatefulSet managed by ArgoCD app `csearch-freya-db` watching `k8s/freya-db` on `freya`.
 
 ---
 
@@ -191,7 +191,7 @@ kubectl --context=netcup set env cronjob/csearch-scraper RUN_BILLS=true RUN_VOTE
 
 ## Scraper — freya
 
-Kubernetes CronJob managed by ArgoCD app `csearch-mars-scraper` watching `k8s/freya-scraper` on `freya`. Image is auto-updated by Argo Image Updater.
+Kubernetes CronJob managed by ArgoCD app `csearch-freya-scraper` watching `k8s/freya-scraper` on `freya`. Image is auto-updated by Argo Image Updater.
 
 ### Run manually
 
@@ -207,7 +207,7 @@ kubectl --context=freya logs -f job/csearch-scraper-manual
 Both environments run `csearch-data-pipeline`, a single CronJob that sequences the scraper (initContainer) then the NLP updater (main container). Schedule: 5 AM America/Chicago daily.
 
 - netcup: managed by ArgoCD app `csearch-netcup-scraper` (`k8s/netcup-scraper` on `main`)
-- freya: managed by ArgoCD app `csearch-mars-scraper` (`k8s/freya-scraper` on `freya`)
+- freya: managed by ArgoCD app `csearch-freya-scraper` (`k8s/freya-scraper` on `freya`)
 
 ### Run manually
 
@@ -259,9 +259,9 @@ git push origin main
 | `csearch-netcup-core` | netcup | `main` | `k8s/netcup-core` | 0 |
 | `csearch-netcup-scraper` | netcup | `main` | `k8s/netcup-scraper` | 10 |
 | `csearch-netcup-test-frontend` | netcup | `rscraper` | `k8s/netcup-test-frontend` | — |
-| `csearch-mars-db` | freya | `freya` | `k8s/freya-db` | -10 |
-| `csearch-mars-core` | freya | `freya` | `k8s/freya-core` | 0 |
-| `csearch-mars-scraper` | freya | `freya` | `k8s/freya-scraper` | — |
+| `csearch-freya-db` | freya | `freya` | `k8s/freya-db` | -10 |
+| `csearch-freya-core` | freya | `freya` | `k8s/freya-core` | 0 |
+| `csearch-freya-scraper` | freya | `freya` | `k8s/freya-scraper` | 0 |
 
 All apps have `selfHeal: true` and `prune: true` — manual `kubectl` changes are reverted. Always push to the watched branch.
 

@@ -230,9 +230,9 @@ argo/applications/
 ├── csearch-netcup-core.yaml
 ├── csearch-netcup-scraper.yaml
 ├── csearch-netcup-test-frontend.yaml
-├── csearch-mars-db.yaml
-├── csearch-mars-core.yaml
-└── csearch-mars-scraper.yaml
+├── csearch-freya-db.yaml
+├── csearch-freya-core.yaml
+└── csearch-freya-scraper.yaml
 ```
 
 ### Useful kubectl commands

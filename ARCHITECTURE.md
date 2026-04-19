@@ -130,7 +130,7 @@ Extensions: `pgvector`, `pg_trgm` (full-text search).
 - **Runtime:** Python 3.11, uvicorn, asyncpg, pydantic-settings, openai, redis
 - **Source:** `backend/api/src/csearch_api/`
 - **netcup manifests:** `k8s/netcup-core/api.yaml` → Argo app `csearch-netcup-core` (branch `main`)
-- **freya manifests:** `k8s/mars/api.yaml` → Argo app `csearch-mars-core` (branch `fastapi-api-rewrite`)
+- **freya manifests:** `k8s/freya-core/api.yaml` → Argo app `csearch-freya-core` (branch `freya`)
 
 **Routes:**
 
@@ -184,7 +184,7 @@ POST /search/semantic
 
 ### Redis
 
-- **Manifests:** `k8s/netcup-core/redis.yaml`, `k8s/mars/redis.yaml`
+- **Manifests:** `k8s/netcup-core/redis.yaml`, `k8s/freya-core/redis.yaml`
 - 24h TTL, key prefix `csearch:`
 - Fails open — API falls back to Postgres when Redis is unavailable
 - Scraper clears all `csearch:*` keys after successful ingest runs
@@ -208,7 +208,7 @@ POST /search/semantic
 
 - **Image:** `registry.s8njee.com/csearch-updater:latest`
 - **Source:** `backend/scraper/` (Rust) + `backend/scraper/congress/` (vendored Python)
-- **Manifests:** `k8s/netcup-scraper/`, `k8s/mars/scraper.yaml`
+- **Manifests:** `k8s/netcup-scraper/`, `k8s/freya-scraper/`
 - Mounts host paths: `/srv/csearch/congress` and `/srv/csearch/data`
 - Toggle bill/vote ingest independently with `RUN_BILLS` / `RUN_VOTES`
 
@@ -238,8 +238,8 @@ POST /search/semantic
 | `csearch-netcup-core` | netcup | `k8s/netcup-core` | `main` | Yes |
 | `csearch-netcup-scraper` | netcup | `k8s/netcup-scraper` | `main` | Yes |
 | `csearch-netcup-test-frontend` | netcup | `k8s/netcup-test-frontend` | `rscraper` | Yes |
-| `csearch-mars-core` | freya | `k8s/mars` | `fastapi-api-rewrite` | Yes |
-| `csearch-mars-db` | freya | `k8s/mars-db` | `optimize` | Yes |
+| `csearch-freya-core` | freya | `k8s/freya-core` | `freya` | Yes |
+| `csearch-freya-db` | freya | `k8s/freya-db` | `freya` | Yes |
 
 **selfHeal is enabled on all apps.** Manual `kubectl` changes will be reverted within seconds. All changes must go through git.
 
@@ -253,7 +253,7 @@ POST /search/semantic
 
 Secrets are encrypted with Bitnami SealedSecrets and stored in git:
 - `k8s/netcup-core/csearch-api-openai-sealedsecret.yaml` — `OPENAI_API_KEY` for netcup
-- `k8s/mars/csearch-api-openai-sealedsecret.yaml` — `OPENAI_API_KEY` for freya
+- `k8s/freya-core/csearch-api-openai-sealedsecret.yaml` — `OPENAI_API_KEY` for freya
 
 Never commit plaintext secrets. Use `kubeseal` with the cluster's public key to generate SealedSecrets.
 

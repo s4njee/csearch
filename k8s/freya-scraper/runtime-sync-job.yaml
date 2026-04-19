@@ -15,6 +15,8 @@ spec:
         app.kubernetes.io/component: runtime-sync
     spec:
       restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: freya
       imagePullSecrets:
         - name: registry-s8njee-pull
       securityContext:
@@ -55,5 +57,5 @@ spec:
       volumes:
         - name: congress-code
           hostPath:
-            path: /root/congress
+            path: /home/sanjee/congress
             type: Directory
