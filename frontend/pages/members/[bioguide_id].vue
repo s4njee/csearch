@@ -22,44 +22,7 @@ const errorMessage = computed(() =>
     : '',
 )
 
-function partyLabel(party?: string | null) {
-  if (!party)
-    return 'Unknown'
-  const map: Record<string, string> = { D: 'Democrat', R: 'Republican', I: 'Independent' }
-  return map[party.toUpperCase()] || party
-}
-
-function voteResultClass(result?: string | null) {
-  const n = String(result || '').toLowerCase()
-  if (['passed', 'agreed', 'confirmed', 'approved', 'adopted', 'ratified'].some(w => n.includes(w)))
-    return 'vote-badge vote-badge--positive'
-  if (['failed', 'rejected', 'not agreed'].some(w => n.includes(w)))
-    return 'vote-badge vote-badge--negative'
-  return 'vote-badge'
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
-}
-
-function formatChamber(value?: string | null) {
-  const normalized = String(value || '').toLowerCase()
-  if (normalized === 'senate' || normalized === 's') {
-    return 'Senate'
-  }
-  if (normalized === 'house' || normalized === 'h') {
-    return 'House'
-  }
-  return value || 'Unknown chamber'
-}
-
-function summarizeText(value?: string | null, limit = 160) {
-  if (!value) return ''
-  return value.length > limit ? `${value.slice(0, limit).trim()}...` : value
-}
+const { formatDate, formatChamber, partyLabel, voteResultClass, summarizeText } = useFormatters()
 </script>
 
 <template>

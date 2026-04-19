@@ -5,6 +5,7 @@ import type { BillRecord, CommitteeRecord } from '~/types/congress'
 const route = useRoute()
 const router = useRouter()
 const { latestBills, semanticSearch, getCommittees } = useCongressApi()
+const { formatDate, summarizeText } = useFormatters()
 const { data: loadedCommittees } = await useAsyncData(
   'bill-committee-options',
   () => getCommittees(),
@@ -365,30 +366,6 @@ function formatMonthLabel(yyyyMm: string) {
   return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date)
 }
 
-function formatDate(value?: string | null) {
-  if (!value) {
-    return '—'
-  }
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
-}
-
-function summarizeText(value?: string | null, limit = 260) {
-  if (!value) {
-    return 'Summary not available.'
-  }
-
-  return value.length > limit ? `${value.slice(0, limit).trim()}...` : value
-}
 
 function estimatePayloadBytes(rows: BillRecord[]) {
   return new TextEncoder().encode(JSON.stringify(rows)).length
@@ -730,7 +707,7 @@ watch(
         </div>
 
         <p class="result-card__summary">
-          {{ summarizeText(bill.summary_text || bill.officialtitle || bill.shorttitle) }}
+          {{ summarizeText(bill.summary_text || bill.officialtitle || bill.shorttitle, 260) }}
         </p>
 
         <dl class="detail-grid">

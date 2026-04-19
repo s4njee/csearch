@@ -22,17 +22,7 @@ const errorMessage = computed(() =>
     : '',
 )
 
-function formatDate(value?: string | null) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
-}
-
-function summarizeText(value?: string | null, limit = 160) {
-  if (!value) return ''
-  return value.length > limit ? `${value.slice(0, limit).trim()}...` : value
-}
+const { formatDate, summarizeText } = useFormatters()
 </script>
 
 <template>

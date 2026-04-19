@@ -57,32 +57,7 @@ const availablePositions = computed(() => {
   return Array.from(positions).sort()
 })
 
-function formatDate(value?: string | null) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
-}
-
-function formatChamber(value?: string | null) {
-  const normalized = String(value || '').toLowerCase()
-  if (normalized === 'senate' || normalized === 's') {
-    return 'Senate'
-  }
-  if (normalized === 'house' || normalized === 'h') {
-    return 'House'
-  }
-  return value || 'Unknown chamber'
-}
-
-function voteResultClass(result?: string | null) {
-  const n = String(result || '').toLowerCase()
-  if (['passed', 'agreed', 'confirmed', 'approved', 'adopted', 'ratified'].some(w => n.includes(w)))
-    return 'vote-badge vote-badge--positive'
-  if (['failed', 'rejected', 'not agreed'].some(w => n.includes(w)))
-    return 'vote-badge vote-badge--negative'
-  return 'vote-badge'
-}
+const { formatDate, formatChamber, voteResultClass } = useFormatters()
 </script>
 
 <template>
