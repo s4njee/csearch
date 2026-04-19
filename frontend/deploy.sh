@@ -19,6 +19,6 @@ echo "==> Writing deploy timestamp..."
 echo "{\"updated_at\": \"$(TZ=America/Chicago date +%Y-%m-%dT%H:%M:%S%z)\"}" > .output/public/meta.json
 
 echo "==> Deploying to Cloudflare Pages..."
-npx wrangler pages deploy .output/public --project-name "${CF_PAGES_PROJECT:-csearch}"
+npx wrangler pages deploy .output/public --project-name "${CF_PAGES_PROJECT:-csearch}" --branch main --commit-dirty=true
 
 echo "==> Done."

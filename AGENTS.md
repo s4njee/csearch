@@ -61,6 +61,8 @@ kubectl logs -f job/<job-name>
 | `DB_USER` / `DB_PASSWORD` / `DB_NAME` | Postgres credentials (from ConfigMap/Secret) |
 | `RUN_BILLS` | Enable bill ingest (default: `true`) |
 | `RUN_VOTES` | Enable vote ingest (default: `true`) |
+| `TARGET_CONGRESS` | Optional override for the highest congress to sync/process; defaults to the current congress computed from the year |
+| `BILL_PARTITION_CEILING` | Optional override for the highest bill partition to ensure at startup; defaults to one congress beyond `TARGET_CONGRESS` |
 
 ### Volume mounts (k8s)
 | Container path | Host path | Purpose |

@@ -42,7 +42,7 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tracing::{info, warn};
 
-use crate::config::{Config, current_congress};
+use crate::config::{Config, VOTES_START_CONGRESS};
 use crate::db;
 use crate::hashes::{FileHashStore, sha256_file};
 use crate::models::{
@@ -107,14 +107,15 @@ enum VoteParseOutcome {
 /// If the sync fails (e.g., network error), we log a warning but DON'T
 /// abort — we'll still process whatever data we already have on disk.
 pub async fn update_votes(cfg: &Config) -> Result<()> {
-    let congress = current_congress();
+    let congress = cfg.target_congress;
     if let Err(err) = run_congress_task(cfg, &["votes", &format!("--congress={congress}")]).await {
         warn!(congress, error = %err, "vote sync skipped");
     }
     Ok(())
 }
 
-/// Processes vote data for all congress sessions from 101 to the current.
+/// Processes vote data for all congress sessions from the first supported
+/// vote congress through the configured target congress.
 ///
 /// For each congress:
 ///   1. Discover all vote files on disk
@@ -131,10 +132,7 @@ pub async fn process_votes(
     hashes: &mut FileHashStore,
     stats: &mut RunStats,
 ) -> Result<()> {
-    // `101..=current_congress()` is an inclusive range (101, 102, ..., 119).
-    // `..=` means inclusive end; `..` would be exclusive.
-    // Like Python's `range(101, current_congress() + 1)`.
-    for congress in 101..=current_congress() {
+    for congress in VOTES_START_CONGRESS..=cfg.target_congress {
         // Discover all vote files for this congress.
         let jobs = match vote_jobs_for_congress(cfg, congress) {
             Ok(jobs) => jobs,

@@ -30,7 +30,7 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use tracing::{info, warn};
 
-use crate::config::{BillWriteMode, Config, current_congress};
+use crate::config::{BILLS_START_CONGRESS, BillWriteMode, Config};
 use crate::db;
 use crate::hashes::{FileHashStore, sha256_file};
 use crate::models::{
@@ -102,7 +102,7 @@ enum BillParseOutcome {
 /// Syncs bill data from Congress.gov using the Python govinfo tool.
 /// Runs: `python3 run.py govinfo --bulkdata=BILLSTATUS --congress=N`
 pub async fn update_bills(cfg: &Config) -> Result<()> {
-    let congress = current_congress();
+    let congress = cfg.target_congress;
     if let Err(err) = run_congress_task(
         cfg,
         &[
@@ -118,7 +118,8 @@ pub async fn update_bills(cfg: &Config) -> Result<()> {
     Ok(())
 }
 
-/// Processes bill data for all congress sessions from 93 to current.
+/// Processes bill data for all congress sessions from the first supported
+/// bill congress through the configured target congress.
 ///
 /// For each congress, processes all 8 bill types (s, hr, hconres, etc.).
 /// The inner loop structure means we process one bill type at a time
@@ -129,7 +130,7 @@ pub async fn process_bills(
     hashes: &mut FileHashStore,
     stats: &mut RunStats,
 ) -> Result<()> {
-    for congress in 93..=current_congress() {
+    for congress in BILLS_START_CONGRESS..=cfg.target_congress {
         // Iterate over each bill type (s, hr, hconres, hjres, etc.)
         for table in BILL_TABLES {
             let jobs = match bill_jobs_for_table(cfg, congress, table) {

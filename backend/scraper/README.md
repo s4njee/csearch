@@ -6,11 +6,11 @@ A Rust application that scrapes, parses, and stores U.S. congressional vote and 
 
 ### `src/main.rs`
 
-Entry point. Initializes structured JSON logging via `tracing`, loads configuration, opens the database pool, and orchestrates the full scraper run. Iterates over congress sessions (101 to current), conditionally running vote and bill processing. Clears the Redis API cache if any writes occurred, and reports final statistics.
+Entry point. Initializes structured JSON logging via `tracing`, loads configuration, opens the database pool, and orchestrates the full scraper run. Iterates over bill and vote congress sessions through the configured target congress, conditionally running vote and bill processing. Clears the Redis API cache if any writes occurred, and reports final statistics.
 
 ### `src/config.rs`
 
-Configuration management. Loads settings from environment variables (`CONGRESS_DIR`, `POSTGRES_URI`, `REDIS_URL`, etc.). Provides helpers like `current_congress()` (calculates from the current year) and `env_enabled()` (parses boolean env vars).
+Configuration management. Loads settings from environment variables (`CONGRESSDIR`, `POSTGRESURI`, `REDIS_URL`, etc.). The default target congress is calculated from the current year, and `TARGET_CONGRESS` can override it for backfills or future-rollover testing. `BILL_PARTITION_CEILING` can raise the highest bill partition the scraper ensures at startup; by default it creates one partition beyond the target congress.
 
 ### `src/votes.rs`
 
