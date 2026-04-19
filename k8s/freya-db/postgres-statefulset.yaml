@@ -17,6 +17,8 @@ spec:
         app.kubernetes.io/name: postgres
         app.kubernetes.io/component: database
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: freya
       imagePullSecrets:
         - name: registry-s8njee-pull
       securityContext:

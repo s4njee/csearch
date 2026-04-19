@@ -19,6 +19,8 @@ spec:
         app.kubernetes.io/part-of: csearch
     spec:
       restartPolicy: OnFailure
+      nodeSelector:
+        kubernetes.io/hostname: freya
       imagePullSecrets:
         - name: registry-s8njee-pull
       securityContext:

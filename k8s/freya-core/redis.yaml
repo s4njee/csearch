@@ -16,6 +16,8 @@ spec:
         app.kubernetes.io/name: csearch-redis
         app.kubernetes.io/component: cache
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: freya
       securityContext:
         seccompProfile:
           type: RuntimeDefault

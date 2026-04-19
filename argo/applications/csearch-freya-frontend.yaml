@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: csearch-freya-frontend
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/s4njee/csearch.git
+    targetRevision: freya
+    path: k8s/freya-frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

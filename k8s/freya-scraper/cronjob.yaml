@@ -23,6 +23,8 @@ spec:
             app.kubernetes.io/component: scraper
         spec:
           restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: freya
           imagePullSecrets:
             - name: registry-s8njee-pull
           dnsConfig:
@@ -95,9 +97,9 @@ spec:
           volumes:
             - name: congress-code
               hostPath:
-                path: /root/congress
+                path: /home/sanjee/congress
                 type: Directory
             - name: congress-data
               hostPath:
-                path: /root/congress/data
+                path: /home/sanjee/congress/data
                 type: DirectoryOrCreate

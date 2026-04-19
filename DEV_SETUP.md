@@ -55,18 +55,18 @@ Delete the current `k8s/mars*` paths from the `freya` branch (they'll still exis
 
 Update the three freya-side Argo Application manifests on `main` (so both clusters can see the same app definitions under `argo/applications/`, or apply them directly to freya's argocd namespace — whichever is how they're currently installed).
 
-### `argo/applications/csearch-mars-core.yaml`
+### `argo/applications/csearch-freya-core.yaml`
 
 - `targetRevision: freya`
 - `path: k8s/freya-core`
 - **Drop** the `argocd-image-updater.argoproj.io/*` annotations. Netcup-style deployments use `:latest` + `kubectl rollout restart`, not digest pinning.
 
-### `argo/applications/csearch-mars-db.yaml`
+### `argo/applications/csearch-freya-db.yaml`
 
 - `targetRevision: freya`
 - `path: k8s/freya-db`
 
-### New `argo/applications/csearch-mars-scraper.yaml`
+### New `argo/applications/csearch-freya-scraper.yaml`
 
 - Mirror `csearch-netcup-scraper.yaml`
 - `targetRevision: freya`
@@ -179,7 +179,7 @@ Do these in order. Each step is reversible until the Argo sync.
 - [ ] Back up freya Postgres if needed (§3)
 - [ ] Update `images:` in `k8s/freya-core/kustomization.yaml` etc. to `:latest` (§4)
 - [ ] Commit + push `freya` branch
-- [ ] Update Argo Application manifests (`csearch-mars-core`, `csearch-mars-db`, new `csearch-mars-scraper`) — `targetRevision: freya`, new paths, drop image-updater annotations
+- [ ] Update Argo Application manifests (`csearch-freya-core`, `csearch-freya-db`, `csearch-freya-scraper`) — `targetRevision: freya`, new paths, drop image-updater annotations
 - [ ] Apply Application manifests to freya's argocd namespace (or let GitOps pick them up, depending on setup)
 - [ ] Watch sync: `kubectl --context=freya get applications -n argocd -w`
 - [ ] Verify API healthy: `curl <freya-api-endpoint>/health`
@@ -230,7 +230,7 @@ git revert <commit>
 git push
 
 # Or edit directly
-kubectl --context=freya edit application csearch-mars-core -n argocd
+kubectl --context=freya edit application csearch-freya-core -n argocd
 ```
 
 The `fastapi-api-rewrite` branch and `k8s/mars*` paths still exist, so the old freya config is recoverable.
