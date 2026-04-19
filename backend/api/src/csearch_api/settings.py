@@ -23,6 +23,8 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
 
+    cache_ttl_seconds: int = 86400
+
     @classmethod
     def load(cls) -> Self:
         return cls()

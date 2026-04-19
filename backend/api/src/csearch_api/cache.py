@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from redis.asyncio import Redis
+
+logger = logging.getLogger(__name__)
 
 TTL_SECONDS = 60 * 60 * 24
 KEY_PREFIX = "csearch:"
@@ -24,31 +27,36 @@ class Cache:
             )
         )
 
+    # Cache failures are non-fatal — the route still serves uncached data.
+
     async def get(self, key: str):
         try:
             raw = await self.redis.get(f"{KEY_PREFIX}{key}")
-        except Exception:
+        except Exception as e:
+            logger.warning("cache error: %s", e)
             return None
         if raw is None:
             return None
         try:
             return json.loads(raw)
-        except Exception:
+        except Exception as e:
+            logger.warning("cache error: %s", e)
             return None
 
     async def set(self, key: str, value) -> None:
         try:
             await self.redis.set(f"{KEY_PREFIX}{key}", json.dumps(value, default=str), ex=TTL_SECONDS)
-        except Exception:
+        except Exception as e:
+            logger.warning("cache error: %s", e)
             return None
 
     async def reset(self) -> None:
         try:
             async for key in self.redis.scan_iter(match=f"{KEY_PREFIX}*"):
                 await self.redis.delete(key)
-        except Exception:
+        except Exception as e:
+            logger.warning("cache error: %s", e)
             return None
 
     async def close(self) -> None:
         await self.redis.aclose()
-

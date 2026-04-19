@@ -6,9 +6,12 @@ from csearch_api import queries
 
 router = APIRouter()
 
+COMMITTEE_BILLS_LIMIT = 100
+
 
 @router.get("/committees")
 async def committees(request: Request):
+    """Return all committees with their bill counts, ordered by name."""
     return await request.app.state.db.fetch(
         """
         SELECT
@@ -26,6 +29,7 @@ async def committees(request: Request):
 
 @router.get("/committees/{committee_code}")
 async def committee_detail(request: Request, committee_code: str):
+    """Return a committee's metadata and its most recently active bills."""
     committee = await request.app.state.db.fetchrow(
         """
         SELECT committee_code, committee_name, chamber
@@ -62,7 +66,7 @@ async def committee_detail(request: Request, committee_code: str):
          AND bc.congress = b.congress
         WHERE bc.committee_code = $1
         ORDER BY b.latest_action_date DESC NULLS LAST
-        LIMIT 100
+        LIMIT {COMMITTEE_BILLS_LIMIT}
         """,
         committee_code,
     )

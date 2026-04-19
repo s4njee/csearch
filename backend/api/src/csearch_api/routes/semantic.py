@@ -160,6 +160,7 @@ def _require_semantic_configured(request: Request) -> None:
 
 @router.post("/search/semantic")
 async def semantic_search(request: Request, body: SemanticSearchRequest):
+    """Embed the query via OpenAI and return the most semantically similar bills."""
     _require_semantic_configured(request)
 
     query = body.query.strip()
@@ -182,6 +183,7 @@ async def semantic_search(request: Request, body: SemanticSearchRequest):
 
 @router.post("/search/semantic/warmup")
 async def semantic_search_warmup(request: Request):
+    """Pre-warm the HNSW index by running a fixed query and caching its embedding."""
     _require_semantic_configured(request)
 
     vector_str, cache_hit = await _warmup_vector(request)

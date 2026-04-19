@@ -9,6 +9,8 @@ class Database:
     def __init__(self, pool: asyncpg.Pool):
         self.pool = pool
 
+    # --- Connection lifecycle ---
+
     @classmethod
     async def connect(cls, settings: Settings) -> "Database":
         pool = await asyncpg.create_pool(
@@ -26,7 +28,10 @@ class Database:
     async def close(self) -> None:
         await self.pool.close()
 
+    # --- Query helpers ---
+
     async def fetch(self, query: str, *args, timeout: float | None = None, hnsw_ef_search: int | None = None):
+        # Only set by semantic search routes to tune pgvector HNSW recall.
         if hnsw_ef_search is not None:
             async with self.pool.acquire() as conn:
                 async with conn.transaction():

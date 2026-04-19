@@ -41,6 +41,7 @@ class ExploreQuery:
     parameters: list[dict[str, Any]]
 
 
+# Path is resolved relative to __file__ so it works both locally and inside the Docker container.
 def _sql_path() -> Path:
     return Path(__file__).resolve().parents[3] / "api" / "sql" / "explore.sql"
 
@@ -78,6 +79,12 @@ def _normalize_limit(value: Any, default_value: int) -> int:
 
 
 def _parse_explore_queries(sql_text: str) -> list[ExploreQuery]:
+    """Parse SQL blocks from explore.sql, delimited by '-- N. Title' comments.
+
+    Each block starts when a line matching '-- <number>. <title>' is encountered
+    and ends at the next such delimiter or end of file. The block's SQL is
+    everything between those delimiters (whitespace-stripped).
+    """
     queries: list[ExploreQuery] = []
     current_number: int | None = None
     current_title: str | None = None
