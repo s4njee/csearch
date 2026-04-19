@@ -310,6 +310,14 @@ INSERT INTO bills (
     Ok(())
 }
 
+/// Replaces all actions for a bill atomically using a CTE chain.
+///
+/// Upsert strategy: delete all existing actions first (orphan removal), then
+/// batch-insert the new set from UNNEST arrays. This is simpler and safer than
+/// insert-on-conflict for actions because the entire action list is always
+/// re-derived from the upstream XML — there is no meaningful "merge" to do.
+/// The final UPDATE sets the bill's latest_action pointer in the same round-trip.
+///
 /// Deletes existing actions, batch-inserts new ones using UNNEST, and
 /// updates the bill's latest_action pointer — all in a single SQL round-trip
 /// via a CTE (Common Table Expression) chain.

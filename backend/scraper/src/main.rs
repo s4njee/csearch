@@ -12,6 +12,9 @@
 // ============================================================================
 
 mod bills;
+mod bills_parse_json;
+mod bills_parse_xml;
+mod bills_write;
 mod config;
 mod db;
 mod hashes;
