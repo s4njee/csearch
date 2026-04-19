@@ -9,6 +9,8 @@ VALID_BILL_TYPES = {
     "sres",
 }
 
+# Identity mappings ("h": "h", "s": "s") normalize externally-supplied values
+# that may already be in abbreviated form (e.g. from query params or the API).
 CHAMBER_ABBREV = {
     "house": "h",
     "senate": "s",

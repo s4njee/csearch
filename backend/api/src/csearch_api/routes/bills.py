@@ -15,6 +15,9 @@ from ..queries import (
 
 router = APIRouter()
 
+LATEST_BILLS_LIMIT = 500
+SEARCH_RESULT_LIMIT = 30
+
 
 def _bill_list_select() -> str:
     return f"""
@@ -31,6 +34,7 @@ def _validate_billtype(billtype: str) -> None:
         raise HTTPException(status_code=400, detail={"error": "Invalid bill type"})
 
 
+# date mode sorts by latest_action_date; relevance mode sorts by FTS rank.
 def _search_order_clause(search_filter: str, fuzzy: bool) -> str:
     fuzzy_clause = f"similarity(lower({BILL_FUZZY_SEARCH_EXPR}), lower($3)) DESC," if fuzzy else ""
 
@@ -54,6 +58,7 @@ def _search_order_clause(search_filter: str, fuzzy: bool) -> str:
 
 @router.get("/latest/{billtype}")
 async def latest_bills(request: Request, billtype: str):
+    """Return the 500 most recently active bills of this type."""
     _validate_billtype(billtype)
 
     cache_key = f"latest_bills_{billtype}"
@@ -67,7 +72,7 @@ async def latest_bills(request: Request, billtype: str):
     if billtype != "all":
         sql += " WHERE b.billtype = $1"
         args.append(billtype)
-    sql += " ORDER BY b.latest_action_date DESC NULLS LAST, b.billid DESC LIMIT 500"
+    sql += f" ORDER BY b.latest_action_date DESC NULLS LAST, b.billid DESC LIMIT {LATEST_BILLS_LIMIT}"
 
     rows = await request.app.state.db.fetch(sql, *args)
     await request.app.state.cache.set(cache_key, rows)
@@ -77,6 +82,7 @@ async def latest_bills(request: Request, billtype: str):
 
 @router.get("/search/{table}/{filter}")
 async def search_bills(request: Request, table: str, filter: str, query: str | None = None):
+    """Full-text and fuzzy search bills, ordered by relevance or date."""
     _validate_billtype(table)
 
     search_query = (query or "").strip()
@@ -102,13 +108,14 @@ async def search_bills(request: Request, table: str, filter: str, query: str | N
 
     order_sql = _search_order_clause(filter, fuzzy)
 
-    sql += f" ORDER BY {order_sql} LIMIT 30"
+    sql += f" ORDER BY {order_sql} LIMIT {SEARCH_RESULT_LIMIT}"
     rows = await request.app.state.db.fetch(sql, *args)
     return rows
 
 
 @router.get("/bills/{billtype}/{congress}/{billnumber}")
 async def bill_detail(request: Request, billtype: str, congress: str, billnumber: str):
+    """Return a single bill with its actions, cosponsors, votes, and committees."""
     _validate_billtype(billtype)
 
     if not congress.isdigit():
@@ -214,6 +221,7 @@ async def bill_detail(request: Request, billtype: str, congress: str, billnumber
 
 @router.get("/bills/bynumber/{number}")
 async def bills_by_number(request: Request, number: str):
+    """Return all bills matching a given bill number across all types and congresses."""
     if not number.isdigit():
         raise HTTPException(status_code=400, detail={"error": "Invalid bill number; must be an integer"})
 

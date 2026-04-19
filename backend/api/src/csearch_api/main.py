@@ -20,6 +20,8 @@ from .settings import Settings, get_settings
 logger = logging.getLogger("csearch-api")
 
 
+# --- Logging ---
+
 def _install_logging() -> None:
     if logger.handlers:
         return
@@ -29,6 +31,8 @@ def _install_logging() -> None:
     logger.setLevel(logging.INFO)
     logger.propagate = False
 
+
+# --- Lifespan (pool setup/teardown) ---
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -66,6 +70,8 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
     app.state.cache = cache
     app.state.openai_client = AsyncOpenAI(api_key=resolved_settings.openai_api_key) if resolved_settings.openai_api_key else None
 
+    # --- Middleware ---
+
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
     app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -90,6 +96,8 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
             }
         )
         return response
+
+    # --- Exception handlers ---
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(_: Request, exc: HTTPException):

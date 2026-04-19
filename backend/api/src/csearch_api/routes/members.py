@@ -8,6 +8,9 @@ from csearch_api import queries
 
 router = APIRouter()
 
+MEMBER_SPONSORED_BILLS_LIMIT = 20
+MEMBER_RECENT_VOTES_LIMIT = 50
+
 
 def _validate_bioguide_id(bioguide_id: str) -> str:
     if not bioguide_id.isalnum():
@@ -17,6 +20,7 @@ def _validate_bioguide_id(bioguide_id: str) -> str:
 
 @router.get("/members/{bioguide_id}")
 async def member_detail(request: Request, bioguide_id: str):
+    """Return a member's profile, sponsored bills, recent votes, and sponsorship counts."""
     upper_id = _validate_bioguide_id(bioguide_id)
 
     profile = await request.app.state.db.fetchrow(
@@ -71,7 +75,7 @@ async def member_detail(request: Request, bioguide_id: str):
         FROM bills AS b
         WHERE b.sponsor_bioguide_id = $1
         ORDER BY b.latest_action_date DESC NULLS LAST
-        LIMIT 20
+        LIMIT {MEMBER_SPONSORED_BILLS_LIMIT}
         """,
         upper_id,
     )
@@ -91,7 +95,7 @@ async def member_detail(request: Request, bioguide_id: str):
         JOIN votes ON vote_members.voteid = votes.voteid
         WHERE vote_members.bioguide_id = $1
         ORDER BY votes.votedate DESC
-        LIMIT 50
+        LIMIT {MEMBER_RECENT_VOTES_LIMIT}
         """,
         upper_id,
     )

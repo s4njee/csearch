@@ -11,6 +11,9 @@ VOTE_FUZZY_SEARCH_EXPR = (
 
 router = APIRouter()
 
+LATEST_VOTES_LIMIT = 60
+VOTE_SEARCH_LIMIT = 20
+
 
 def _normalize_chamber(chamber: str | None) -> str | None:
     if chamber is None:
@@ -46,13 +49,14 @@ def _build_vote_search_query(search_query: str, chamber: str | None, fuzzy: bool
         FROM votes v
         WHERE {where_sql}
         ORDER BY {", ".join(order_sql)}
-        LIMIT 20
+        LIMIT {VOTE_SEARCH_LIMIT}
     """
     return sql, bindings
 
 
 @router.get("/votes/{chamber}")
 async def latest_votes(request: Request, chamber: str):
+    """Return the most recent votes for the given chamber over the last 90 days."""
     normalized = _normalize_chamber(chamber)
     if not normalized:
         raise HTTPException(status_code=400, detail={"error": "Invalid chamber; use 'house' or 'senate'"})
@@ -88,7 +92,7 @@ async def latest_votes(request: Request, chamber: str):
             v.voteid, v.congress, v.votenumber, v.votedate, v.question,
             v.votesession, v.result, v.chamber, v.votetype, v.source_url
         ORDER BY v.votedate DESC
-        LIMIT 60
+        LIMIT {LATEST_VOTES_LIMIT}
         """,
         normalized,
     )
@@ -99,6 +103,7 @@ async def latest_votes(request: Request, chamber: str):
 
 @router.get("/votes/search")
 async def search_votes(request: Request, query: str | None = None, chamber: str | None = None):
+    """Full-text and fuzzy search votes, optionally filtered by chamber."""
     search_query = (query or "").strip()
     if not search_query:
         raise HTTPException(status_code=400, detail={"error": "Missing required query parameter"})
@@ -113,6 +118,7 @@ async def search_votes(request: Request, query: str | None = None, chamber: str 
 
 @router.get("/votes/detail/{voteid}")
 async def vote_detail(request: Request, voteid: str):
+    """Return a single vote with its full member position breakdown."""
     vote = await request.app.state.db.fetchrow(
         """
         SELECT
