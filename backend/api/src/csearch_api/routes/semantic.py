@@ -5,6 +5,8 @@ import asyncio
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from csearch_api import queries
+
 router = APIRouter()
 
 DEFAULT_RESULT_LIMIT = 50
@@ -23,7 +25,7 @@ _warmup_vector_lock = asyncio.Lock()
 # top_k scans only nlp.bill_embeddings with no joins or filters so the
 # HNSW index is used. Joining and congress filtering happen afterwards on
 # the small result set.
-_SEARCH_SQL = """
+_SEARCH_SQL = f"""
     WITH top_k AS (
         SELECT chunk_id, 1 - (embedding <=> $1::vector) AS similarity
         FROM nlp.bill_embeddings
@@ -73,20 +75,8 @@ _SEARCH_SQL = """
         b.policy_area,
         b.latest_action_date,
         b.origin_chamber,
-        (
-            SELECT COALESCE(array_agg(DISTINCT bc.committee_code ORDER BY bc.committee_code), '{}')
-            FROM bill_committees bc
-            WHERE bc.billtype = b.billtype
-              AND bc.billnumber = b.billnumber
-              AND bc.congress = b.congress
-        ) AS committee_codes,
-        (
-            SELECT COUNT(*)::int
-            FROM bill_cosponsors bc
-            WHERE bc.billtype = b.billtype
-              AND bc.billnumber = b.billnumber
-              AND bc.congress = b.congress
-        ) AS cosponsor_count,
+        {queries.BILL_COMMITTEE_CODES_SQL},
+        {queries.COSPONSOR_COUNT_SQL},
         r.similarity
     FROM ranked r
     LEFT JOIN public.bills b
