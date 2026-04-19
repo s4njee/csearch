@@ -120,6 +120,12 @@ export interface MemberDetail extends MemberProfile {
   recentVotes: VoteRecord[]
 }
 
+export interface MembersByState {
+  state: string
+  senators: MemberProfile[]
+  representatives: MemberProfile[]
+}
+
 // ─── Committees ───────────────────────────────────────────────────────────────
 
 export interface CommitteeRecord {
