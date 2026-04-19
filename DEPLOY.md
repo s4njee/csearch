@@ -4,13 +4,74 @@ How to build and deploy each component of CSearch end to end.
 
 ---
 
+## Architecture overview
+
+| Component | Environment | Mechanism | URL |
+| --- | --- | --- | --- |
+| Frontend | Cloudflare Pages | GitHub Actions | `https://csearch.org` |
+| API + Redis | netcup | ArgoCD (Git-driven) | `https://api.csearch.org` |
+| API + Redis | freya | ArgoCD + Image Updater (auto) | `192.168.1.156:3000` (LAN) |
+| Postgres | netcup | ArgoCD (Git-driven) | — |
+| Postgres | freya | ArgoCD (Git-driven) | — |
+| Scraper CronJob | netcup | ArgoCD (Git-driven) | — |
+| Scraper CronJob | freya | ArgoCD + Image Updater (auto) | — |
+| NLP Pipeline | freya | CronJob (`csearch-nlp` ns) | — |
+
+**Git branches:**
+- `main` → netcup (production)
+- `freya` → freya (dev/secondary)
+
+**Image registry:** `registry.s8njee.com` — user `sanjee`, password in GitHub Actions secret `REGISTRY_PASSWORD` and local keychain.
+
+---
+
+## Images — build and push
+
+**CI workflow:** `.github/workflows/build-images.yml`
+
+Triggers on push to `main` touching `backend/api/**`, `backend/scraper/**`, `frontend/**`, or the workflow file itself. Also supports `workflow_dispatch`.
+
+| Image | Dockerfile | Used by |
+| --- | --- | --- |
+| `csearch-fastapi:latest` | `backend/api/api_fastapi/Dockerfile` | netcup API, freya API |
+| `csearch-updater:latest` | `backend/scraper/Dockerfile` | netcup scraper, freya scraper |
+| `csearch-frontend:latest` | `frontend/Dockerfile.nginx` | freya nginx frontend |
+| `csearch-upserter:latest` | `backend/nlp/project-tarp/Dockerfile.upserter` | base image for tarp-updater |
+| `csearch-tarp-updater:latest` | `backend/nlp/project-tarp/Dockerfile.nightly-updater` | netcup data-pipeline, freya data-pipeline |
+
+CI tags each image with both `:latest` and `:<git-sha>`.
+
+### Manual build
+
+```bash
+# FastAPI — build context must be repo root (includes backend/api/sql/)
+docker build -f backend/api/api_fastapi/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
+docker push registry.s8njee.com/csearch-fastapi:latest
+
+# Scraper — build context is also repo root
+docker build -f backend/scraper/Dockerfile -t registry.s8njee.com/csearch-updater:latest .
+docker push registry.s8njee.com/csearch-updater:latest
+
+# Frontend nginx
+docker build -f frontend/Dockerfile.nginx -t registry.s8njee.com/csearch-frontend:latest frontend/
+docker push registry.s8njee.com/csearch-frontend:latest
+```
+
+Registry login:
+
+```bash
+docker login registry.s8njee.com -u sanjee
+```
+
+---
+
 ## Frontend — Cloudflare Pages
 
-The frontend is a statically generated Nuxt 4 app deployed to Cloudflare Pages project **csearch** (`csearch.org`).
+Nuxt 4 static site deployed to Cloudflare Pages project **csearch** (`csearch.org`).
 
 ### Manual deploy (local)
 
-Wrangler uses OAuth — `npx wrangler whoami` should show `sanjee.yogeswaran@gmail.com`. No API token needed locally.
+Wrangler uses OAuth — `npx wrangler whoami` should show `sanjee.yogeswaran@gmail.com`.
 
 ```bash
 cd frontend
@@ -19,20 +80,20 @@ echo "{\"updated_at\": \"$(TZ=America/Chicago date +%Y-%m-%dT%H:%M:%S%z)\"}" > .
 npx wrangler pages deploy .output/public --project-name csearch --branch main
 ```
 
-### CI deploy (GitHub Actions)
+### CI deploy
 
-**Workflow:** `.github/workflows/frontend-s3-deploy.yml`
+**Workflow:** `.github/workflows/frontend-cloudflare-deploy.yml`
 
-**Triggers:** push to `main` touching `frontend/**` or `.github/workflows/frontend-s3-deploy.yml`; daily at 12:00 UTC (keeps the site fresh with latest bill data); `workflow_dispatch`.
+**Triggers:** push to `main` touching `frontend/**`; daily at 12:00 UTC; `workflow_dispatch`.
 
-**Required GitHub Actions secrets:**
+**Required secrets:**
 
 | Secret | Value |
 | --- | --- |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API token with Pages:Edit permission |
 | `CLOUDFLARE_ACCOUNT_ID` | `c81fc0807ec37ef9967dd71b7e8c0f62` |
 
-**Required GitHub Actions variables:**
+**Required variables:**
 
 | Variable | Value |
 | --- | --- |
@@ -43,40 +104,15 @@ npx wrangler pages deploy .output/public --project-name csearch --branch main
 
 ## API — netcup (production)
 
-FastAPI backend at `https://api.csearch.org`. Managed by Argo CD app `csearch-netcup-core` watching `k8s/netcup-core` on `main`.
+FastAPI backend at `https://api.csearch.org`. ArgoCD app `csearch-netcup-core` watches `k8s/netcup-core` on `main`.
 
-### Build and push image
-
-**CI** (`.github/workflows/mars-images.yml`) builds and pushes on every push to `main` touching `backend/api_fastapi/**`:
-
-```bash
-# What CI does — build context is repo root to include backend/api/sql/explore.sql
-docker build -f backend/api_fastapi/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
-docker push registry.s8njee.com/csearch-fastapi:latest
-```
-
-**Manually (from freya — amd64, has working Docker):**
-
-```bash
-# On freya
-git clone https://github.com/s4njee/csearch.git && cd csearch
-docker build -f backend/api_fastapi/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
-docker push registry.s8njee.com/csearch-fastapi:latest
-```
-
-Registry credentials: `registry.s8njee.com`, user `sanjee` (password in keychain / `REGISTRY_PASSWORD` secret).
-
-### Deploy
-
-Argo CD (`csearch-netcup-core`) has `selfHeal: true` and watches `k8s/netcup-core` on `main`. Push manifest changes to `main` and Argo syncs automatically.
-
-To force an immediate image refresh (after a new `:latest` push):
+Image updates require a Git commit — ArgoCD syncs on every push to `main`. To also force an immediate rollout after pushing a new `:latest`:
 
 ```bash
 kubectl --context=netcup rollout restart deploy/csearch-api
 ```
 
-### Add or rotate OPENAI_API_KEY (netcup)
+### Rotate OPENAI_API_KEY
 
 ```bash
 echo -n 'sk-proj-...' | kubectl --context=netcup create secret generic csearch-api-openai \
@@ -87,61 +123,49 @@ git add k8s/netcup-core/csearch-api-openai-sealedsecret.yaml && git commit && gi
 
 ---
 
-## API — freya (secondary)
+## API — freya (dev/secondary)
 
-FastAPI backend at `192.168.1.156:3000` (LAN only). Managed by Argo CD app `csearch-mars-core` watching `k8s/mars` on `fastapi-api-rewrite`.
+FastAPI backend at `192.168.1.156:3000` (LAN only). ArgoCD app `csearch-mars-core` watches `k8s/freya-core` on `freya`.
 
-### Image updates (automatic)
-
-Argo Image Updater is installed on freya (`argocd-image-updater-controller` in namespace `argocd`). It polls `registry.s8njee.com` every 2 minutes and automatically rolls out new `csearch-fastapi:latest` digests — no git commit required.
-
-To check status:
+**Image updates are automatic.** Argo Image Updater polls `registry.s8njee.com` every 2 minutes and rolls out new `csearch-fastapi:latest` digests without a Git commit.
 
 ```bash
+# Check image updater status
 kubectl --context=freya logs -n argocd deploy/argocd-image-updater-controller --tail=50
 ```
 
 ### Deploy manifest changes
 
-Push to the `fastapi-api-rewrite` branch. Argo syncs automatically.
+Push to `freya` branch — ArgoCD syncs automatically.
 
-```bash
-# From the fastapi-api-rewrite worktree at /private/tmp/csearch-fastapi-api
-git push origin fastapi-api-rewrite
-```
-
-### Add or rotate OPENAI_API_KEY (freya)
+### Rotate OPENAI_API_KEY
 
 ```bash
 echo -n 'sk-proj-...' | kubectl --context=freya create secret generic csearch-api-openai \
   --from-literal=OPENAI_API_KEY="$(cat)" --dry-run=client -o yaml \
-  | kubeseal --context=freya -o yaml > k8s/mars/csearch-api-openai-sealedsecret.yaml
-# Commit to fastapi-api-rewrite branch and push
+  | kubeseal --context=freya -o yaml > k8s/freya-core/csearch-api-openai-sealedsecret.yaml
+git add k8s/freya-core/csearch-api-openai-sealedsecret.yaml && git commit -m "rotate openai key (freya)" && git push origin freya
 ```
 
 ---
 
 ## Database — netcup
 
-PostgreSQL managed by Argo CD app `csearch-netcup-db` watching `k8s/netcup-db` on `main`.
+PostgreSQL StatefulSet managed by ArgoCD app `csearch-netcup-db` watching `k8s/netcup-db` on `main`.
 
-Schema is bootstrapped by the scraper on first run from `backend/scraper/schema.sql`. The `nlp` schema is bootstrapped separately by the NLP pipeline.
+Schema is bootstrapped by the scraper on first run from `backend/scraper/schema.sql`. The `nlp` schema is bootstrapped separately by the NLP pipeline. ArgoCD does not manage migrations — apply them manually or via the scraper.
 
-To apply schema changes:
+---
 
-1. Edit `backend/scraper/schema.sql`
-2. Run a migration manually or let the scraper apply it on next run
-3. Commit and push — Argo does not manage schema migrations directly
+## Database — freya
+
+PostgreSQL StatefulSet managed by ArgoCD app `csearch-mars-db` watching `k8s/freya-db` on `freya`.
 
 ---
 
 ## Scraper — netcup
 
-Kubernetes CronJob managed by Argo CD app `csearch-netcup-scraper` watching `k8s/netcup-scraper` on `main`.
-
-### Build and push image
-
-CI builds `csearch-updater:latest` on push to `main` touching `backend/scraper/**` (same workflow as the API: `.github/workflows/mars-images.yml`).
+Kubernetes CronJob managed by ArgoCD app `csearch-netcup-scraper` watching `k8s/netcup-scraper` on `main`. Runs daily at 5 AM America/Chicago (after GovInfo updates).
 
 ### Run manually
 
@@ -150,7 +174,7 @@ kubectl --context=netcup create job --from=cronjob/csearch-scraper csearch-scrap
 kubectl --context=netcup logs -f job/csearch-scraper-manual
 ```
 
-Toggle what runs:
+### Toggle what runs
 
 ```bash
 # Bills only
@@ -158,65 +182,100 @@ kubectl --context=netcup set env cronjob/csearch-scraper RUN_BILLS=true RUN_VOTE
 
 # Votes only
 kubectl --context=netcup set env cronjob/csearch-scraper RUN_BILLS=false RUN_VOTES=true
+
+# Both (default)
+kubectl --context=netcup set env cronjob/csearch-scraper RUN_BILLS=true RUN_VOTES=true
 ```
 
 ---
 
-## NLP Pipeline — freya
+## Scraper — freya
 
-Nightly CronJob in namespace `csearch-nlp` on freya. Source: `backend/nlp/` (git submodule).
+Kubernetes CronJob managed by ArgoCD app `csearch-mars-scraper` watching `k8s/freya-scraper` on `freya`. Image is auto-updated by Argo Image Updater.
 
 ### Run manually
 
 ```bash
-kubectl --context=freya -n csearch-nlp create job --from=cronjob/tarp-nightly-updater nlp-manual
-kubectl --context=freya -n csearch-nlp logs -f job/nlp-manual
+kubectl --context=freya create job --from=cronjob/csearch-scraper csearch-scraper-manual
+kubectl --context=freya logs -f job/csearch-scraper-manual
 ```
 
-### Operational notes
+---
 
-- Only bills with changed text incur OpenAI API calls (content hashing skips the rest)
-- Logs at `/home/sanjee/nlp/tarp-data/logs/update-YYYY-MM-DD.log` on freya
+## Data pipeline — unified (scraper + NLP)
+
+Both environments run `csearch-data-pipeline`, a single CronJob that sequences the scraper (initContainer) then the NLP updater (main container). Schedule: 5 AM America/Chicago daily.
+
+- netcup: managed by ArgoCD app `csearch-netcup-scraper` (`k8s/netcup-scraper` on `main`)
+- freya: managed by ArgoCD app `csearch-mars-scraper` (`k8s/freya-scraper` on `freya`)
+
+### Run manually
+
+```bash
+# netcup
+kubectl --context=netcup create job --from=cronjob/csearch-data-pipeline csearch-data-pipeline-manual
+kubectl --context=netcup logs -f job/csearch-data-pipeline-manual -c scraper
+kubectl --context=netcup logs -f job/csearch-data-pipeline-manual -c nlp-updater
+
+# freya
+kubectl --context=freya create job --from=cronjob/csearch-data-pipeline csearch-data-pipeline-manual
+kubectl --context=freya logs -f job/csearch-data-pipeline-manual -c scraper
+kubectl --context=freya logs -f job/csearch-data-pipeline-manual -c nlp-updater
+```
+
+### Notes
+
+- Only bills with changed text incur OpenAI API calls (content hashing skips unchanged bills)
 - See `backend/nlp/project-tarp/UPDATE.md` for cost estimates and runbook
+- `csearch-upserter` is an intermediate image (base for `csearch-tarp-updater`) — it is not deployed directly
 
 ---
 
-## Registry
+## Syncing environments
 
-Private registry at `registry.s8njee.com`. Images:
+**netcup → freya** (push production changes to dev):
 
-| Image | Built by | Used by |
-| --- | --- | --- |
-| `csearch-fastapi:latest` | CI / manual | netcup API, freya API |
-| `csearch-updater:latest` | CI / manual | netcup scraper, freya scraper |
-| `csearch-frontend:latest` | CI / manual | freya nginx frontend |
+```bash
+git checkout freya
+git merge main   # or: git cherry-pick <commit>
+git push origin freya
+```
 
-Push credentials: user `sanjee`, password in GitHub Actions secret `REGISTRY_PASSWORD` and macOS keychain.
+**freya → netcup** (promote dev changes to production):
+
+```bash
+git checkout main
+git merge freya   # or: git cherry-pick <commit>
+git push origin main
+```
 
 ---
 
-## Argo CD reference
+## ArgoCD reference
 
-| Application | Cluster | Branch | URL |
-| --- | --- | --- | --- |
-| `csearch-netcup-core` | netcup | `main` | API + Redis |
-| `csearch-netcup-db` | netcup | `main` | Postgres |
-| `csearch-netcup-scraper` | netcup | `main` | Scraper CronJob |
-| `csearch-netcup-test-frontend` | netcup | `rscraper` | `test.csearch.org` |
-| `csearch-mars-core` | freya | `fastapi-api-rewrite` | API + Redis |
-| `csearch-mars-db` | freya | `optimize` | Postgres (CNPG) |
+| Application | Cluster | Branch | Manifest path | Sync wave |
+| --- | --- | --- | --- | --- |
+| `csearch-netcup-db` | netcup | `main` | `k8s/netcup-db` | -10 |
+| `csearch-netcup-core` | netcup | `main` | `k8s/netcup-core` | 0 |
+| `csearch-netcup-scraper` | netcup | `main` | `k8s/netcup-scraper` | 10 |
+| `csearch-netcup-test-frontend` | netcup | `rscraper` | `k8s/netcup-test-frontend` | — |
+| `csearch-mars-db` | freya | `freya` | `k8s/freya-db` | -10 |
+| `csearch-mars-core` | freya | `freya` | `k8s/freya-core` | 0 |
+| `csearch-mars-scraper` | freya | `freya` | `k8s/freya-scraper` | — |
 
-All apps have `selfHeal: true` — manual kubectl changes are reverted. Always push to the watched branch.
+All apps have `selfHeal: true` and `prune: true` — manual `kubectl` changes are reverted. Always push to the watched branch.
 
 ### Useful commands
 
 ```bash
-# Force sync
-kubectl --context=netcup patch application csearch-netcup-core -n argocd \
-  --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+# Force sync an app
+argocd app sync csearch-netcup-core
 
-# Check app health
+# Check app health across netcup
 kubectl --context=netcup get applications -n argocd
+
+# Check app health across freya
+kubectl --context=freya get applications -n argocd
 
 # Check image updater on freya
 kubectl --context=freya logs -n argocd deploy/argocd-image-updater-controller --tail=30

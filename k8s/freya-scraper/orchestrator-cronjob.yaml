@@ -170,13 +170,13 @@ spec:
           volumes:
             - name: congress-code
               hostPath:
-                path: /root/congress
+                path: /home/sanjee/congress
                 type: Directory
             - name: congress-data
               hostPath:
-                path: /root/congress/data
+                path: /home/sanjee/congress/data
                 type: DirectoryOrCreate
             - name: tarp-data
               hostPath:
-                path: /root/congress/data/tarp
+                path: /home/sanjee/congress/data/tarp
                 type: DirectoryOrCreate
