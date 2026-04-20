@@ -31,7 +31,13 @@
 }
 
 .overview-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 2fr;
+}
+
+.overview-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .bill-group-grid {
