@@ -184,7 +184,7 @@ const { formatChamber } = useFormatters()
 
 <template>
   <main class="page page--wide">
-    <section class="hero-grid">
+    <section class="home-grid">
       <article class="hero-panel hero-panel--primary hero-panel--stamped">
         <p class="eyebrow">ACE Research</p>
         <h1 class="hero-title">A modern lens on congressional data.</h1>
@@ -194,88 +194,10 @@ const { formatChamber } = useFormatters()
         <span v-if="updatedAt" class="hero-updated">Updated {{ updatedAt }}</span>
       </article>
 
-      <article class="hero-panel">
-        <div class="section-title">
-          <h2>Bill search</h2>
-          <p>Search by keyword or enter a bill number to find legislation directly.</p>
-        </div>
-
-        <form class="control-grid" @submit.prevent="submitBillSearch">
-          <label class="field">
-            <span>Bill type</span>
-            <select v-model="selectedBillType" class="field-input">
-              <option v-for="option in BILL_TYPE_OPTIONS" :key="option.code" :value="option.code">
-                {{ option.longLabel }}
-              </option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span>Sort</span>
-            <select v-model="selectedSort" class="field-input">
-              <option value="relevance">Relevance</option>
-              <option value="date">Date</option>
-            </select>
-          </label>
-
-          <div class="field field--full" style="position: relative;">
-            <span>Search terms</span>
-            <input
-              v-model="billQuery"
-              class="field-input"
-              type="search"
-              placeholder="climate, farm bill, veterans... or try hr 1"
-              autocomplete="off"
-              @blur="hideSuggestions"
-            >
-            <div v-if="showSuggestions || suggestLoading" class="bill-suggest">
-              <div v-if="suggestLoading" class="bill-suggest__loading">Searching…</div>
-              <template v-else-if="!suggestions.length">
-                <div class="bill-suggest__loading">No results</div>
-              </template>
-              <template v-else>
-                <button
-                  v-for="item in suggestions"
-                  :key="item._kind === 'category' ? item.opt.code : item.billid"
-                  type="button"
-                  class="bill-suggest__item"
-                  @mousedown.prevent="item._kind === 'category' ? selectCategory(item.opt.code) : selectBill(item)"
-                >
-                  <span class="bill-suggest__code">{{ item._kind === 'category' ? item.opt.shortLabel : `${item.billtype.toUpperCase()} ${item.billnumber}` }}</span>
-                  <span class="bill-suggest__meta">{{ item._kind === 'category' ? item.opt.longLabel : `Congress ${item.congress}` }}</span>
-                  <span v-if="item._kind !== 'category' && (item.shorttitle || item.officialtitle)" class="bill-suggest__title">{{ item.shorttitle || item.officialtitle }}</span>
-                </button>
-              </template>
-            </div>
-          </div>
-
-          <button class="button button--primary" type="submit">
-            {{ billQuery.trim() ? 'Search bills' : 'Browse latest bills' }}
-          </button>
-        </form>
-
-        <div v-if="numberLoading" class="number-results-note">Searching...</div>
-
-        <div v-else-if="numberResults !== null">
-          <div v-if="!numberResults.length" class="number-results-note">No bills found with that number.</div>
-          <ol v-else class="number-results-list">
-            <li v-for="bill in numberResults" :key="bill.billid" class="number-result-item">
-              <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="number-result-link">
-                <span class="number-result-type">{{ bill.billtype.toUpperCase() }} {{ bill.billnumber }}</span>
-                <span class="number-result-congress">Congress {{ bill.congress }}</span>
-              </NuxtLink>
-              <p class="number-result-title">{{ bill.shorttitle || bill.officialtitle || '—' }}</p>
-            </li>
-          </ol>
-        </div>
-      </article>
-    </section>
-
-    <section class="overview-grid">
-      <article class="surface">
+      <article class="surface home-endpoints">
         <div class="section-title">
           <h2>Endpoints</h2>
-          <p>Each section maps to a available API endpoint.</p>
+          <p>Each section maps to an available API endpoint.</p>
         </div>
 
         <div class="family-grid">
@@ -287,58 +209,165 @@ const { formatChamber } = useFormatters()
         </div>
       </article>
 
-      <article class="surface">
-        <div class="section-title">
-          <h2>Vote search</h2>
-          <p>Search or browse recent roll-call votes by chamber.</p>
-        </div>
-
-        <form class="control-grid" @submit.prevent="submitVoteSearch">
-          <label class="field">
-            <span>Chamber</span>
-            <select v-model="selectedVoteChamber" class="field-input">
-              <option v-for="option in VOTE_CHAMBER_OPTIONS" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
-
-          <div class="field field--full" style="position: relative;">
-            <span>Search terms</span>
-            <input
-              v-model="voteQuery"
-              class="field-input"
-              type="search"
-              placeholder="cloture, nomination, impeachment..."
-              autocomplete="off"
-              @blur="hideVoteSuggestions"
-            >
-            <div v-if="showVoteSuggestions || voteSuggestLoading" class="bill-suggest">
-              <div v-if="voteSuggestLoading" class="bill-suggest__loading">Searching…</div>
-              <template v-else-if="!voteSuggestions.length">
-                <div class="bill-suggest__loading">No results</div>
-              </template>
-              <template v-else>
-                <button
-                  v-for="vote in voteSuggestions"
-                  :key="vote.voteid"
-                  type="button"
-                  class="bill-suggest__item"
-                  @mousedown.prevent="selectVote(vote)"
-                >
-                  <span class="bill-suggest__code">{{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}</span>
-                  <span class="bill-suggest__meta">{{ vote.votedate }}</span>
-                  <span class="bill-suggest__title">{{ vote.question || vote.voteid }}</span>
-                </button>
-              </template>
-            </div>
+      <div class="search-rail">
+        <article class="surface lookup-card">
+          <div class="section-title">
+            <h2>Who represents you?</h2>
+            <p>Enter a ZIP code to find your congressional district.</p>
           </div>
 
-          <button class="button button--primary" type="submit">
-            {{ voteQuery.trim() ? 'Search votes' : 'Browse recent votes' }}
-          </button>
-        </form>
-      </article>
+          <form
+            class="lookup-form"
+            action="/representatives"
+            method="get"
+          >
+            <input
+              class="field-input"
+              type="text"
+              name="zip"
+              inputmode="numeric"
+              autocomplete="postal-code"
+              pattern="[0-9]{5}"
+              maxlength="5"
+              placeholder="90210"
+              aria-label="ZIP code"
+            >
+
+            <button class="button button--primary" type="submit">
+              Find reps
+            </button>
+          </form>
+        </article>
+
+        <article class="hero-panel">
+          <div class="section-title">
+            <h2>Bill search</h2>
+            <p>Search by keyword or enter a bill number to find legislation directly.</p>
+          </div>
+
+          <form class="control-grid" @submit.prevent="submitBillSearch">
+            <label class="field">
+              <span>Bill type</span>
+              <select v-model="selectedBillType" class="field-input">
+                <option v-for="option in BILL_TYPE_OPTIONS" :key="option.code" :value="option.code">
+                  {{ option.longLabel }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Sort</span>
+              <select v-model="selectedSort" class="field-input">
+                <option value="relevance">Relevance</option>
+                <option value="date">Date</option>
+              </select>
+            </label>
+
+            <div class="field field--full" style="position: relative;">
+              <span>Search terms</span>
+              <input
+                v-model="billQuery"
+                class="field-input"
+                type="search"
+                placeholder="climate, farm bill, veterans... or try hr 1"
+                autocomplete="off"
+                @blur="hideSuggestions"
+              >
+              <div v-if="showSuggestions || suggestLoading" class="bill-suggest">
+                <div v-if="suggestLoading" class="bill-suggest__loading">Searching…</div>
+                <template v-else-if="!suggestions.length">
+                  <div class="bill-suggest__loading">No results</div>
+                </template>
+                <template v-else>
+                  <button
+                    v-for="item in suggestions"
+                    :key="item._kind === 'category' ? item.opt.code : item.billid"
+                    type="button"
+                    class="bill-suggest__item"
+                    @mousedown.prevent="item._kind === 'category' ? selectCategory(item.opt.code) : selectBill(item)"
+                  >
+                    <span class="bill-suggest__code">{{ item._kind === 'category' ? item.opt.shortLabel : `${item.billtype.toUpperCase()} ${item.billnumber}` }}</span>
+                    <span class="bill-suggest__meta">{{ item._kind === 'category' ? item.opt.longLabel : `Congress ${item.congress}` }}</span>
+                    <span v-if="item._kind !== 'category' && (item.shorttitle || item.officialtitle)" class="bill-suggest__title">{{ item.shorttitle || item.officialtitle }}</span>
+                  </button>
+                </template>
+              </div>
+            </div>
+
+            <button class="button button--primary" type="submit">
+              {{ billQuery.trim() ? 'Search bills' : 'Browse latest bills' }}
+            </button>
+          </form>
+
+          <div v-if="numberLoading" class="number-results-note">Searching...</div>
+
+          <div v-else-if="numberResults !== null">
+            <div v-if="!numberResults.length" class="number-results-note">No bills found with that number.</div>
+            <ol v-else class="number-results-list">
+              <li v-for="bill in numberResults" :key="bill.billid" class="number-result-item">
+                <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="number-result-link">
+                  <span class="number-result-type">{{ bill.billtype.toUpperCase() }} {{ bill.billnumber }}</span>
+                  <span class="number-result-congress">Congress {{ bill.congress }}</span>
+                </NuxtLink>
+                <p class="number-result-title">{{ bill.shorttitle || bill.officialtitle || '—' }}</p>
+              </li>
+            </ol>
+          </div>
+        </article>
+
+        <article class="surface">
+          <div class="section-title">
+            <h2>Vote search</h2>
+            <p>Search or browse recent roll-call votes by chamber.</p>
+          </div>
+
+          <form class="control-grid" @submit.prevent="submitVoteSearch">
+            <label class="field">
+              <span>Chamber</span>
+              <select v-model="selectedVoteChamber" class="field-input">
+                <option v-for="option in VOTE_CHAMBER_OPTIONS" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+
+            <div class="field field--full" style="position: relative;">
+              <span>Search terms</span>
+              <input
+                v-model="voteQuery"
+                class="field-input"
+                type="search"
+                placeholder="cloture, nomination, impeachment..."
+                autocomplete="off"
+                @blur="hideVoteSuggestions"
+              >
+              <div v-if="showVoteSuggestions || voteSuggestLoading" class="bill-suggest">
+                <div v-if="voteSuggestLoading" class="bill-suggest__loading">Searching…</div>
+                <template v-else-if="!voteSuggestions.length">
+                  <div class="bill-suggest__loading">No results</div>
+                </template>
+                <template v-else>
+                  <button
+                    v-for="vote in voteSuggestions"
+                    :key="vote.voteid"
+                    type="button"
+                    class="bill-suggest__item"
+                    @mousedown.prevent="selectVote(vote)"
+                  >
+                    <span class="bill-suggest__code">{{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}</span>
+                    <span class="bill-suggest__meta">{{ vote.votedate }}</span>
+                    <span class="bill-suggest__title">{{ vote.question || vote.voteid }}</span>
+                  </button>
+                </template>
+              </div>
+            </div>
+
+            <button class="button button--primary" type="submit">
+              {{ voteQuery.trim() ? 'Search votes' : 'Browse recent votes' }}
+            </button>
+          </form>
+        </article>
+      </div>
     </section>
 
     <section class="surface">

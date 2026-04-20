@@ -165,6 +165,119 @@ def test_bill_detail():
     assert len(body["committees"]) == 1
 
 
+def test_representatives_by_zip_returns_current_members_for_zip_districts():
+    db = SequencedDB(
+        fetch_results=[
+            [
+                {"state_abbr": "CA", "cd": 30},
+                {"state_abbr": "CA", "cd": 32},
+                {"state_abbr": "CA", "cd": 36},
+            ],
+            [
+                {
+                    "bioguide_id": "P000145",
+                    "name": "Sen. Padilla, Alex [D-CA]",
+                    "party": "D",
+                    "state": "CA",
+                    "chamber": "senate",
+                    "district": None,
+                },
+                {
+                    "bioguide_id": "S001150",
+                    "name": "Sen. Schiff, Adam B. [D-CA]",
+                    "party": "D",
+                    "state": "CA",
+                    "chamber": "senate",
+                    "district": None,
+                },
+            ],
+            [
+                {
+                    "bioguide_id": "F000483",
+                    "name": "Rep. Friedman, Laura [D-CA-30]",
+                    "party": "D",
+                    "state": "CA",
+                    "chamber": "house",
+                    "district": 30,
+                },
+                {
+                    "bioguide_id": "S000344",
+                    "name": "Rep. Sherman, Brad [D-CA-32]",
+                    "party": "D",
+                    "state": "CA",
+                    "chamber": "house",
+                    "district": 32,
+                },
+                {
+                    "bioguide_id": "L000582",
+                    "name": "Rep. Lieu, Ted [D-CA-36]",
+                    "party": "D",
+                    "state": "CA",
+                    "chamber": "house",
+                    "district": 36,
+                },
+            ],
+        ],
+        fetchval_results=[119],
+    )
+    client = build_client(db)
+
+    response = client.get("/representatives/90210")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["zipcode"] == "90210"
+    assert body["districts"] == [
+        {"state": "CA", "district": 30},
+        {"state": "CA", "district": 32},
+        {"state": "CA", "district": 36},
+    ]
+    assert [senator["name"] for senator in body["senators"]] == ["Alex Padilla", "Adam B. Schiff"]
+    assert [rep["name"] for rep in body["representatives"]] == ["Laura Friedman", "Brad Sherman", "Ted Lieu"]
+    assert body["housemembers"] == body["representatives"]
+    assert [rep["district"] for rep in body["representatives"]] == [30, 32, 36]
+    assert [call[0] for call in db.calls] == ["fetch", "fetchval", "fetch", "fetch"]
+    assert db.calls[0][2] == ("90210",)
+    assert db.calls[2][2] == ("90210", 119)
+    assert db.calls[3][2] == ("90210", 119)
+
+
+def test_representatives_query_param_matches_zip_route():
+    db = SequencedDB(
+        fetch_results=[
+            [{"state_abbr": "CA", "cd": 30}],
+            [],
+            [
+                {
+                    "bioguide_id": "F000483",
+                    "name": "Rep. Friedman, Laura [D-CA-30]",
+                    "party": "D",
+                    "state": "CA",
+                    "chamber": "house",
+                    "district": 30,
+                }
+            ],
+        ],
+        fetchval_results=[119],
+    )
+    client = build_client(db)
+
+    response = client.get("/representatives?zip=90210")
+
+    assert response.status_code == 200
+    assert response.json()["representatives"][0]["name"] == "Laura Friedman"
+    assert db.calls[0][2] == ("90210",)
+
+
+def test_representatives_rejects_invalid_zip():
+    client = build_client()
+
+    response = client.get("/representatives/abc")
+
+    assert response.status_code == 400
+    assert response.json() == {"error": "ZIP code must be exactly 5 digits"}
+
+
 def test_semantic_search_returns_bill_metadata():
     class FakeEmbeddings:
         async def create(self, model: str, input: list[str], dimensions: int):

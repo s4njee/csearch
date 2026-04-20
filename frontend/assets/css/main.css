@@ -20,6 +20,7 @@
 
 .hero-grid,
 .overview-grid,
+.home-grid,
 .bill-group-grid,
 .explore-detail-grid {
   display: grid;
@@ -29,6 +30,46 @@
 .hero-grid,
 .overview-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(340px, 0.95fr);
+  align-items: stretch;
+}
+
+.home-endpoints {
+  grid-column: 1;
+}
+
+.search-rail {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  gap: 1px;
+  align-self: stretch;
+}
+
+.search-rail .section-title {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.lookup-card {
+  min-height: 8.5rem;
+}
+
+.lookup-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.search-rail .control-grid > .button--primary {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .bill-group-grid {
@@ -717,6 +758,7 @@ h3 {
 @media (max-width: 980px) {
   .hero-grid,
   .overview-grid,
+  .home-grid,
   .bill-group-grid,
   .result-grid,
   .family-grid,
@@ -726,6 +768,20 @@ h3 {
   .chart-grid,
   .stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .search-rail {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .home-endpoints {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .home-endpoints .family-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -740,8 +796,10 @@ h3 {
   }
 
   .control-grid,
+  .lookup-form,
   .facet-panel__body,
-  .detail-grid {
+  .detail-grid,
+  .home-endpoints .family-grid {
     grid-template-columns: 1fr;
   }
 
