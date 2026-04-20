@@ -32,6 +32,15 @@ backend/scraper/congress/*.gob
 frontend/.nuxt/
 frontend/.output/
 
+# Data folders
+backend/scraper/data/
+backend/api/data/
+backend/scraper/congress/*.tar.zst
+
+# Tooling
+.codex
+.wrangler/
+
 # NYC test coverage
 **/.nyc_output/
 
