@@ -7,6 +7,7 @@ import type {
   ExploreQueryResponse,
   MemberDetail,
   MembersByState,
+  RepresentativesResponse,
   VoteDetail,
   VoteRecord,
 } from '~/types/congress'
@@ -137,5 +138,6 @@ export function useCongressApi() {
     getVote: (voteId: string) => apiFetch<VoteDetail>(`/votes/detail/${voteId}`),
     getCommittees: () => apiFetch<CommitteeRecord[]>('/committees'),
     getCommittee: (code: string) => apiFetch<CommitteeDetail>(`/committees/${code}`),
+    getRepresentatives: (zipcode: string) => apiFetch<RepresentativesResponse>(`/representatives/${zipcode}`),
   }
 }
