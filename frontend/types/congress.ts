@@ -120,6 +120,29 @@ export interface MemberDetail extends MemberProfile {
   recentVotes: VoteRecord[]
 }
 
+// ─── Representatives ──────────────────────────────────────────────────────────
+
+export interface RepresentativeRecord {
+  bioguide_id: string
+  name: string
+  party?: string | null
+  state?: string | null
+  chamber: 'senate' | 'house'
+  district?: number | null
+}
+
+export interface DistrictRecord {
+  state_abbr: string
+  cd: number
+}
+
+export interface RepresentativesResponse {
+  zip: string
+  districts: DistrictRecord[]
+  senators: RepresentativeRecord[]
+  housemembers: RepresentativeRecord[]
+}
+
 // ─── Committees ───────────────────────────────────────────────────────────────
 
 export interface CommitteeRecord {
