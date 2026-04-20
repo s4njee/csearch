@@ -52,7 +52,7 @@ export default defineNuxtConfig({
     nitro: {
         prerender: {
             crawlLinks: false,
-            routes: ['/', '/votes', '/explore', '/bills/hr', '/bills/s', '/bills/hres', '/bills/sres', '/bills/hjres', '/bills/sjres', '/bills/hconres', '/bills/sconres', '/committees'],
+            routes: ['/', '/votes', '/explore', '/representatives', '/bills/hr', '/bills/s', '/bills/hres', '/bills/sres', '/bills/hjres', '/bills/sjres', '/bills/hconres', '/bills/sconres', '/committees'],
         }
     }
 })

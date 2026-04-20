@@ -12,13 +12,19 @@ const zip = computed(() => {
 const { data, pending, error } = await useAsyncData(
   `representatives-${zip.value}`,
   () => zip.value ? api.getRepresentatives(zip.value) : Promise.resolve(null),
-  { watch: [zip] },
+  {
+    server: false,
+    watch: [zip],
+  },
 )
 
 const senators = computed<RepresentativeRecord[]>(() => data.value?.senators ?? [])
-const houseMembers = computed<RepresentativeRecord[]>(() => data.value?.representatives ?? [])
+const houseMembers = computed<RepresentativeRecord[]>(() => {
+  const response = data.value as any
+  return response?.representatives ?? response?.housemembers ?? []
+})
 
-const notFound = computed(() => !pending.value && zip.value && !data.value?.senators?.length && !data.value?.representatives?.length)
+const notFound = computed(() => !pending.value && zip.value && !senators.value.length && !houseMembers.value.length)
 
 function partyLabel(party: string | null | undefined) {
   if (!party) return ''
