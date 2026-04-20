@@ -5,18 +5,21 @@ from fastapi import APIRouter, HTTPException, Request
 router = APIRouter()
 
 
-@router.get("/representatives")
-async def representatives_by_zip(request: Request, zip: str):
-    """Return senators and house members for a given ZIP code.
+@router.get("/representatives/{zipcode}")
+async def representatives_by_zip(request: Request, zipcode: str):
+    return await _representatives_by_zip(request, zipcode)
 
-    Uses zip_districts to resolve state(s) and district(s), then looks up
-    current members from vote_members joined against recent bill sponsorship
-    to identify who is actively serving.
-    """
-    if not zip.isdigit() or len(zip) != 5:
+
+@router.get("/representatives")
+async def representatives_by_zip_query(request: Request, zip: str):
+    return await _representatives_by_zip(request, zip)
+
+
+async def _representatives_by_zip(request: Request, zipcode: str):
+    """Return senators and house members for a given ZIP code."""
+    if not zipcode.isdigit() or len(zipcode) != 5:
         raise HTTPException(status_code=400, detail={"error": "ZIP code must be exactly 5 digits"})
 
-    # Resolve congressional districts for this ZIP
     districts = await request.app.state.db.fetch(
         """
         SELECT state_abbr, cd
@@ -24,72 +27,111 @@ async def representatives_by_zip(request: Request, zip: str):
         WHERE zcta = $1
         ORDER BY state_abbr, cd
         """,
-        zip,
+        zipcode,
     )
 
     if not districts:
         raise HTTPException(status_code=404, detail={"error": "No congressional districts found for this ZIP code"})
 
-    states = list({d["state_abbr"] for d in districts})
+    district_rows = [{"state": row["state_abbr"], "district": row["cd"]} for row in districts]
 
-    # Current congress floor: look back 2 congresses to catch recently elected members
-    current_congress_floor = await request.app.state.db.fetchval(
-        "SELECT MAX(congress) - 1 FROM bills"
-    )
+    current_congress = await request.app.state.db.fetchval(
+        "SELECT MAX(congress) FROM bills"
+    ) or 0
 
-    # Senators: members who have sponsored Senate bills from this state recently
     senators = await request.app.state.db.fetch(
         """
-        SELECT DISTINCT ON (vm.bioguide_id)
-            vm.bioguide_id,
-            vm.display_name AS name,
-            vm.party,
-            vm.state,
+        SELECT DISTINCT ON (b.sponsor_bioguide_id)
+            b.sponsor_bioguide_id AS bioguide_id,
+            b.sponsor_name AS name,
+            b.sponsor_party AS party,
+            b.sponsor_state AS state,
             'senate' AS chamber,
             NULL::int AS district
-        FROM vote_members vm
-        WHERE vm.state = ANY($1::text[])
-          AND EXISTS (
-              SELECT 1 FROM bills b
-              WHERE b.sponsor_bioguide_id = vm.bioguide_id
-                AND b.origin_chamber = 'Senate'
-                AND b.congress >= $2
-          )
-        ORDER BY vm.bioguide_id, vm.display_name
+        FROM bills b
+        JOIN (
+            SELECT DISTINCT state_abbr
+            FROM zip_districts
+            WHERE zcta = $1
+        ) zd ON zd.state_abbr = b.sponsor_state
+        WHERE b.congress = $2
+          AND b.origin_chamber = 'Senate'
+          AND b.sponsor_bioguide_id IS NOT NULL
+        ORDER BY b.sponsor_bioguide_id, b.latest_action_date DESC NULLS LAST, b.sponsor_name
         """,
-        states,
-        current_congress_floor,
+        zipcode,
+        current_congress,
     )
 
-    # House members: members who have sponsored House bills from this state recently.
-    # We don't store district numbers on members, so we return all house members
-    # for the state(s) and let the client filter by the known districts.
     house_members = await request.app.state.db.fetch(
         """
-        SELECT DISTINCT ON (vm.bioguide_id)
-            vm.bioguide_id,
-            vm.display_name AS name,
-            vm.party,
-            vm.state,
+        WITH zip_districts_for_zip AS (
+            SELECT DISTINCT state_abbr, cd
+            FROM zip_districts
+            WHERE zcta = $1
+        ),
+        current_house_sponsors AS (
+            SELECT DISTINCT ON (b.sponsor_bioguide_id)
+                b.sponsor_bioguide_id AS bioguide_id,
+                b.sponsor_name AS name,
+                b.sponsor_party AS party,
+                b.sponsor_state AS state,
+                ((regexp_match(b.sponsor_name, '\\[([A-Z])-([A-Z]{2})-([0-9]+)\\]'))[3])::int AS district,
+                b.latest_action_date
+            FROM bills b
+            WHERE b.congress = $2
+              AND b.origin_chamber = 'House'
+              AND b.sponsor_bioguide_id IS NOT NULL
+              AND b.sponsor_name ~ '\\[[A-Z]-[A-Z]{2}-[0-9]+\\]'
+            ORDER BY b.sponsor_bioguide_id, b.latest_action_date DESC NULLS LAST, b.sponsor_name
+        )
+        SELECT
+            chs.bioguide_id,
+            chs.name,
+            chs.party,
+            chs.state,
             'house' AS chamber,
-            NULL::int AS district
-        FROM vote_members vm
-        WHERE vm.state = ANY($1::text[])
-          AND EXISTS (
-              SELECT 1 FROM bills b
-              WHERE b.sponsor_bioguide_id = vm.bioguide_id
-                AND b.origin_chamber = 'House'
-                AND b.congress >= $2
-          )
-        ORDER BY vm.bioguide_id, vm.display_name
+            chs.district
+        FROM current_house_sponsors chs
+        JOIN zip_districts_for_zip zd
+          ON zd.state_abbr = chs.state
+         AND zd.cd = chs.district
+        ORDER BY chs.state, chs.district, chs.name
         """,
-        states,
-        current_congress_floor,
+        zipcode,
+        current_congress,
     )
 
+    formatted_house_members = [_format_member(row) for row in house_members]
+
     return {
-        "zip": zip,
-        "districts": districts,
-        "senators": senators,
-        "housemembers": house_members,
+        "zip": zipcode,
+        "zipcode": zipcode,
+        "districts": district_rows,
+        "senators": [_format_member(row) for row in senators],
+        "housemembers": formatted_house_members,
+        "representatives": formatted_house_members,
     }
+
+
+def _format_member(row):
+    member = dict(row)
+    member["name"] = _format_member_name(member["name"])
+    return member
+
+
+def _format_member_name(name: str | None) -> str:
+    if not name:
+        return ""
+
+    base = name.split("[", 1)[0].strip()
+    for prefix in ("Rep. ", "Sen. "):
+        if base.startswith(prefix):
+            base = base[len(prefix):]
+            break
+
+    if "," not in base:
+        return base
+
+    last, first = [part.strip() for part in base.split(",", 1)]
+    return f"{first} {last}".strip()
