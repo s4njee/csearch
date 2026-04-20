@@ -120,33 +120,6 @@ export interface MemberDetail extends MemberProfile {
   recentVotes: VoteRecord[]
 }
 
-export interface MembersByState {
-  state: string
-  senators: MemberProfile[]
-  representatives: MemberProfile[]
-}
-
-// ─── Representatives (ZIP lookup) ─────────────────────────────────────────────
-
-export interface ZipDistrict {
-  state: string
-  district: number
-}
-
-export interface RepresentativeMember {
-  bioguide_id: string
-  name: string
-  party: string
-  state: string
-}
-
-export interface RepresentativesResponse {
-  zipcode: string
-  districts: ZipDistrict[]
-  senators: RepresentativeMember[]
-  representatives: RepresentativeMember[]
-}
-
 // ─── Committees ───────────────────────────────────────────────────────────────
 
 export interface CommitteeRecord {

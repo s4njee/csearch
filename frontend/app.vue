@@ -24,7 +24,6 @@
         <NuxtLink :to="{ path: '/votes', query: { chamber: 'senate' } }">Votes</NuxtLink>
         <NuxtLink to="/committees">Committees</NuxtLink>
         <NuxtLink to="/explore">Explore</NuxtLink>
-        <NuxtLink to="/represent">My Reps</NuxtLink>
       </nav>
     </header>
 

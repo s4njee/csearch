@@ -217,21 +217,6 @@ CREATE INDEX vote_members_notvoting_idx
     ON vote_members (bioguide_id)
     WHERE position = 'notvoting';
 
--- ZIP code to Congressional District lookup table.
--- Source: https://github.com/OpenSourceActivismTech/us-zipcodes-congress
--- Based on 2020 Census ZCTAs and 119th Congress district boundaries.
--- Data is seeded separately via 003-zip-districts.sql.
-CREATE TABLE IF NOT EXISTS zip_districts (
-    zcta        text NOT NULL,
-    state_fips  text NOT NULL,
-    state_abbr  text NOT NULL,
-    cd          smallint NOT NULL,
-    CONSTRAINT zip_districts_pkey PRIMARY KEY (zcta, state_abbr, cd)
-);
-
-CREATE INDEX IF NOT EXISTS zip_districts_zcta_idx ON zip_districts (zcta);
-CREATE INDEX IF NOT EXISTS zip_districts_state_cd_idx ON zip_districts (state_abbr, cd);
-
 CREATE OR REPLACE FUNCTION search_bills(
     search_query text,
     filter_billtype text DEFAULT NULL,

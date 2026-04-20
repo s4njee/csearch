@@ -10,7 +10,6 @@ configMapGenerator:
   - name: postgres-schema
     files:
       - 001-schema.sql
-      - 003-zip-districts.sql
 
 generatorOptions:
   disableNameSuffixHash: true

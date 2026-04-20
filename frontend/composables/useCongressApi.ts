@@ -6,8 +6,6 @@ import type {
   ExploreListResponse,
   ExploreQueryResponse,
   MemberDetail,
-  MembersByState,
-  RepresentativesResponse,
   VoteDetail,
   VoteRecord,
 } from '~/types/congress'
@@ -134,10 +132,8 @@ export function useCongressApi() {
     searchVotesFuzzy: (query: string, chamber?: string) =>
       apiFetch<VoteRecord[]>(withQuery('/votes/search', { query, chamber })),
     getMember: (bioguideId: string) => apiFetch<MemberDetail>(`/members/${bioguideId}`),
-    getMembersByState: (state: string) => apiFetch<MembersByState>(`/members/by-state/${state}`),
     getVote: (voteId: string) => apiFetch<VoteDetail>(`/votes/detail/${voteId}`),
     getCommittees: () => apiFetch<CommitteeRecord[]>('/committees'),
     getCommittee: (code: string) => apiFetch<CommitteeDetail>(`/committees/${code}`),
-    getRepresentatives: (zipcode: string) => apiFetch<RepresentativesResponse>(`/representatives/${zipcode}`),
   }
 }
