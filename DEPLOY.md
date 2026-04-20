@@ -73,6 +73,20 @@ Nuxt 4 static site deployed to Cloudflare Pages project **csearch** (`csearch.or
 
 Wrangler uses OAuth — `npx wrangler whoami` should show `sanjee.yogeswaran@gmail.com`.
 
+Run from the repo root:
+
+```bash
+bash frontend/deploy.sh
+```
+
+That script:
+1. Sources `../.env.prod` for `NUXT_API_SERVER` (defaults to `https://api.csearch.org`)
+2. Runs `nuxt generate` → outputs to `frontend/.output/public`
+3. Writes a deploy timestamp to `.output/public/meta.json`
+4. Runs `npx wrangler pages deploy .output/public --project-name csearch --branch main`
+
+Or manually step by step:
+
 ```bash
 cd frontend
 NUXT_API_SERVER=https://api.csearch.org npm run generate
