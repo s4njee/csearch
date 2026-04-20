@@ -16,6 +16,8 @@ spec:
       labels:
         app.kubernetes.io/name: csearch-frontend
         app.kubernetes.io/component: frontend
+      annotations:
+        git.commit/hash: "fbd8c9a41"
     spec:
       nodeSelector:
         kubernetes.io/hostname: freya
