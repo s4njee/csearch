@@ -132,15 +132,15 @@ export interface RepresentativeRecord {
 }
 
 export interface DistrictRecord {
-  state_abbr: string
-  cd: number
+  state: string
+  district: number
 }
 
 export interface RepresentativesResponse {
-  zip: string
+  zipcode: string
   districts: DistrictRecord[]
   senators: RepresentativeRecord[]
-  housemembers: RepresentativeRecord[]
+  representatives: RepresentativeRecord[]
 }
 
 // ─── Committees ───────────────────────────────────────────────────────────────
