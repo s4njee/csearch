@@ -16,9 +16,9 @@ const { data, pending, error } = await useAsyncData(
 )
 
 const senators = computed<RepresentativeRecord[]>(() => data.value?.senators ?? [])
-const houseMembers = computed<RepresentativeRecord[]>(() => data.value?.housemembers ?? [])
+const houseMembers = computed<RepresentativeRecord[]>(() => data.value?.representatives ?? [])
 
-const notFound = computed(() => !pending.value && zip.value && !data.value?.senators?.length && !data.value?.housemembers?.length)
+const notFound = computed(() => !pending.value && zip.value && !data.value?.senators?.length && !data.value?.representatives?.length)
 
 function partyLabel(party: string | null | undefined) {
   if (!party) return ''

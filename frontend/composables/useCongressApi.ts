@@ -136,6 +136,6 @@ export function useCongressApi() {
     getVote: (voteId: string) => apiFetch<VoteDetail>(`/votes/detail/${voteId}`),
     getCommittees: () => apiFetch<CommitteeRecord[]>('/committees'),
     getCommittee: (code: string) => apiFetch<CommitteeDetail>(`/committees/${code}`),
-    getRepresentatives: (zip: string) => apiFetch<RepresentativesResponse>(`/representatives?zip=${encodeURIComponent(zip)}`),
+    getRepresentatives: (zip: string) => apiFetch<RepresentativesResponse>(`/representatives/${encodeURIComponent(zip)}`),
   }
 }
