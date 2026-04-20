@@ -8,15 +8,6 @@ from csearch_api import queries
 
 router = APIRouter()
 
-VALID_STATE_CODES = frozenset({
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-    'DC', 'AS', 'GU', 'MP', 'PR', 'VI',
-})
-
 MEMBER_SPONSORED_BILLS_LIMIT = 20
 MEMBER_RECENT_VOTES_LIMIT = 50
 
@@ -25,40 +16,6 @@ def _validate_bioguide_id(bioguide_id: str) -> str:
     if not bioguide_id.isalnum():
         raise HTTPException(status_code=400, detail={"error": "Invalid bioguide ID format"})
     return bioguide_id.upper()
-
-
-_MEMBERS_BY_STATE_SQL = """
-    SELECT DISTINCT ON (vm.bioguide_id)
-        vm.bioguide_id,
-        vm.display_name AS name,
-        vm.party
-    FROM vote_members vm
-    JOIN votes v ON vm.voteid = v.voteid
-    WHERE vm.state = $1
-      AND v.chamber = $2
-      AND v.congress = (SELECT MAX(congress) FROM votes WHERE chamber = $2)
-    ORDER BY vm.bioguide_id, v.votedate DESC
-"""
-
-
-# Must be registered before /members/{bioguide_id} to avoid the path segment being
-# captured as a bioguide ID.
-@router.get("/members/by-state/{state}")
-async def members_by_state(request: Request, state: str):
-    """Return senators and house representatives for a given US state from the most recent congress."""
-    state_upper = state.upper()
-    if state_upper not in VALID_STATE_CODES:
-        raise HTTPException(status_code=400, detail={"error": "Invalid state code"})
-
-    senators_task = request.app.state.db.fetch(_MEMBERS_BY_STATE_SQL, state_upper, 's')
-    reps_task = request.app.state.db.fetch(_MEMBERS_BY_STATE_SQL, state_upper, 'h')
-    senators, reps = await asyncio.gather(senators_task, reps_task)
-
-    return {
-        "state": state_upper,
-        "senators": [dict(r) for r in senators],
-        "representatives": [dict(r) for r in reps],
-    }
 
 
 @router.get("/members/{bioguide_id}")
