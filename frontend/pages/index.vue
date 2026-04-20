@@ -7,6 +7,7 @@ const { fetchBillsByNumber, searchVotesFuzzy } = useCongressApi()
 const { data: meta } = await useFetch<{ updated_at: string }>('/meta.json', { server: false })
 const updatedAt = computed(() => meta.value?.updated_at ?? null)
 
+const zipQuery = ref('')
 const selectedBillType = ref('hr')
 const selectedSort = ref('relevance')
 const billQuery = ref('')
@@ -151,6 +152,16 @@ function openBillType(code: string) {
   router.push(`/bills/${code}`)
 }
 
+function submitZipLookup() {
+  const zip = zipQuery.value.trim()
+  if (zip) {
+    router.push({ path: '/represent', query: { zip } })
+  }
+  else {
+    router.push('/represent')
+  }
+}
+
 async function submitBillSearch() {
   const query = billQuery.value.trim()
   if (/^\d+$/.test(query)) {
@@ -196,11 +207,39 @@ const { formatChamber } = useFormatters()
 
       <article class="hero-panel">
         <div class="section-title">
+          <h2>Who represents you?</h2>
+          <p>Find your Senators and House members by ZIP code.</p>
+        </div>
+
+        <form class="control-stack" @submit.prevent="submitZipLookup">
+          <div class="field field--full">
+            <span>ZIP code</span>
+            <input
+              v-model="zipQuery"
+              class="field-input"
+              type="text"
+              inputmode="numeric"
+              maxlength="5"
+              placeholder="e.g. 90210"
+              autocomplete="postal-code"
+            >
+          </div>
+
+          <button class="button button--primary" type="submit">
+            Find my representatives
+          </button>
+        </form>
+      </article>
+    </section>
+
+    <section class="overview-grid">
+      <article class="surface">
+        <div class="section-title">
           <h2>Bill search</h2>
           <p>Search by keyword or enter a bill number to find legislation directly.</p>
         </div>
 
-        <form class="control-grid" @submit.prevent="submitBillSearch">
+        <form class="control-stack" @submit.prevent="submitBillSearch">
           <label class="field">
             <span>Bill type</span>
             <select v-model="selectedBillType" class="field-input">
@@ -269,23 +308,6 @@ const { formatChamber } = useFormatters()
           </ol>
         </div>
       </article>
-    </section>
-
-    <section class="overview-grid">
-      <article class="surface">
-        <div class="section-title">
-          <h2>Endpoints</h2>
-          <p>Each section maps to a available API endpoint.</p>
-        </div>
-
-        <div class="family-grid">
-          <article v-for="family in API_FAMILIES" :key="family.id" class="family-card">
-            <p class="family-card__route">{{ family.route }}</p>
-            <h3>{{ family.title }}</h3>
-            <p>{{ family.summary }}</p>
-          </article>
-        </div>
-      </article>
 
       <article class="surface">
         <div class="section-title">
@@ -293,7 +315,7 @@ const { formatChamber } = useFormatters()
           <p>Search or browse recent roll-call votes by chamber.</p>
         </div>
 
-        <form class="control-grid" @submit.prevent="submitVoteSearch">
+        <form class="control-stack" @submit.prevent="submitVoteSearch">
           <label class="field">
             <span>Chamber</span>
             <select v-model="selectedVoteChamber" class="field-input">
@@ -338,6 +360,21 @@ const { formatChamber } = useFormatters()
             {{ voteQuery.trim() ? 'Search votes' : 'Browse recent votes' }}
           </button>
         </form>
+      </article>
+
+      <article class="surface">
+        <div class="section-title">
+          <h2>Endpoints</h2>
+          <p>Each section maps to a available API endpoint.</p>
+        </div>
+
+        <div class="family-grid">
+          <article v-for="family in API_FAMILIES" :key="family.id" class="family-card">
+            <p class="family-card__route">{{ family.route }}</p>
+            <h3>{{ family.title }}</h3>
+            <p>{{ family.summary }}</p>
+          </article>
+        </div>
       </article>
     </section>
 

@@ -14,7 +14,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from .cache import Cache
 from .db import Database
-from .routes import bills_router, committees_router, explore_router, members_router, root_router, semantic_router, votes_router
+from .routes import bills_router, committees_router, explore_router, members_router, representatives_router, root_router, semantic_router, votes_router
 from .settings import Settings, get_settings
 
 logger = logging.getLogger("csearch-api")
@@ -122,6 +122,7 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
     app.include_router(members_router)
     app.include_router(committees_router)
     app.include_router(semantic_router)
+    app.include_router(representatives_router)
     return app
 
 

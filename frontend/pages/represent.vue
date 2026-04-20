@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import type { MembersByState } from '~/types/congress'
+import type { RepresentativesResponse } from '~/types/congress'
 
-const { getMembersByState } = useCongressApi()
+const { getRepresentatives } = useCongressApi()
 const { partyLabel } = useFormatters()
 
 const zipInput = ref('')
 const loading = ref(false)
 const error = ref('')
-const detectedState = ref('')
-const result = ref<MembersByState | null>(null)
+const result = ref<RepresentativesResponse | null>(null)
+
+const route = useRoute()
+
+onMounted(() => {
+  const qZip = route.query.zip as string
+  if (qZip && /^\d{5}$/.test(qZip)) {
+    zipInput.value = qZip
+    lookup()
+  }
+})
 
 const STATE_NAMES: Record<string, string> = {
   AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
@@ -36,6 +45,31 @@ function partyColor(party?: string | null) {
   return 'var(--text-muted)'
 }
 
+const uniqueStates = computed(() => {
+  if (!result.value) return []
+  const seen = new Set<string>()
+  for (const d of result.value.districts) {
+    seen.add(d.state)
+  }
+  return [...seen].sort()
+})
+
+const districtLabel = computed(() => {
+  if (!result.value) return ''
+  const districts = result.value.districts
+  if (districts.length === 0) return ''
+  if (districts.length === 1) {
+    const d = districts[0]
+    return d.district === 0
+      ? `${stateName(d.state)} — At-large`
+      : `${stateName(d.state)} — District ${d.district}`
+  }
+  const parts = districts.map(d =>
+    d.district === 0 ? `${d.state} At-large` : `${d.state}-${d.district}`,
+  )
+  return parts.join(', ')
+})
+
 async function lookup() {
   const zip = zipInput.value.trim()
   if (!/^\d{5}$/.test(zip)) {
@@ -46,22 +80,17 @@ async function lookup() {
   loading.value = true
   error.value = ''
   result.value = null
-  detectedState.value = ''
 
   try {
-    // Resolve ZIP → state abbreviation via free public API (no key required)
-    const geo = await $fetch<any>(`https://api.zippopotam.us/us/${zip}`)
-    const stateCode: string = geo?.places?.[0]?.['state abbreviation']
-    if (!stateCode) {
-      error.value = 'Could not find a US state for that ZIP code.'
-      return
-    }
-    detectedState.value = stateCode
-
-    result.value = await getMembersByState(stateCode)
+    result.value = await getRepresentatives(zip)
   }
-  catch {
-    error.value = 'Something went wrong. Please try again.'
+  catch (e: any) {
+    if (e?.statusCode === 404 || e?.status === 404) {
+      error.value = 'ZIP code not found. Please check and try again.'
+    }
+    else {
+      error.value = 'Something went wrong. Please try again.'
+    }
   }
   finally {
     loading.value = false
@@ -111,8 +140,9 @@ async function lookup() {
 
     <template v-if="result">
       <div class="state-banner surface">
-        <span class="eyebrow">Results for ZIP {{ zipInput }}</span>
-        <h2>{{ stateName(result.state) }} · {{ result.state }}</h2>
+        <span class="eyebrow">Results for ZIP {{ result.zipcode }}</span>
+        <h2>{{ uniqueStates.map(s => stateName(s)).join(', ') }}</h2>
+        <p v-if="districtLabel" class="district-badge">{{ districtLabel }}</p>
       </div>
 
       <section class="overview-grid">
@@ -123,7 +153,7 @@ async function lookup() {
           </div>
 
           <div v-if="!result.senators.length" class="empty-note">
-            No senator data found for {{ result.state }}.
+            No senator data found for this ZIP code.
           </div>
 
           <div v-else class="member-list">
@@ -135,8 +165,11 @@ async function lookup() {
             >
               <div class="member-card__main">
                 <span class="member-card__name">{{ senator.name }}</span>
-                <span class="member-card__party" :style="{ color: partyColor(senator.party) }">
-                  {{ partyLabel(senator.party) }}
+                <span class="member-card__meta">
+                  <span class="member-card__party" :style="{ color: partyColor(senator.party) }">
+                    {{ partyLabel(senator.party) }}
+                  </span>
+                  <span class="member-card__state">{{ senator.state }}</span>
                 </span>
               </div>
               <span class="member-card__arrow">→</span>
@@ -151,7 +184,7 @@ async function lookup() {
           </div>
 
           <div v-if="!result.representatives.length" class="empty-note">
-            No representative data found for {{ result.state }}.
+            No representative data found for this ZIP code.
           </div>
 
           <div v-else class="member-list">
@@ -163,17 +196,20 @@ async function lookup() {
             >
               <div class="member-card__main">
                 <span class="member-card__name">{{ rep.name }}</span>
-                <span class="member-card__party" :style="{ color: partyColor(rep.party) }">
-                  {{ partyLabel(rep.party) }}
+                <span class="member-card__meta">
+                  <span class="member-card__party" :style="{ color: partyColor(rep.party) }">
+                    {{ partyLabel(rep.party) }}
+                  </span>
+                  <span class="member-card__state">{{ rep.state }}</span>
                 </span>
               </div>
               <span class="member-card__arrow">→</span>
             </NuxtLink>
           </div>
 
-          <p v-if="result.representatives.length > 1" class="district-note">
-            ZIP codes can span multiple congressional districts. All representatives from
-            {{ stateName(result.state) }} in the most recent Congress are shown above.
+          <p v-if="result.districts.length > 1" class="district-note">
+            This ZIP code spans multiple congressional districts ({{ districtLabel }}).
+            All matching representatives are shown.
           </p>
         </article>
       </section>
@@ -202,6 +238,12 @@ async function lookup() {
 .state-banner h2 {
   margin: 0.25rem 0 0;
   font-size: 1.1rem;
+}
+
+.district-badge {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .result-count {
@@ -243,8 +285,19 @@ async function lookup() {
   font-size: 0.88rem;
 }
 
+.member-card__meta {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .member-card__party {
   font-size: 0.75rem;
+}
+
+.member-card__state {
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 .member-card__arrow {
