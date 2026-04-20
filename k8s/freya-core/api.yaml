@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: registry.s8njee.com/csearch-fastapi:latest
+          image: registry.s8njee.com/csearch-api:latest
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
