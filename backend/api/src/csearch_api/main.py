@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -22,11 +23,31 @@ logger = logging.getLogger("csearch-api")
 
 # --- Logging ---
 
+_LOG_RECORD_RESERVED = {
+    "args", "asctime", "created", "exc_info", "exc_text", "filename", "funcName",
+    "levelname", "levelno", "lineno", "message", "module", "msecs", "msg", "name",
+    "pathname", "process", "processName", "relativeCreated", "stack_info",
+    "taskName", "thread", "threadName",
+}
+
+
+class _JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict = {"msg": record.getMessage(), "level": record.levelname.lower()}
+        for key, value in record.__dict__.items():
+            if key in _LOG_RECORD_RESERVED or key.startswith("_"):
+                continue
+            payload[key] = value
+        if record.exc_info:
+            payload["exc"] = self.formatException(record.exc_info)
+        return json.dumps(payload, default=str)
+
+
 def _install_logging() -> None:
     if logger.handlers:
         return
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(message)s"))
+    handler.setFormatter(_JsonFormatter())
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
     logger.propagate = False
@@ -87,13 +108,14 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
 
         cache_header = response.headers.get("X-Cache", "NONE")
         logger.info(
-            {
+            "request completed",
+            extra={
                 "responseTime": round((time.perf_counter() - started) * 1000, 2),
                 "statusCode": response.status_code,
                 "cache": cache_header or "NONE",
                 "clientIp": request.client.host if request.client else None,
                 "route": request.url.path,
-            }
+            },
         )
         return response
 

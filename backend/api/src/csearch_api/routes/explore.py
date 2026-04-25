@@ -47,6 +47,9 @@ async def run_explore_query(request: Request, query_id: str):
 
     response_time = (time.time() - started_at) * 1000
     if response_time > 500:
-        logger.warning({"queryId": query_id, "responseTime": response_time})
+        logger.warning(
+            "slow explore query",
+            extra={"queryId": query_id, "responseTime": response_time},
+        )
 
     return response

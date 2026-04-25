@@ -80,7 +80,7 @@ async def member_detail(request: Request, bioguide_id: str):
         upper_id,
     )
     recent_votes_task = request.app.state.db.fetch(
-        """
+        f"""
         SELECT
             votes.voteid,
             votes.congress::text AS congress,

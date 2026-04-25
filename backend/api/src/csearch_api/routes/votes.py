@@ -54,53 +54,6 @@ def _build_vote_search_query(search_query: str, chamber: str | None, fuzzy: bool
     return sql, bindings
 
 
-@router.get("/votes/{chamber}")
-async def latest_votes(request: Request, chamber: str):
-    """Return the most recent votes for the given chamber over the last 90 days."""
-    normalized = _normalize_chamber(chamber)
-    if not normalized:
-        raise HTTPException(status_code=400, detail={"error": "Invalid chamber; use 'house' or 'senate'"})
-
-    cache_key = f"latest_votes_{chamber}"
-    cached = await request.app.state.cache.get(cache_key)
-    if cached is not None:
-        request.state.cache_header = "HIT"
-        return cached
-
-    rows = await request.app.state.db.fetch(
-        """
-        SELECT
-            v.congress::text AS congress,
-            v.votenumber::text AS votenumber,
-            v.votedate,
-            v.question,
-            v.votesession,
-            v.result,
-            v.chamber,
-            v.votetype,
-            v.voteid,
-            v.source_url,
-            COUNT(CASE WHEN vm.position = 'yea' THEN 1 END)::int AS yea,
-            COUNT(CASE WHEN vm.position = 'nay' THEN 1 END)::int AS nay,
-            COUNT(CASE WHEN vm.position = 'present' THEN 1 END)::int AS present,
-            COUNT(CASE WHEN vm.position = 'notvoting' THEN 1 END)::int AS notvoting
-        FROM votes v
-        LEFT JOIN vote_members vm ON vm.voteid = v.voteid
-        WHERE v.votedate::date BETWEEN current_date - 90 AND current_date
-          AND v.chamber = $1
-        GROUP BY
-            v.voteid, v.congress, v.votenumber, v.votedate, v.question,
-            v.votesession, v.result, v.chamber, v.votetype, v.source_url
-        ORDER BY v.votedate DESC
-        LIMIT {LATEST_VOTES_LIMIT}
-        """,
-        normalized,
-    )
-    await request.app.state.cache.set(cache_key, rows)
-    request.state.cache_header = "MISS"
-    return rows
-
-
 @router.get("/votes/search")
 async def search_votes(request: Request, query: str | None = None, chamber: str | None = None):
     """Full-text and fuzzy search votes, optionally filtered by chamber."""
@@ -156,3 +109,49 @@ async def vote_detail(request: Request, voteid: str):
     vote["members"] = members
     return vote
 
+
+@router.get("/votes/{chamber}")
+async def latest_votes(request: Request, chamber: str):
+    """Return the most recent votes for the given chamber over the last 90 days."""
+    normalized = _normalize_chamber(chamber)
+    if not normalized:
+        raise HTTPException(status_code=400, detail={"error": "Invalid chamber; use 'house' or 'senate'"})
+
+    cache_key = f"latest_votes_{chamber}"
+    cached = await request.app.state.cache.get(cache_key)
+    if cached is not None:
+        request.state.cache_header = "HIT"
+        return cached
+
+    rows = await request.app.state.db.fetch(
+        f"""
+        SELECT
+            v.congress::text AS congress,
+            v.votenumber::text AS votenumber,
+            v.votedate,
+            v.question,
+            v.votesession,
+            v.result,
+            v.chamber,
+            v.votetype,
+            v.voteid,
+            v.source_url,
+            COUNT(CASE WHEN vm.position = 'yea' THEN 1 END)::int AS yea,
+            COUNT(CASE WHEN vm.position = 'nay' THEN 1 END)::int AS nay,
+            COUNT(CASE WHEN vm.position = 'present' THEN 1 END)::int AS present,
+            COUNT(CASE WHEN vm.position = 'notvoting' THEN 1 END)::int AS notvoting
+        FROM votes v
+        LEFT JOIN vote_members vm ON vm.voteid = v.voteid
+        WHERE v.votedate::date BETWEEN current_date - 90 AND current_date
+          AND v.chamber = $1
+        GROUP BY
+            v.voteid, v.congress, v.votenumber, v.votedate, v.question,
+            v.votesession, v.result, v.chamber, v.votetype, v.source_url
+        ORDER BY v.votedate DESC
+        LIMIT {LATEST_VOTES_LIMIT}
+        """,
+        normalized,
+    )
+    await request.app.state.cache.set(cache_key, rows)
+    request.state.cache_header = "MISS"
+    return rows
