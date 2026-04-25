@@ -12,7 +12,13 @@ COMMITTEE_BILLS_LIMIT = 100
 @router.get("/committees")
 async def committees(request: Request):
     """Return all committees with their bill counts, ordered by name."""
-    return await request.app.state.db.fetch(
+    cache_key = "committees_all"
+    cached = await request.app.state.cache.get(cache_key)
+    if cached is not None:
+        request.state.cache_header = "HIT"
+        return cached
+
+    rows = await request.app.state.db.fetch(
         """
         SELECT
             c.committee_code,
@@ -25,11 +31,20 @@ async def committees(request: Request):
         ORDER BY c.committee_name ASC
         """
     )
+    await request.app.state.cache.set(cache_key, rows)
+    request.state.cache_header = "MISS"
+    return rows
 
 
 @router.get("/committees/{committee_code}")
 async def committee_detail(request: Request, committee_code: str):
     """Return a committee's metadata and its most recently active bills."""
+    cache_key = f"committee_{committee_code}"
+    cached = await request.app.state.cache.get(cache_key)
+    if cached is not None:
+        request.state.cache_header = "HIT"
+        return cached
+
     committee = await request.app.state.db.fetchrow(
         """
         SELECT committee_code, committee_name, chamber
@@ -72,4 +87,6 @@ async def committee_detail(request: Request, committee_code: str):
     )
 
     committee["bills"] = bills
+    await request.app.state.cache.set(cache_key, committee)
+    request.state.cache_header = "MISS"
     return committee

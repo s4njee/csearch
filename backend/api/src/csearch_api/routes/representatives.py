@@ -20,6 +20,12 @@ async def _representatives_by_zip(request: Request, zipcode: str):
     if not zipcode.isdigit() or len(zipcode) != 5:
         raise HTTPException(status_code=400, detail={"error": "ZIP code must be exactly 5 digits"})
 
+    cache_key = f"representatives_{zipcode}"
+    cached = await request.app.state.cache.get(cache_key)
+    if cached is not None:
+        request.state.cache_header = "HIT"
+        return cached
+
     districts = await request.app.state.db.fetch(
         """
         SELECT state_abbr, cd
@@ -104,7 +110,7 @@ async def _representatives_by_zip(request: Request, zipcode: str):
 
     formatted_house_members = [_format_member(row) for row in house_members]
 
-    return {
+    response = {
         "zip": zipcode,
         "zipcode": zipcode,
         "districts": district_rows,
@@ -112,6 +118,9 @@ async def _representatives_by_zip(request: Request, zipcode: str):
         "housemembers": formatted_house_members,
         "representatives": formatted_house_members,
     }
+    await request.app.state.cache.set(cache_key, response)
+    request.state.cache_header = "MISS"
+    return response
 
 
 def _format_member(row):
