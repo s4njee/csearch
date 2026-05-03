@@ -46,3 +46,6 @@ backend/scraper/congress/*.tar.zst
 
 # Generated at deploy time — copied from backend/scraper/explore.sql
 backend/api/sql/explore.sql
+
+# Local pg_dump output
+schema.sql
