@@ -3,12 +3,17 @@ from __future__ import annotations
 import logging
 import time
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 
+from ..cache import EXPLORE_TTL_SECONDS
 from ..explore import execute_explore_query, get_explore_queries
 
 router = APIRouter()
 logger = logging.getLogger("csearch-api")
+
+# Edge can serve cached explore JSON for an hour, then revalidate in the
+# background for up to a day. Pairs with the shorter Redis TTL below.
+EXPLORE_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400"
 
 
 def _cache_key(query_id: str, request_query: dict[str, object]) -> str:
@@ -22,10 +27,12 @@ async def list_explore_queries():
 
 
 @router.get("/explore/{query_id}")
-async def run_explore_query(request: Request, query_id: str):
+async def run_explore_query(request: Request, response: Response, query_id: str):
     started_at = time.time()
     query_dict = dict(request.query_params)
     cache_key = _cache_key(query_id, query_dict)
+
+    response.headers["Cache-Control"] = EXPLORE_CACHE_CONTROL
 
     cached = await request.app.state.cache.get(cache_key)
     if cached is not None:
@@ -36,13 +43,13 @@ async def run_explore_query(request: Request, query_id: str):
     if not result:
         raise HTTPException(status_code=404, detail={"error": "Not Found", "message": f"Unknown explore query: {query_id}"})
 
-    response = {
+    payload = {
         "query": result["query"],
         "sql": result["sql"],
         "bindings": result["bindings"],
         "results": result["rows"],
     }
-    await request.app.state.cache.set(cache_key, response)
+    await request.app.state.cache.set(cache_key, payload, ttl=EXPLORE_TTL_SECONDS)
     request.state.cache_header = "MISS"
 
     response_time = (time.time() - started_at) * 1000
@@ -52,4 +59,4 @@ async def run_explore_query(request: Request, query_id: str):
             extra={"queryId": query_id, "responseTime": response_time},
         )
 
-    return response
+    return payload

@@ -51,7 +51,7 @@ class FakeCache:
     async def get(self, key: str):
         return self.values.get(key)
 
-    async def set(self, key: str, value):
+    async def set(self, key: str, value, ttl: int | None = None):
         self.values[key] = value
 
     async def reset(self):

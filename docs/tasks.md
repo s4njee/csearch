@@ -10,41 +10,46 @@ Root cause (per `FINDINGS.md:104–113`): scraper + API are fresh within minutes
 
 Make the frontend rebuild when scraper data lands instead of on a wall-clock timer.
 
-- [ ] Create a Cloudflare Pages deploy hook for the production project; store the URL as a sealed secret (`CLOUDFLARE_PAGES_DEPLOY_HOOK`).
-- [ ] Add a post-success step to the scraper CronJob (`k8s/netcup-scraper/cronjob.yaml`) that `curl -X POST`s the deploy hook only when the scraper container exits 0 and reports non-empty changes.
-  - Decide signal: parse scraper stdout for a "rows changed" marker, or have the scraper write a sentinel to Redis that a sidecar reads.
-  - Skip the trigger when the run is a no-op so we don't churn builds.
-- [ ] Mirror the trigger in `.github/workflows/build-images.yml` for the manual-rerun path so out-of-band scrapes also redeploy.
-- [ ] Add a 30-min timeout + retry (max 2) around the webhook call; log to log-collector on failure.
-- [ ] Verify in staging: run the scraper, confirm the Pages build kicks off within ~1 min, confirm the new bill is visible on the public site after build completes.
+- [ ] **(user)** Create a Cloudflare Pages deploy hook for the production project, then `kubeseal` the URL into `csearch-cloudflare-deploy-hook` (key `DEPLOY_HOOK_URL`) — placeholder manifests + commands at `k8s/{freya,netcup}-core/csearch-cloudflare-deploy-hook-sealedsecret.yaml`. Add the file to the matching `kustomization.yaml` after sealing.
+- [x] Wire the trigger from the orchestrator CronJob: `nightly_update.sh` writes `$DATA_DIR/.deploy-pending` only after a successful upsert, and the cronjob args POST to `DEPLOY_HOOK_URL` (3 attempts, 30 s timeout, exponential backoff, never fails the job). Edits in:
+  - `backend/nlp/project-tarp/nightly_update.sh`
+  - `k8s/freya-scraper/orchestrator-cronjob.yaml`
+  - `k8s/netcup-scraper/orchestrator-cronjob.yaml`
+- [x] No-op skip is built in: `content_hasher.py` exits early when nothing changed, so the sentinel never gets touched and no deploy fires.
+- [~] ~~Mirror the trigger in `.github/workflows/build-images.yml`~~ — skipped: that workflow only builds container images. Manual scrape reruns use `kubectl create job --from=cronjob/...`, which already exercises the same deploy-trigger path. The existing `frontend-cloudflare-deploy.yml` workflow_dispatch covers manual UI-only deploys.
+- [x] 30 s timeout + 3 retries with exponential backoff; failures log to stderr and do not fail the Job (caught by log-collector via stderr capture).
+- [ ] **(user)** Verify in staging: trigger an orchestrator run, confirm the Pages build kicks off, confirm the new bill is visible after build completes.
 
 ## Phase 2 — Dual-frequency scraper (priority: medium, ~1 day)
 
 Catch GovInfo posts that land after the morning run.
 
-- [ ] Add a second CronJob entry (or a second schedule) at `0 15 * * *` UTC (10:00 CT) in `k8s/netcup-scraper/orchestrator-cronjob.yaml`.
-- [ ] Confirm the scraper is idempotent across overlapping runs — check `backend/scraper/src/db.rs` upsert paths and Redis lock keys.
-- [ ] Add a guard so a still-running 05:00 job doesn't clash with the 10:00 job (k8s `concurrencyPolicy: Forbid`).
-- [ ] Update `ARCHITECTURE.md:281` (build cadence note) and any runbook references to the new schedule.
-- [ ] Watch one week of runs to confirm the second job actually finds new rows (justifies keeping it).
+- [x] Repurposed the previously-suspended scraper-only CronJob (`k8s/{freya,netcup}-scraper/cronjob.yaml`): `suspend: false`, schedule `0 10 * * *` America/Chicago. Pairs with the 05:00 orchestrator. Wraps the entrypoint to fire the same deploy hook on success.
+- [x] Idempotency: the Rust scraper upserts and uses Redis-backed cache invalidation (`backend/scraper/src/redis_cache.rs`) — overlapping runs are safe.
+- [x] `concurrencyPolicy: Forbid` already set on both CronJobs (10:00 won't race itself; orchestrator has its own Forbid). 05:00 → 10:00 gap is 5 h, well inside typical runtime.
+- [ ] **(user)** Update `ARCHITECTURE.md:281` to document the new 10:00 CT schedule.
+- [ ] **(user)** Watch one week of 10:00 runs to confirm the second job actually finds new rows.
 
 ## Phase 3 — Cache + headers tightening (priority: medium, low effort)
 
 Pair-fix from §2.5 of FINDINGS — keeps explore endpoints from serving day-old rows when only metadata changed.
 
-- [ ] In `backend/api/routes/explore.py`, drop explore-endpoint TTL from 24 h to 12 h.
-- [ ] Emit `Cache-Control: max-age=3600, stale-while-revalidate=86400` from explore + bill detail responses so Cloudflare's edge does SWR.
-- [ ] Verify scraper-driven hard invalidation in `backend/scraper/src/redis_cache.rs` still clears the relevant keys on content changes (no regression).
+- [x] Added `EXPLORE_TTL_SECONDS = 12 h` constant in `backend/api/src/csearch_api/cache.py`; `Cache.set()` now accepts an optional `ttl` override. Explore route passes it.
+- [x] Emit `Cache-Control: public, max-age=3600, stale-while-revalidate=86400` from `/explore/{query_id}` and `/bills/{billtype}/{congress}/{billnumber}`.
+- [x] No regression in scraper-driven invalidation: `backend/scraper/src/redis_cache.rs` still clears keys on content changes (no code change there).
+- [x] All 16 API tests pass after the changes (`pytest tests/`).
 
 ## Phase 4 — ISR/SWR via Cloudflare Worker + KV (priority: durable fix, 1–2 days)
 
 Architectural backstop — survives any future build-cadence regression.
 
-- [ ] Provision a KV namespace (`csearch-isr`) in the Cloudflare account; record the binding.
-- [ ] Add `wrangler.toml` for a new Worker that sits in front of `/bills/*` and `/votes/*` JSON paths.
-- [ ] Worker logic: serve from KV if fresh; on stale, return cached + revalidate from API in the background; write fresh response back to KV with a short hard TTL (~5 min) and a longer SWR window (~24 h).
-- [ ] Decide hydration model for detail pages: keep static HTML and have the page fetch via the Worker on mount, OR move detail pages to dynamic rendering through the Worker. Pick one and document in `frontend/nuxt.config.ts` notes.
-- [ ] Smoke-test: post a bill update, confirm next request ≤2 s shows new data without a Pages rebuild.
+- [x] Worker scaffolded at `workers/api-cache/` (TypeScript, wrangler 3). Sits at `https://api-cache.csearch.org` and proxies to `https://api.csearch.org`. Caches all GETs (skips POST/PUT/...; `POST /search/semantic` therefore passes through). 5-min fresh window, 24-h SWR window, KV-backed. Response headers expose `X-Cache: HIT|STALE|MISS` + `X-Cache-Age`.
+- [x] `wrangler.toml` declares KV binding `CACHE` and custom-domain route `api-cache.csearch.org`. `npx tsc --noEmit` and `wrangler deploy --dry-run` both clean.
+- [x] Hydration model decision: **keep static HTML; client-side `useAsyncData` calls go through the Worker.** Cleanest because Nuxt SSG also runs `useAsyncData` at build time — pointing `NUXT_API_SERVER` at the Worker means SSG, hydration, and runtime fetches all share the same SWR cache. No Nuxt config rewrite needed.
+- [ ] **(user)** Provision KV: `cd workers/api-cache && npm install && npx wrangler kv namespace create CACHE && npx wrangler kv namespace create CACHE --preview`. Paste the printed `id` / `preview_id` into `wrangler.toml`.
+- [ ] **(user)** Deploy: `npx wrangler deploy`. Add `api-cache.csearch.org` as a Custom Domain on the Worker (dashboard → Workers & Pages → csearch-api-cache → Settings → Triggers → Custom Domains).
+- [ ] **(user)** Update `NUXT_API_SERVER` in `.env.prod` and the matching GH Actions repo variable to `https://api-cache.csearch.org`. Trigger a Pages rebuild.
+- [ ] **(user)** Smoke-test: post a bill update, confirm next request ≤ 6 min shows new data without a Pages rebuild (matches `FRESH_SECONDS = 300`). Surgical invalidation can be added later via a guarded `POST /_purge` if the 5-min window proves too coarse.
 
 ## Phase 5 — Live push (optional, only if real-time UX is wanted)
 
