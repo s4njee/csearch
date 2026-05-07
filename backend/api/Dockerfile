@@ -7,7 +7,10 @@ ENV PYTHONUNBUFFERED=1
 
 COPY backend/api/pyproject.toml /app/backend/api/pyproject.toml
 COPY backend/api/src /app/backend/api/src
-COPY backend/api/sql/explore.sql /app/backend/api/sql/explore.sql
+# Source of truth lives in backend/scraper/explore.sql (so the Rust scraper
+# and FastAPI app share one file). The API runtime expects it at
+# /app/backend/api/sql/explore.sql.
+COPY backend/scraper/explore.sql /app/backend/api/sql/explore.sql
 
 RUN pip install --no-cache-dir -e /app/backend/api
 
