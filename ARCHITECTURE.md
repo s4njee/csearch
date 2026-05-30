@@ -1,281 +1,436 @@
-# Architecture
+# CSearch Architecture
 
-End-to-end runtime model for CSearch. Two clusters (netcup, freya), one database, one API image, one frontend.
+CSearch ingests U.S. congressional bill and vote data, stores it in PostgreSQL,
+serves it through a FastAPI read API, and presents it through a generated Nuxt
+frontend. Semantic search is implemented with OpenAI embeddings stored in
+PostgreSQL through `pgvector`; PostgreSQL is both the relational database and
+the vector database.
 
----
+This document describes the architecture reflected by the current repository.
+Some docs and archived files still reference previous deployment shapes, such
+as Qdrant or S3/CloudFront. The active repo-managed path uses PostgreSQL +
+`pgvector` for vectors, Argo CD for cluster workloads, and Cloudflare Pages for
+the public static frontend.
 
-## Clusters
+## System Overview
 
-| Cluster | Role | Argo CD location |
-| --- | --- | --- |
-| **netcup** | Production — Postgres, API, scraper, test frontend | Argo runs on netcup |
-| **freya** | Secondary — API replica, NLP pipeline, Argo Image Updater | Argo runs on freya |
+```mermaid
+flowchart LR
+    sources["GovInfo and congress.gov"]
+    scraper["Rust scraper plus vendored Python fetcher"]
+    nlp["TARP NLP updater"]
+    pg[("PostgreSQL\npublic schema + nlp schema\npg_trgm + pgvector")]
+    redis[("Redis\ncsearch:* route cache")]
+    api["FastAPI\napi.csearch.org"]
+    worker["Cloudflare Worker\noptional GET API cache"]
+    frontend["Nuxt static frontend\ncsearch.org"]
+    browser["Browser"]
 
-Both clusters run k3s with Traefik (netcup) or a LoadBalancer (freya).
-
----
-
-## Data flows
-
-### Ingest (scraper)
-
-```
-GovInfo / congress.gov
-        |
-        v
-  Vendored Python scraper (backend/scraper/congress/)
-  downloads raw XML/JSON bill and vote files
-        |
-        v
-  Rust updater (backend/scraper/src/)
-  - SHA-256 hash check → skip unchanged files
-  - Parse XML/JSON → normalized structs
-  - Upsert into PostgreSQL (public schema)
-  - Invalidate csearch:* keys in Redis
-```
-
-Runs as a Kubernetes CronJob on netcup (`k8s/netcup-scraper/`). Coverage: bills from the 93rd Congress, votes from the 101st Congress.
-
-### Read path (API → frontend)
-
-```
-Browser
-  |
-  v
-Cloudflare Pages (csearch.org)   ← static Nuxt build
-  |  (API calls)
-  v
-FastAPI (api.csearch.org / 192.168.1.156:3000)
-  |
-  +-- Redis cache (24h TTL)
-  |     hit → return cached response
-  |     miss ↓
-  +-- PostgreSQL
-        return + cache result
+    sources --> scraper
+    scraper --> pg
+    scraper --> redis
+    sources --> nlp
+    nlp --> pg
+    api --> pg
+    api <--> redis
+    browser --> frontend
+    frontend --> worker
+    worker --> api
+    frontend --> api
 ```
 
-### Semantic search path
+## Repository Map
 
-```
-Browser POST /search/semantic {query}
-  |
-  v
-FastAPI
-  |
-  v
-OpenAI text-embedding-3-small API
-  → 1536-dimensional embedding vector
-  |
-  v
-PostgreSQL nlp.bill_embeddings
-  (HNSW index, cosine distance via pgvector)
-  → top 40 chunks ordered by embedding <=> $vector
-  |
-  v
-Deduplicate to 20 unique bills
-  → return [{bill_id, congress, title, body, similarity}]
-```
+| Path | Role |
+| --- | --- |
+| `backend/scraper/` | Rust ingest pipeline. Calls vendored Python scraper, parses source files, upserts normalized rows, and clears API cache keys after writes. |
+| `backend/scraper/congress/` | Vendored `@unitedstates/congress` Python scraper code used to fetch raw bill and vote files. |
+| `backend/api/` | FastAPI read API. Owns REST routes, async PostgreSQL access, Redis cache access, and semantic search. |
+| `backend/nlp/project-tarp/` | Bill text fetch/chunk/embed/upsert pipeline for the semantic index. |
+| `frontend/` | Nuxt 4 static frontend. Generated site deployed publicly; nginx image used for cluster test/frontend environments. |
+| `workers/api-cache/` | Cloudflare Worker that can sit in front of the API and cache GET requests in KV. |
+| `k8s/` | Kubernetes manifests consumed by Argo CD. |
+| `argo/applications/` | Argo CD `Application` objects for netcup and freya. |
+| `docs/archive/` and `k8s/archive/` | Historical material; useful for context, not the default deployment path. |
 
-### NLP embedding pipeline (nightly)
+## Runtime Environments
 
-```
-GovInfo bill text (HTLM/XML)
-  |
-  v
-fetcher.py — download, skip already-cached
-  |
-  v
-content_hasher.py — hash text, exit early if unchanged
-  |
-  v
-chunker.py — split into section-aware chunks
-  |
-  v
-embedder.py — OpenAI text-embedding-3-small (1536d)
-  skip already-embedded chunk hashes
-  |
-  v
-upserter.py — idempotent upsert into:
-  nlp.bill_chunks       (text, metadata)
-  nlp.bill_embeddings   (chunk_id, embedding vector, HNSW index)
-```
-
-Runs nightly as a CronJob on freya in the `csearch-nlp` namespace. Each step is idempotent — safe to re-run. Only new or changed bill text costs OpenAI API calls.
-
----
-
-## Components
-
-### PostgreSQL
-
-- **Cluster:** netcup
-- **Manifests:** `k8s/netcup-db/` → Argo app `csearch-netcup-db`
-- **Schema source of truth:** `backend/scraper/schema.sql`
-
-```
-public schema
-  bills, votes, members, committees, committees_bills, etc.
-
-nlp schema
-  bill_chunks      (id, bill_id, congress, title, status, body, chunk_type, section_header)
-  bill_embeddings  (chunk_id, embedding vector(1536), HNSW cosine index)
-  sync_state       (last_run bookkeeping)
-```
-
-Extensions: `pgvector`, `pg_trgm` (full-text search).
-
-### FastAPI
-
-- **Image:** `registry.s8njee.com/csearch-fastapi:latest`
-- **Runtime:** Python 3.11, uvicorn, asyncpg, pydantic-settings, openai, redis
-- **Source:** `backend/api/src/csearch_api/`
-- **netcup manifests:** `k8s/netcup-core/api.yaml` → Argo app `csearch-netcup-core` (branch `main`)
-- **freya manifests:** `k8s/freya-core/api.yaml` → Argo app `csearch-freya-core` (branch `freya`)
-
-**Routes:**
-
-| Method | Path | Description | Cached |
+| Environment | Purpose | Argo branch | Main paths |
 | --- | --- | --- | --- |
-| `GET` | `/health` | DB connectivity check | No |
-| `GET` | `/latest/{billtype}` | Latest bills by type | Yes |
-| `GET` | `/search/{table}/{filter}` | Full-text bill search (relevance or date) | No |
-| `POST` | `/search/semantic` | Semantic bill search via pgvector + OpenAI | No |
-| `GET` | `/bills/{billtype}/{congress}/{billnumber}` | Bill detail with actions, cosponsors, votes, committees | No |
-| `GET` | `/bills/bynumber/{number}` | All bills matching a number across congresses | No |
-| `GET` | `/votes/{chamber}` | Latest votes by chamber | Yes |
-| `GET` | `/votes/search` | Fuzzy vote search | No |
-| `GET` | `/votes/detail/{voteid}` | Vote detail with member breakdown | No |
-| `GET` | `/members/{bioguide_id}` | Member profile with bills and votes | No |
-| `GET` | `/committees` | All committees with bill counts | No |
-| `GET` | `/committees/{committee_code}` | Committee detail with bills | No |
-| `GET` | `/explore` | List parameterized explore queries | No |
-| `GET` | `/explore/{query_id}` | Run explore query | Yes |
+| netcup | Production API, database, scraper/NLP pipeline, test frontend | `main` | `k8s/netcup-db`, `k8s/netcup-core`, `k8s/netcup-scraper`, `k8s/netcup-test-frontend` |
+| freya | Development/secondary API, database, scraper/NLP pipeline, frontend | `freya` | `k8s/freya-db`, `k8s/freya-core`, `k8s/freya-scraper`, `k8s/freya-frontend` |
 
-**Semantic search request/response:**
+The active Argo applications all enable `prune` and `selfHeal`, so durable
+cluster changes should be made through git rather than manual `kubectl` edits.
 
-```json
-POST /search/semantic
-{"query": "climate change carbon emissions", "congress_min": 110, "congress_max": 118}
+## Data Ingestion
 
-→ [{
-  "bill_id": "hr970-103",
-  "congress": 103,
-  "title": "Emergency Climate Stabilization Act",
-  "status": "REFERRED",
-  "body": "<matched chunk text>",
-  "chunk_type": "section",
-  "section_header": "FINDINGS.",
-  "similarity": 0.473
-}]
+### Scraper Flow
+
+```mermaid
+flowchart TD
+    gov["GovInfo / congress.gov"]
+    py["Vendored Python scraper\nbackend/scraper/congress/run.py"]
+    raw["Raw XML, HTML, JSON files\nCONGRESSDIR/data"]
+    rust["Rust updater\nbackend/scraper/src/main.rs"]
+    hashes["SHA-256 hash stores\nvoteHashes.rscraper.bin\nfileHashes.rscraper.bin"]
+    db["PostgreSQL public schema"]
+    cache["Redis csearch:* keys"]
+
+    gov --> py --> raw --> rust
+    hashes <--> rust
+    rust --> db
+    rust --> cache
 ```
 
-**Environment variables:**
+The scraper is a Rust binary that orchestrates two pipelines:
 
-| Variable | Description |
+- `RUN_BILLS=true` calls the Python bill fetch task, parses bill XML/JSON, and
+  writes bills, actions, cosponsors, subjects, and committees.
+- `RUN_VOTES=true` calls the Python vote fetch task, parses vote JSON, and
+  writes votes and member positions.
+
+The configured ranges are:
+
+- Bills: 93rd Congress through the dynamically computed current Congress.
+- Votes: 101st Congress through the dynamically computed current Congress.
+
+The scraper computes the current Congress as `(year - 1789) / 2 + 1`. It also
+ensures future bill partitions exist, so a long-running database can cross into
+a new Congress without manual partition creation.
+
+### Change Detection
+
+Raw files are hashed with SHA-256 before parsing. If the hash matches the
+persisted hash store, the file is skipped. This keeps routine runs cheap and
+allows repeated CronJob runs to be idempotent.
+
+When a run writes any rows, `backend/scraper/src/redis_cache.rs` scans and
+deletes Redis keys matching `csearch:*`. Cache invalidation failure is logged
+but does not fail the scraper.
+
+### Schedules
+
+The repo currently contains two scraper-related CronJobs per environment:
+
+| CronJob | Path | Schedule | Purpose |
+| --- | --- | --- | --- |
+| `csearch-data-pipeline` | `k8s/{netcup,freya}-scraper/orchestrator-cronjob.yaml` | `0 5 * * *` America/Chicago | Runs scraper first, then the NLP updater. |
+| `csearch-rscraper` | `k8s/{netcup,freya}-scraper/cronjob.yaml` | `0 10 * * *` America/Chicago | Second scraper-only run to catch later GovInfo updates. |
+
+Both jobs use `concurrencyPolicy: Forbid`.
+
+## Database Architecture
+
+PostgreSQL is the system of record. The active Kubernetes database manifests
+mount `k8s/{netcup,freya}-db/001-schema.sql`, which mirrors the scraper schema
+for the public data model and enables both `pg_trgm` and `vector`.
+
+### Public Schema
+
+The public schema stores normalized congressional data:
+
+| Table | Purpose |
 | --- | --- |
-| `POSTGRESURI` | Postgres host |
-| `DB_USER` | Postgres user |
-| `DB_PASSWORD` | Postgres password |
-| `DB_NAME` | Database name |
-| `REDIS_URL` | Redis connection URL |
-| `OPENAI_API_KEY` | OpenAI API key (required for `/search/semantic`) |
-| `LOG_LEVEL` | Logging level (default: `info`) |
-| `PORT` | Port (default: `3000`) |
+| `bills` | Partitioned by Congress. One row per bill. Includes generated `search_document` for full-text search. |
+| `bill_actions` | Timeline/action rows for bills. |
+| `bill_cosponsors` | Cosponsor membership per bill. |
+| `bill_subjects` | Subject terms per bill. |
+| `committees` | Committee reference data. |
+| `bill_committees` | Bill-to-committee relationships. |
+| `votes` | Roll-call vote records. Includes generated `search_document`. |
+| `vote_members` | Per-member vote positions. |
+| `zip_districts` | ZIP to congressional district lookup, loaded by the netcup migration job. |
 
-### Redis
+Search uses PostgreSQL full-text search over generated `tsvector` columns, plus
+trigram fuzzy matching for longer user queries.
 
-- **Manifests:** `k8s/netcup-core/redis.yaml`, `k8s/freya-core/redis.yaml`
-- 24h TTL, key prefix `csearch:`
-- Fails open — API falls back to Postgres when Redis is unavailable
-- Scraper clears all `csearch:*` keys after successful ingest runs
+### NLP Schema
 
-| Route | Cache key |
+The semantic index lives in the same PostgreSQL database under the `nlp` schema.
+The TARP upserter creates and maintains the bill vector tables:
+
+| Table | Purpose |
 | --- | --- |
-| `GET /latest/{billtype}` | `csearch:latest_bills_<billtype>` |
-| `GET /votes/{chamber}` | `csearch:latest_votes_<chamber>` |
-| `GET /explore/{query_id}` | `csearch:explore_<query_id>` |
+| `nlp.bill_chunks` | Embedding text and metadata. Each row is a section-oriented bill chunk with bill id, Congress, bill type/number, title, status, section metadata, source hashes, and token count. |
+| `nlp.bill_embeddings` | One `vector(1536)` embedding per chunk, keyed by `chunk_id`, with the embedding model name. |
 
-### Frontend
+The root `schema.sql` dump includes the current `nlp` table shape and HNSW
+index. The pipeline code can also create the schema from scratch through
+`backend/nlp/project-tarp/upserter.py`.
 
-- **Source:** `frontend/` (Nuxt 4, Vue 3, TypeScript)
-- **Public site:** Cloudflare Pages project `csearch` at `csearch.org`
-- **Test site:** nginx container at `test.csearch.org` on netcup (`k8s/netcup-test-frontend/`)
-- **API base:** configured at build time via `NUXT_API_SERVER`; can also be overridden at runtime via `/runtime-config.js`
+`upserter.py` also contains a `--mode votes` path for future `nlp.vote_chunks`
+and `nlp.vote_embeddings`, but the production API route currently searches bill
+embeddings.
 
-**Search behavior:** when a query is entered, the frontend calls `POST /search/semantic` and displays results ranked by similarity score (cross-corpus, all congresses). Without a query, it fetches the latest bills for the selected category via `GET /latest/{billtype}`.
+## API Architecture
 
-### Scraper
+The API is a FastAPI app in `backend/api/src/csearch_api/`.
 
-- **Image:** `registry.s8njee.com/csearch-updater:latest`
-- **Source:** `backend/scraper/` (Rust) + `backend/scraper/congress/` (vendored Python)
-- **Manifests:** `k8s/netcup-scraper/`, `k8s/freya-scraper/`
-- Mounts host paths: `/srv/csearch/congress` and `/srv/csearch/data`
-- Toggle bill/vote ingest independently with `RUN_BILLS` / `RUN_VOTES`
+Core runtime pieces:
 
-### NLP pipeline
+- `main.py` creates the app, installs JSON request logging, CORS, gzip, proxy
+  header support, and exception handlers.
+- `db.py` manages an `asyncpg` pool.
+- `cache.py` wraps Redis with fail-open behavior.
+- `routes/` contains route modules for bills, votes, members, committees,
+  representatives, explore queries, and semantic search.
+- `settings.py` loads environment variables with `pydantic-settings`.
 
-- **Source:** `backend/nlp/` (git submodule → `github.com/s4njee/csearch-nlp`)
-- **Cluster:** freya, namespace `csearch-nlp`
-- **Model:** OpenAI `text-embedding-3-small`, 1536 dimensions
-- **Index:** HNSW with cosine distance in `nlp.bill_embeddings`
-- See `backend/nlp/IMPLEMENTATION.md` for full spec and `backend/nlp/project-tarp/UPDATE.md` for operational runbook.
+The Kubernetes API deployment is exposed inside the cluster as `csearch-api`
+and publicly on netcup through the `api.csearch.org` ingress.
 
-### Logging
+### API Read Paths
 
-- All workloads write structured JSON to stdout
-- Fluent Bit DaemonSet tails container logs (`k8s/logging/`)
-- Ships to in-cluster HTTP collector or S3
+| Route family | Backing data | Cache behavior |
+| --- | --- | --- |
+| `/latest/{billtype}` | `public.bills` | Redis, 24 hour default TTL |
+| `/search/{table}/{filter}` | `public.bills` full-text + trigram | Not Redis cached |
+| `/bills/{billtype}/{congress}/{billnumber}` | Bill plus actions, cosponsors, votes, committees | Edge cache headers |
+| `/bills/bynumber/{number}` | Matching bills across types/congresses | Not Redis cached |
+| `/votes/{chamber}` | Recent votes and member counts | Redis, 24 hour default TTL |
+| `/votes/search` | Vote full-text + trigram | Not Redis cached |
+| `/votes/detail/{voteid}` | Vote plus member breakdown | Not Redis cached |
+| `/members/{bioguide_id}` | Member profile and related records | Not Redis cached |
+| `/committees` and `/committees/{code}` | Committee lists and details | Not Redis cached |
+| `/representatives/{zip}` | ZIP district lookup | Not Redis cached |
+| `/explore` and `/explore/{query_id}` | Predefined analytical SQL | Explore results cached for 12 hours |
+| `/search/semantic` | OpenAI embedding + pgvector similarity | Not Redis cached |
 
----
+Redis keys are prefixed with `csearch:`. Redis outages produce cache misses,
+not request failures.
 
-## Deployment model
+## Semantic Search and RAG Vector Database
 
-### Argo CD applications
+The semantic search path is the production RAG retrieval layer. It retrieves
+grounding chunks and hydrated bill metadata, but the user-facing FastAPI route
+does not currently generate an LLM answer. The answer-generation experiment
+lives in `backend/nlp/project-tarp/query.py`.
 
-| Application | Cluster | Git path | Branch | selfHeal |
-| --- | --- | --- | --- | --- |
-| `csearch-netcup-db` | netcup | `k8s/netcup-db` | `main` | Yes |
-| `csearch-netcup-core` | netcup | `k8s/netcup-core` | `main` | Yes |
-| `csearch-netcup-scraper` | netcup | `k8s/netcup-scraper` | `main` | Yes |
-| `csearch-netcup-test-frontend` | netcup | `k8s/netcup-test-frontend` | `rscraper` | Yes |
-| `csearch-freya-core` | freya | `k8s/freya-core` | `freya` | Yes |
-| `csearch-freya-db` | freya | `k8s/freya-db` | `freya` | Yes |
+### Query-Time Flow
 
-**selfHeal is enabled on all apps.** Manual `kubectl` changes will be reverted within seconds. All changes must go through git.
+```mermaid
+flowchart TD
+    user["User query"]
+    frontend["Nuxt bills page"]
+    api["POST /search/semantic"]
+    embed["OpenAI embeddings API\ntext-embedding-3-small\n1536 dimensions"]
+    topk["HNSW top-k scan\nnlp.bill_embeddings"]
+    chunks["Join nlp.bill_chunks\nfilter Congress range\ndeduplicate one chunk per bill"]
+    bills["Join public.bills\nhydrate title, sponsor, committees, cosponsor count"]
+    results["Similarity-ranked bill results"]
 
-### Image lifecycle
+    user --> frontend --> api --> embed --> topk --> chunks --> bills --> results
+```
 
-**netcup:** CI (`.github/workflows/build-images.yml`) builds `csearch-fastapi:latest`, `csearch-updater:latest`, and `csearch-frontend:latest` on every push to `main` touching `backend/api/**`, `backend/scraper/**`, or `frontend/**`. Argo picks up `:latest` on next sync.
+Important implementation details:
 
-**freya:** Argo Image Updater (`argocd-image-updater-controller` in `argocd` namespace) polls `registry.s8njee.com` every 2 minutes. When the `:latest` digest changes, it updates the Application spec in-cluster (no git commit) and Argo rolls out the new image automatically.
+- Request model: `query`, optional `congress_min`, optional `congress_max`, and
+  optional `limit`.
+- Default result limit is 50; maximum result limit is 500.
+- The candidate limit is `max(500, limit * 10)`, capped at 2000.
+- Query embeddings use OpenAI `text-embedding-3-small` with `dimensions=1536`.
+- Vectors are passed to PostgreSQL as string literals cast to `vector`.
+- The SQL first scans only `nlp.bill_embeddings` ordered by cosine distance, so
+  the HNSW index can be used before joins and filters.
+- Similarity is returned as `1 - (embedding <=> query_vector)`.
+- `db.py` sets `hnsw.ef_search=500` inside the semantic query transaction to
+  improve HNSW recall.
+- The semantic database query has a 10 second timeout.
+
+The SQL then joins the top candidates to `nlp.bill_chunks`, applies the
+Congress filter, keeps the best chunk per `bill_id` with `DISTINCT ON`, joins
+`public.bills`, and returns rows sorted by descending similarity.
+
+### Warmup
+
+`k8s/{netcup,freya}-core/semantic-warmup-cronjob.yaml` posts to
+`/search/semantic/warmup` every five minutes. The API embeds the fixed query
+`bills about climate`, caches that embedding in process, and runs a one-row
+semantic search. This keeps the OpenAI client path and pgvector HNSW index warm.
+
+### What Is RAG Here?
+
+The retrieval unit is a bill chunk in `nlp.bill_chunks`; the final UI unit is a
+bill. That gives the system a RAG-ready context layer:
+
+1. Retrieve the nearest chunks from `nlp.bill_embeddings`.
+2. Use chunk text plus section metadata as grounding context.
+3. Join to `public.bills` for canonical bill metadata.
+4. Optionally pass the retrieved chunks to an answer model.
+
+Step 4 is implemented for experimentation in `backend/nlp/project-tarp/query.py`
+using `gpt-5.4-nano`, but it is not part of the public FastAPI route today.
+
+### Vector Store Choice
+
+The vector database is PostgreSQL with `pgvector`, not a separate service.
+This avoids running a second persistence tier and allows SQL joins between
+vectors, chunks, and normalized bill metadata. Older Qdrant manifests remain
+under `backend/nlp/k8s/` and archived docs, but they are not the active
+architecture documented here.
+
+## NLP Embedding Pipeline
+
+The active repo-managed NLP path is the `nlp-updater` container inside the
+unified `csearch-data-pipeline` CronJob.
+
+```mermaid
+flowchart TD
+    data["Scraper bill data\n/congress-data"]
+    fetch["fetcher.py\nfetch GovInfo full text"]
+    hash["content_hasher.py\nskip unchanged text"]
+    chunk["chunker.py\nsection-aware chunks"]
+    embed["embedder.py\nOpenAI embeddings"]
+    upsert["upserter.py\nbulk load chunks and vectors"]
+    pg[("PostgreSQL nlp schema")]
+    sentinel[".deploy-pending sentinel"]
+    deploy["Cloudflare Pages deploy hook"]
+
+    data --> fetch --> hash --> chunk --> embed --> upsert --> pg
+    upsert --> sentinel --> deploy
+```
+
+The orchestrator runs the Rust scraper first, then computes
+`PG_CONNECTION_STRING` from the database env vars and runs
+`backend/nlp/project-tarp/nightly_update.sh`.
+
+Pipeline stages:
+
+1. `fetcher.py` downloads bill text from GovInfo and skips bills whose metadata
+   cache already exists.
+2. `content_hasher.py` strips XML attributes, hashes meaningful legislative
+   text, and exits early when nothing changed.
+3. `chunker.py` rewrites the current Congress chunks. It deduplicates exact
+   duplicate documents and sections, uses token-aware splitting, and emits JSONL
+   shards under `processed_chunks`.
+4. `embedder.py` embeds only missing chunk identities and writes mirrored JSONL
+   shards under `embedded_chunks`.
+5. `upserter.py` stages each embedded shard, deletes old rows for affected
+   bill ids, inserts fresh `nlp.bill_chunks`, inserts `nlp.bill_embeddings`,
+   and optionally builds or rebuilds the HNSW index.
+
+Nightly runs pass `--skip-hnsw`; pgvector maintains the HNSW index
+incrementally as new rows are inserted. Full rebuilds can be run with
+`upserter.py --index-only` when operationally needed.
+
+## Frontend Architecture
+
+The frontend is a Nuxt 4 static site in `frontend/`.
+
+Key pieces:
+
+- `nuxt.config.ts` defines the static prerender routes and the default
+  `NUXT_API_SERVER`, which falls back to `https://api.csearch.org`.
+- `public/runtime-config.js` and `composables/useApiBase.ts` allow the API
+  origin to be injected at runtime by the nginx container entrypoint.
+- `composables/useCongressApi.ts` centralizes API calls.
+- `pages/bills/[category]/index.vue` uses semantic search when a query is
+  present and latest-bill browsing when no query is present.
+
+Semantic frontend behavior:
+
+- The bill list calls `POST /search/semantic` with `limit=50`.
+- The request has a 10 second timeout and one retry for timeout-like failures.
+- Non-timeout semantic failures fall back to `/search/all/relevance`.
+- Semantic rows are normalized into the standard `BillRecord` shape and shown
+  with similarity-score badges.
+
+The active public deployment automation in this repo is Cloudflare Pages:
+
+- `frontend/deploy.sh` runs `npm run generate`, writes `meta.json`, and deploys
+  `.output/public` with Wrangler.
+- `.github/workflows/frontend-cloudflare-deploy.yml` deploys on frontend changes,
+  daily at 12:00 UTC, and by manual dispatch.
+- The scraper/NLP pipeline can trigger a Cloudflare Pages deploy hook after
+  successful content changes.
+
+The nginx frontend image remains useful for cluster-hosted environments such as
+`test.csearch.org`.
+
+## API Edge Cache Worker
+
+`workers/api-cache/` contains a Cloudflare Worker that can proxy
+`api.csearch.org` behind `api-cache.csearch.org`.
+
+Behavior:
+
+- Caches GET requests in Workers KV.
+- Uses a 5 minute fresh window and 24 hour stale-while-revalidate window.
+- Passes POST/PUT/etc. through, including `POST /search/semantic`.
+- Adds `X-Cache` and `X-Cache-Age` response headers.
+
+This Worker is a frontend/API freshness backstop; it does not replace Redis.
+Redis remains the in-cluster application cache used by FastAPI.
+
+## Deployment and Operations
+
+### Argo CD Applications
+
+| Application | Branch | Path |
+| --- | --- | --- |
+| `csearch-netcup-db` | `main` | `k8s/netcup-db` |
+| `csearch-netcup-core` | `main` | `k8s/netcup-core` |
+| `csearch-netcup-scraper` | `main` | `k8s/netcup-scraper` |
+| `csearch-netcup-test-frontend` | `rscraper` | `k8s/netcup-test-frontend` |
+| `csearch-freya-db` | `freya` | `k8s/freya-db` |
+| `csearch-freya-core` | `freya` | `k8s/freya-core` |
+| `csearch-freya-scraper` | `freya` | `k8s/freya-scraper` |
+| `csearch-freya-frontend` | `freya` | `k8s/freya-frontend` |
+
+### Image Builds
+
+`.github/workflows/build-images.yml` builds and pushes:
+
+| Image | Dockerfile |
+| --- | --- |
+| `registry.s8njee.com/csearch-fastapi:latest` | `backend/api/Dockerfile` |
+| `registry.s8njee.com/csearch-updater:latest` | `backend/scraper/Dockerfile` |
+| `registry.s8njee.com/csearch-frontend:latest` | `frontend/Dockerfile.nginx` |
+| `registry.s8njee.com/csearch-upserter:latest` | `backend/nlp/project-tarp/Dockerfile.upserter` |
+| `registry.s8njee.com/csearch-tarp-updater:latest` | `backend/nlp/project-tarp/Dockerfile.nightly-updater` |
+
+The root `deploy.sh` is a legacy/manual deployment script and still references
+archived manifests. Prefer the Argo-managed paths for current cluster changes.
 
 ### Secrets
 
-Secrets are encrypted with Bitnami SealedSecrets and stored in git:
-- `k8s/netcup-core/csearch-api-openai-sealedsecret.yaml` — `OPENAI_API_KEY` for netcup
-- `k8s/freya-core/csearch-api-openai-sealedsecret.yaml` — `OPENAI_API_KEY` for freya
+Secrets are stored as Kubernetes Secrets or SealedSecrets, depending on the
+environment and path. Important secret-backed values include:
 
-Never commit plaintext secrets. Use `kubeseal` with the cluster's public key to generate SealedSecrets.
+- PostgreSQL password in `postgres-auth`.
+- `OPENAI_API_KEY` via `csearch-api-openai`.
+- Optional Cloudflare Pages deploy hook URL via
+  `csearch-cloudflare-deploy-hook`.
+- Registry pull credentials via `registry-s8njee-pull`.
 
----
+Do not commit plaintext secrets.
 
-## Troubleshooting
+### Logging
 
-**Argo reverted my `kubectl` change**
-All Argo apps have `selfHeal: true`. Changes must be made in git and pushed to the watched branch.
+The scraper and API emit structured JSON logs to stdout. Kubernetes logging is
+handled through manifests under `k8s/logging/`, including Fluent Bit and an
+optional HTTP/S3 log shipping path.
 
-**Semantic search returns 503**
-`OPENAI_API_KEY` is not set in the pod. Check the `csearch-api-openai` SealedSecret is present and sealed for the correct cluster.
+## Architectural Invariants
 
-**Scraper finished but data looks stale**
-- Redis cache hasn't expired — wait for 24h TTL or manually flush `csearch:*` keys
-- Scraper may have skipped unchanged files (hash matched) — expected behavior
+- PostgreSQL is the source of truth for both relational data and vector data.
+- `backend/scraper/congress/` is vendored upstream Python code; edit it only
+  for fetch behavior or upstream format changes.
+- Bill embeddings use `text-embedding-3-small` at 1536 dimensions. Do not mix
+  dimensions in `nlp.bill_embeddings`.
+- API cache keys use the `csearch:` prefix and Redis must fail open.
+- The public semantic route retrieves grounded chunks and bill metadata; it
+  does not generate answers in production.
+- Argo-managed cluster changes should go through the watched git branch.
 
-**Explore SQL change not showing after deploy**
-Edit `backend/scraper/explore.sql` and copy to `backend/api/sql/explore.sql`, then rebuild and redeploy the API image.
+## Common Troubleshooting
 
-**NLP embeddings not updating**
-Check CronJob history: `kubectl get jobs -n csearch-nlp --context=freya`. `content_hasher.py` exits early if no bill text changed — this is expected.
-
-**Frontend showing stale data**
-The Cloudflare Pages build runs on push to `main` and daily at 12:00 UTC. Trigger manually via `workflow_dispatch` or run `deploy.sh` locally.
+| Symptom | Likely cause | Where to look |
+| --- | --- | --- |
+| Semantic search returns 503 | `OPENAI_API_KEY` missing in API pod | `k8s/{netcup,freya}-core/csearch-api-openai-sealedsecret.yaml` and API pod env |
+| Semantic search is slow or empty | Missing/old `nlp.bill_embeddings`, HNSW index issue, or OpenAI latency | `backend/nlp/project-tarp/upserter.py`, `/search/semantic/warmup`, PostgreSQL `EXPLAIN` |
+| Latest bills look stale | Redis cache was not invalidated, Pages build has not run, or Worker is serving stale GET cache | scraper logs, Redis keys, Cloudflare Pages deploys, `workers/api-cache/` headers |
+| Scraper run does no work | File hashes match or source data has no meaningful changes | `backend/scraper/src/hashes.rs`, scraper logs |
+| NLP pipeline exits early | `content_hasher.py` found no meaningful text changes | `backend/nlp/project-tarp/nightly_update.sh` logs |
+| Manual `kubectl` edits disappear | Argo CD `selfHeal` reverted drift | `argo/applications/*.yaml` |
