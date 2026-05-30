@@ -55,9 +55,13 @@ If you only do five things, do these:
 
 ## 1. The Repository Is Too Polluted To Be Trustworthy
 
+Status: remediated on the cleanup branch by removing tracked scraper data,
+bytecode, duplicate `* 2.*` files, the root legacy deploy script, and legacy
+Kubernetes manifests; tightening ignore rules; and adding a repo hygiene check.
+
 ### Criticism
 
-The repo contains multiple categories of files that should not coexist with the
+The repo had multiple categories of files that should not coexist with the
 source tree:
 
 - Duplicate conflict/copy files such as `AGENTS 2.md`, `DEPLOY 2.md`,

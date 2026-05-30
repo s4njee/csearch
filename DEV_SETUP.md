@@ -195,8 +195,7 @@ git checkout freya
 # edit code or manifests
 git commit -am "…" && git push origin freya
 
-# 2. CI builds csearch-fastapi:latest on push to freya (requires workflow update
-#    — currently mars-images.yml only triggers on main). See "CI follow-up" below.
+# 2. CI builds csearch-fastapi:latest on push to freya.
 
 # 3. Roll out
 kubectl --context=freya rollout restart deploy/csearch-api
@@ -210,9 +209,10 @@ git push origin main
 
 ### CI follow-up
 
-`.github/workflows/mars-images.yml` currently builds `:latest` only on pushes to `main`. For freya-branch dev to actually ship images, either:
+`.github/workflows/build-images.yml` currently builds `:latest` on pushes to
+`main` and `freya`. For freya-branch dev to ship isolated images, either:
 
-- **(a)** Add `freya` to the workflow's `branches:` trigger — same `:latest` tag, freya pulls on restart. Risk: a freya push overwrites `:latest` that netcup also uses. **Don't do this without (b) or (c).**
+- **(a)** Keep the shared `:latest` tag and let freya pull on restart. Risk: a freya push overwrites `:latest` that netcup also uses. **Don't do this without (b) or (c).**
 - **(b)** Tag images by branch: `csearch-fastapi:freya` for freya pushes, `csearch-fastapi:latest` for main. Update `k8s/freya-core/kustomization.yaml` to pull `:freya`. Safer.
 - **(c)** Build locally on freya (the host has working Docker per `DEPLOY.md`), push manually, restart. Same tag collision risk as (a) unless you use a branch tag.
 

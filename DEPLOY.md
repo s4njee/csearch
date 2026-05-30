@@ -33,7 +33,7 @@ Triggers on push to `main` touching `backend/api/**`, `backend/scraper/**`, `fro
 
 | Image | Dockerfile | Used by |
 | --- | --- | --- |
-| `csearch-fastapi:latest` | `backend/api/api_fastapi/Dockerfile` | netcup API, freya API |
+| `csearch-fastapi:latest` | `backend/api/Dockerfile` | netcup API, freya API |
 | `csearch-updater:latest` | `backend/scraper/Dockerfile` | netcup scraper, freya scraper |
 | `csearch-frontend:latest` | `frontend/Dockerfile.nginx` | freya nginx frontend |
 | `csearch-upserter:latest` | `backend/nlp/project-tarp/Dockerfile.upserter` | base image for tarp-updater |
@@ -45,7 +45,7 @@ CI tags each image with both `:latest` and `:<git-sha>`.
 
 ```bash
 # FastAPI — build context must be repo root (includes backend/api/sql/)
-docker build -f backend/api/api_fastapi/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
+docker build -f backend/api/Dockerfile -t registry.s8njee.com/csearch-fastapi:latest .
 docker push registry.s8njee.com/csearch-fastapi:latest
 
 # Scraper — build context is also repo root

@@ -6,7 +6,7 @@ This is the practical onboarding guide for day-to-day work in CSearch. It answer
 2. Which file is the source of truth?
 3. What are the common patterns and pitfalls?
 
-For deployment specifics, see [`deployment.md`](deployment.md). For caching details, see [`caching.md`](caching.md).
+For deployment specifics, see [`../DEPLOY.md`](../DEPLOY.md). For caching details, see [`caching.md`](caching.md).
 
 ## Mental Model
 
@@ -35,7 +35,7 @@ Use this ownership model to localize bugs quickly:
 | Database schema bootstrap | `backend/scraper/schema.sql` |
 | Scraper DB write logic | `backend/scraper/src/db.rs` |
 | Explore SQL | `backend/scraper/explore.sql` |
-| API cache implementation | `backend/api/utils/cache.js` |
+| API cache implementation | `backend/api/src/csearch_api/cache.py` |
 | Default deployment entry points | `argo/applications/` |
 | Default synced manifests | `k8s/netcup-db/`, `k8s/netcup-core/`, `k8s/netcup-scraper/`, `k8s/netcup-test-frontend/` |
 | Logging shipper and collector config | `k8s/logging/` |
@@ -54,8 +54,8 @@ Use this ownership model to localize bugs quickly:
 
 1. [`backend/api/README.md`](../backend/api/README.md)
 2. The relevant file in `backend/api/routes/`
-3. `backend/api/controllers/db.js`
-4. `backend/api/utils/cache.js` if the route is cached
+3. `backend/api/src/csearch_api/db.py`
+4. `backend/api/src/csearch_api/cache.py` if the route is cached
 
 ### Frontend behavior
 
@@ -77,8 +77,8 @@ Use this ownership model to localize bugs quickly:
 | --- | --- |
 | Add a new bill field to a page | `backend/scraper/src/bills.rs`, `backend/scraper/src/db.rs`, relevant API route, `frontend/types/congress.ts`, relevant page |
 | Add a new vote-derived metric | `backend/scraper/src/votes.rs`, maybe `schema.sql`, then API route or explore query, then frontend |
-| Add or change an explore query | `backend/scraper/explore.sql`, `backend/api/services/exploreQueries.js`, `frontend/pages/explore.vue` |
-| Fix stale API responses | `backend/api/utils/cache.js`, the cached route, Redis config, scraper invalidation flow |
+| Add or change an explore query | `backend/scraper/explore.sql`, `backend/api/src/csearch_api/explore.py`, `frontend/pages/explore.vue` |
+| Fix stale API responses | `backend/api/src/csearch_api/cache.py`, the cached route, Redis config, scraper invalidation flow |
 | Fix the wrong API target in a deployed frontend | `frontend/composables/useApiBase.ts`, `frontend/docker-entrypoint.sh`, or the manifest that sets `NUXT_API_SERVER` |
 | Change the default API or Redis deployment | `argo/applications/csearch-netcup-core.yaml`, `k8s/netcup-core/` |
 | Change the default database deployment | `argo/applications/csearch-netcup-db.yaml`, `k8s/netcup-db/` |
@@ -91,9 +91,10 @@ Use this ownership model to localize bugs quickly:
 
 ```bash
 cd backend/api
-npm install
-npm test
-POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 npm run dev
+python -m pip install -e ".[dev]"
+pytest
+POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 \
+  uvicorn csearch_api.main:app --reload --port 3000
 ```
 
 ### Frontend
@@ -125,12 +126,12 @@ These files should not be edited by hand:
 
 The API and scraper both emit structured JSON to stdout. No special log libraries or agents are needed beyond what is already configured.
 
-**API logging** (Pino via Fastify):
+**API logging** (Python logging via FastAPI middleware):
 
 - Per-request completion logs with latency and cache status
 - Request-scoped error logs
 - Search query logging, admin audit logging, and slow-query warnings
-- Config in `backend/api/server.js` and `backend/api/app.js`
+- Config in `backend/api/src/csearch_api/main.py`
 
 **Scraper logging** (`log/slog`):
 
@@ -142,7 +143,7 @@ The API and scraper both emit structured JSON to stdout. No special log librarie
 **Log shipping** (Fluent Bit):
 
 - Tails `/var/log/containers/*.log` and filters to CSearch workloads
-- Ships to the in-cluster collector or directly to S3
+- Ships to the in-cluster collector or a configured object storage target
 - Config and manifests in `k8s/logging/`
 - See [`k8s/logging/README.md`](../k8s/logging/README.md) for shipping modes and environment variables
 
@@ -190,9 +191,9 @@ Check that workload labels include `app.kubernetes.io/name`, that the Fluent Bit
 
 ## Things That Commonly Confuse New Contributors
 
-**Old manifests in the repo** — Use `argo/applications/` and the `k8s/netcup-*` directories for the default deployment path. Legacy manifests live under `k8s/archive/legacy/`.
+**Old manifests** — Use `argo/applications/` and the `k8s/netcup-*` directories for the default deployment path. Legacy manifests were removed from the active tree; use git history for archaeology.
 
-**Multiple frontend deployment shapes** — There are three: local `nuxt dev`, static S3/CloudFront publish, and nginx container in Kubernetes. They resolve the API base URL differently.
+**Multiple frontend deployment shapes** — There are three: local `nuxt dev`, static Cloudflare Pages publish, and nginx container in Kubernetes. They resolve the API base URL differently.
 
 **The scraper is both Rust and Python** — Python handles source acquisition, Rust handles normalization and database writes. If raw files are missing, start in the Python side. If normalized data is wrong, start in Rust.
 

@@ -10,15 +10,19 @@ The API uses a shared Redis cache for hot routes. This document covers the cache
 - Survives API pod restarts while Redis stays available
 - Fails open — Redis outages do not break request handling
 
-The implementation lives in [`backend/api/utils/cache.js`](../backend/api/utils/cache.js).
+The implementation lives in
+[`backend/api/src/csearch_api/cache.py`](../backend/api/src/csearch_api/cache.py).
 
 ## Cached Routes
 
 | Route | Cache key | Response header |
 | --- | --- | --- |
-| `GET /latest/:billtype` | `csearch:latest_bills_<billtype>` | `X-Cache: HIT` or `MISS` |
-| `GET /votes/:chamber` | `csearch:latest_votes_<chamber>` | `X-Cache: HIT` or `MISS` |
-| `GET /explore/:queryId` | `csearch:explore_<queryId>` | `X-Cache: HIT` or `MISS` |
+| `GET /latest/{billtype}` | `csearch:latest_bills_<billtype>` | `X-Cache: HIT` or `MISS` |
+| `GET /votes/{chamber}` | `csearch:latest_votes_<chamber>` | `X-Cache: HIT` or `MISS` |
+| `GET /explore/{query_id}` | `csearch:explore_<query_id>_<query-string>` | `X-Cache: HIT` or `MISS` |
+| `GET /committees` | `csearch:committees_all` | `X-Cache: HIT` or `MISS` |
+| `GET /committees/{committee_code}` | `csearch:committee_<committee_code>` | `X-Cache: HIT` or `MISS` |
+| `GET /representatives/{zipcode}` | `csearch:representatives_<zipcode>` | `X-Cache: HIT` or `MISS` |
 
 ## Invalidation
 
@@ -28,14 +32,9 @@ The scraper clears all `csearch:*` keys after a run that wrote at least one chan
 
 ### Manual invalidation
 
-The API exposes a manual cache clear endpoint:
-
-```text
-POST /admin/clear-cache
-Authorization: <SECRET_KEY>
-```
-
-This clears all shared Redis keys. The endpoint is defined in `backend/api/routes/adminRoute.js`.
+There is no active public cache-clear route in the FastAPI service. Manual
+clears should be done from Redis or by running a scraper/data-pipeline job that
+writes changed rows.
 
 ## Failure Model
 
@@ -85,18 +84,20 @@ For direct local runs, the default Redis connection string is `redis://localhost
 
 ```bash
 cd backend/api
-POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 npm run dev
+POSTGRESURI=localhost DB_PORT=5433 REDIS_URL=redis://localhost:6379 \
+  uvicorn csearch_api.main:app --reload --port 3000
 ```
 
 ## Key Files
 
 | File | Purpose |
 | --- | --- |
-| `backend/api/utils/cache.js` | Redis cache client and operations |
-| `backend/api/routes/latestRoute.js` | Latest bill caching |
-| `backend/api/routes/latestVote.js` | Latest vote caching |
-| `backend/api/routes/exploreRoute.js` | Explore query caching |
-| `backend/api/routes/adminRoute.js` | Manual cache clear endpoint |
+| `backend/api/src/csearch_api/cache.py` | Redis cache client and operations |
+| `backend/api/src/csearch_api/routes/bills.py` | Latest bill caching |
+| `backend/api/src/csearch_api/routes/votes.py` | Latest vote caching |
+| `backend/api/src/csearch_api/routes/explore.py` | Explore query caching |
+| `backend/api/src/csearch_api/routes/committees.py` | Committee caching |
+| `backend/api/src/csearch_api/routes/representatives.py` | ZIP representative lookup caching |
 | `backend/scraper/src/main.rs` | Scraper-triggered invalidation |
 | `backend/scraper/src/redis_cache.rs` | Redis connection and key clearing |
 

@@ -7,10 +7,8 @@ PostgreSQL through `pgvector`; PostgreSQL is both the relational database and
 the vector database.
 
 This document describes the architecture reflected by the current repository.
-Some docs and archived files still reference previous deployment shapes, such
-as Qdrant or S3/CloudFront. The active repo-managed path uses PostgreSQL +
-`pgvector` for vectors, Argo CD for cluster workloads, and Cloudflare Pages for
-the public static frontend.
+The active repo-managed path uses PostgreSQL + `pgvector` for vectors, Argo CD
+for cluster workloads, and Cloudflare Pages for the public static frontend.
 
 ## System Overview
 
@@ -51,7 +49,7 @@ flowchart LR
 | `workers/api-cache/` | Cloudflare Worker that can sit in front of the API and cache GET requests in KV. |
 | `k8s/` | Kubernetes manifests consumed by Argo CD. |
 | `argo/applications/` | Argo CD `Application` objects for netcup and freya. |
-| `docs/archive/` and `k8s/archive/` | Historical material; useful for context, not the default deployment path. |
+| `docs/archive/` and `k8s/archive/` | Historical notes and archive pointers; not deployment inputs. |
 
 ## Runtime Environments
 
@@ -266,9 +264,7 @@ using `gpt-5.4-nano`, but it is not part of the public FastAPI route today.
 
 The vector database is PostgreSQL with `pgvector`, not a separate service.
 This avoids running a second persistence tier and allows SQL joins between
-vectors, chunks, and normalized bill metadata. Older Qdrant manifests remain
-under `backend/nlp/k8s/` and archived docs, but they are not the active
-architecture documented here.
+vectors, chunks, and normalized bill metadata.
 
 ## NLP Embedding Pipeline
 
@@ -390,8 +386,8 @@ Redis remains the in-cluster application cache used by FastAPI.
 | `registry.s8njee.com/csearch-upserter:latest` | `backend/nlp/project-tarp/Dockerfile.upserter` |
 | `registry.s8njee.com/csearch-tarp-updater:latest` | `backend/nlp/project-tarp/Dockerfile.nightly-updater` |
 
-The root `deploy.sh` is a legacy/manual deployment script and still references
-archived manifests. Prefer the Argo-managed paths for current cluster changes.
+There is no root-level deployment script in the active tree. Use `DEPLOY.md`,
+the Argo-managed paths, and `frontend/deploy.sh` for current deployment work.
 
 ### Secrets
 
