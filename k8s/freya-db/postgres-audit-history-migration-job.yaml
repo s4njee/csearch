@@ -32,7 +32,7 @@ spec:
       containers:
         - name: migrate
           image: registry.s8njee.com/csearch-postgres:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
