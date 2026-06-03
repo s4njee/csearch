@@ -3,8 +3,6 @@
 -- This migration is intentionally idempotent so it can be run against an
 -- existing Freya database and also embedded in fresh bootstrap SQL.
 
-SET ROLE csearch;
-
 CREATE SCHEMA IF NOT EXISTS audit;
 
 CREATE TABLE IF NOT EXISTS audit.row_history (
@@ -205,5 +203,3 @@ CREATE TRIGGER vote_members_audit_history_trigger
     AFTER INSERT OR UPDATE OR DELETE ON vote_members
     FOR EACH ROW
     EXECUTE FUNCTION audit.capture_row_history('voteid', 'bioguide_id');
-
-RESET ROLE;

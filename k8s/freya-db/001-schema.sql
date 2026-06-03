@@ -9,8 +9,6 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS vector;
 
-SET ROLE csearch;
-
 CREATE TABLE bills (
     billid              text,
     billnumber          integer NOT NULL,
@@ -291,5 +289,4 @@ CREATE OR REPLACE FUNCTION search_votes(
     LIMIT GREATEST(result_limit, 1);
 $$;
 
-RESET ROLE;
 COMMIT;
