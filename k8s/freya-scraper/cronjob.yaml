@@ -11,8 +11,8 @@ spec:
   # run. Pairs with csearch-data-pipeline (orchestrator-cronjob.yaml @ 0 5).
   schedule: "0 10 * * *"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: 2

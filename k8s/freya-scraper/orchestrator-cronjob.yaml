@@ -10,7 +10,7 @@ spec:
   # GovInfo BILLSTATUS typically updates later in the early morning, so run after that window.
   schedule: "0 5 * * *"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
