@@ -1,0 +1,103 @@
+name: Senate Vote Cache
+
+on:
+  # Refresh before the daily scraper job, and periodically during business hours.
+  schedule:
+    - cron: "0 13,17,21 * * *"
+  workflow_dispatch:
+    inputs:
+      congress:
+        description: "Congress number to refresh; defaults to current Congress"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: senate-vote-cache
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install scraper dependencies
+        run: pip install -r backend/scraper/requirements.txt
+
+      - name: Resolve target Congress
+        run: |
+          if [ -n "${{ inputs.congress }}" ]; then
+            echo "TARGET_CONGRESS=${{ inputs.congress }}" >> "$GITHUB_ENV"
+          else
+            python - <<'PY' >> "$GITHUB_ENV"
+          from datetime import datetime
+          year = datetime.utcnow().year
+          print(f"TARGET_CONGRESS={(year - 1789) // 2 + 1}")
+          PY
+          fi
+
+      - name: Fetch Senate vote XML
+        run: |
+          cd backend/scraper/congress
+          python run.py votes \
+            --congress="$TARGET_CONGRESS" \
+            --chamber=senate \
+            --download_only \
+            --force \
+            --log=info
+
+      - name: Prepare cache payload
+        run: |
+          rm -rf /tmp/senate-vote-cache
+          mkdir -p /tmp/senate-vote-cache
+          rsync -a \
+            --include='*/' \
+            --include='senate.xml' \
+            --include='s*.xml' \
+            --exclude='*' \
+            backend/scraper/congress/data/ \
+            /tmp/senate-vote-cache/
+          find /tmp/senate-vote-cache -type f | sort
+
+      - name: Publish cache branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          cache_repo="$(mktemp -d)"
+          if git clone --depth=1 --branch senate-vote-cache \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "$cache_repo"; then
+            :
+          else
+            git clone --depth=1 \
+              "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+              "$cache_repo"
+            cd "$cache_repo"
+            git checkout --orphan senate-vote-cache
+            git rm -rf .
+            cd -
+          fi
+
+          rsync -a --delete /tmp/senate-vote-cache/ "$cache_repo/"
+          touch "$cache_repo/.nojekyll"
+
+          cd "$cache_repo"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No Senate vote cache changes to publish."
+          else
+            git commit -m "chore(cache): refresh Senate vote XML"
+            git push origin HEAD:senate-vote-cache
+          fi
