@@ -22,7 +22,7 @@ def _normalize_chamber(chamber: str | None) -> str | None:
 
 
 def _build_vote_search_query(search_query: str, chamber: str | None, fuzzy: bool) -> tuple[str, list[str]]:
-    where_sql = "($1 IS NULL OR v.chamber = $1) AND (v.search_document @@ websearch_to_tsquery('english', $2)"
+    where_sql = "($1::text IS NULL OR v.chamber = $1) AND (v.search_document @@ websearch_to_tsquery('english', $2)"
     bindings: list[str] = [chamber, search_query]
     if fuzzy:
         where_sql += f" OR lower({VOTE_FUZZY_SEARCH_EXPR}) % lower($3)"
@@ -112,12 +112,12 @@ async def vote_detail(request: Request, voteid: str):
 
 @router.get("/votes/{chamber}")
 async def latest_votes(request: Request, chamber: str):
-    """Return the most recent votes for the given chamber over the last 90 days."""
+    """Return the most recent votes for the given chamber."""
     normalized = _normalize_chamber(chamber)
     if not normalized:
         raise HTTPException(status_code=400, detail={"error": "Invalid chamber; use 'house' or 'senate'"})
 
-    cache_key = f"latest_votes_{chamber}"
+    cache_key = f"latest_votes_v2_{chamber}"
     cached = await request.app.state.cache.get(cache_key)
     if cached is not None:
         request.state.cache_header = "HIT"
@@ -142,8 +142,7 @@ async def latest_votes(request: Request, chamber: str):
             COUNT(CASE WHEN vm.position = 'notvoting' THEN 1 END)::int AS notvoting
         FROM votes v
         LEFT JOIN vote_members vm ON vm.voteid = v.voteid
-        WHERE v.votedate::date BETWEEN current_date - 90 AND current_date
-          AND v.chamber = $1
+        WHERE v.chamber = $1
         GROUP BY
             v.voteid, v.congress, v.votenumber, v.votedate, v.question,
             v.votesession, v.result, v.chamber, v.votetype, v.source_url
