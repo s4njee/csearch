@@ -63,7 +63,7 @@ jobs:
             --include='senate.xml' \
             --include='s*.xml' \
             --exclude='*' \
-            backend/scraper/congress/data/ \
+            backend/scraper/congress/cache/ \
             /tmp/senate-vote-cache/
           find /tmp/senate-vote-cache -type f | sort
 
