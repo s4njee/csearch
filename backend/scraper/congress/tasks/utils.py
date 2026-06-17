@@ -344,6 +344,9 @@ def download(url, destination=None, options={}):
     return body
 
 
+_senate_vote_cache_required = False
+
+
 def senate_vote_cache_base_url():
     return os.environ.get(
         "SENATE_VOTE_CACHE_BASE_URL",
@@ -351,7 +354,26 @@ def senate_vote_cache_base_url():
     ).rstrip("/")
 
 
+def senate_vote_cache_url(destination):
+    base_url = senate_vote_cache_base_url()
+    if not base_url:
+        return None
+    return "%s/%s" % (base_url, destination.lstrip("/"))
+
+
 def download_with_senate_cache(url, destination=None, options={}):
+    global _senate_vote_cache_required
+
+    if (
+        _senate_vote_cache_required
+        and destination
+        and "://www.senate.gov/" in url
+    ):
+        cache_url = senate_vote_cache_url(destination)
+        if cache_url:
+            logging.warn("Using Senate vote cache: %s" % cache_url)
+            return download(cache_url, destination, merge(options, {"force": True}))
+
     body = download(url, destination, options)
     if body or not destination:
         return body
@@ -359,11 +381,11 @@ def download_with_senate_cache(url, destination=None, options={}):
     if "://www.senate.gov/" not in url:
         return body
 
-    base_url = senate_vote_cache_base_url()
-    if not base_url:
+    cache_url = senate_vote_cache_url(destination)
+    if not cache_url:
         return body
 
-    cache_url = "%s/%s" % (base_url, destination.lstrip("/"))
+    _senate_vote_cache_required = True
     logging.warn("Falling back to Senate vote cache: %s" % cache_url)
     return download(
         cache_url,
