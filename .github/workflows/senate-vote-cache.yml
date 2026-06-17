@@ -90,7 +90,7 @@ jobs:
             cd -
           fi
 
-          rsync -a --delete /tmp/senate-vote-cache/ "$cache_repo/"
+          rsync -a --delete --exclude='.git/' /tmp/senate-vote-cache/ "$cache_repo/"
           touch "$cache_repo/.nojekyll"
 
           cd "$cache_repo"
