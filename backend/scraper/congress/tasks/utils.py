@@ -344,6 +344,34 @@ def download(url, destination=None, options={}):
     return body
 
 
+def senate_vote_cache_base_url():
+    return os.environ.get(
+        "SENATE_VOTE_CACHE_BASE_URL",
+        "https://raw.githubusercontent.com/s4njee/csearch/senate-vote-cache",
+    ).rstrip("/")
+
+
+def download_with_senate_cache(url, destination=None, options={}):
+    body = download(url, destination, options)
+    if body or not destination:
+        return body
+
+    if "://www.senate.gov/" not in url:
+        return body
+
+    base_url = senate_vote_cache_base_url()
+    if not base_url:
+        return body
+
+    cache_url = "%s/%s" % (base_url, destination.lstrip("/"))
+    logging.warn("Falling back to Senate vote cache: %s" % cache_url)
+    return download(
+        cache_url,
+        destination,
+        merge(options, {"force": True}),
+    )
+
+
 def write(content, destination, options={}):
     if options.get("diff"):
         # Instead of writing the file, do a comparison with what's on disk
