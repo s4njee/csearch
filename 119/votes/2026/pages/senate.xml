@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00179</vote_number>
+      <vote_date>17-Jun</vote_date>
+      <issue>S.Res. 616</issue>
+      <question>On the Motion to Discharge
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>44</yeas>
+        <nays>50</nays>
+      </vote_tally>
+      <title>Motion to Discharge: S.Res. 616 from the Committee on Foreign Relations; A resolution requesting information on Honduras's human rights practices pursuant to section 502B(c) of the Foreign Assistance Act of 1961.</title>
+    </vote>
+    <vote>
       <vote_number>00178</vote_number>
       <vote_date>17-Jun</vote_date>
       <issue>PN730-33</issue>
