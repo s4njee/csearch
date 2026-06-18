@@ -2,22 +2,22 @@
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
-  <vote_number>177</vote_number>
-  <vote_date>June 17, 2026,  02:15 PM</vote_date>
-  <modify_date>June 18, 2026,  02:59 PM</modify_date>
-  <vote_question_text>On the Nomination PN901-8</vote_question_text>
-  <vote_document_text>Michelle Steel, of California, to be Ambassador to the Republic of Korea</vote_document_text>
-  <vote_result_text>Nomination Confirmed (55-39)</vote_result_text>
+  <vote_number>181</vote_number>
+  <vote_date>June 18, 2026,  01:40 PM</vote_date>
+  <modify_date>June 18, 2026,  02:37 PM</modify_date>
+  <vote_question_text>On the Nomination PN730-33</vote_question_text>
+  <vote_document_text>George Holding, of North Carolina, to be United States Director of the European Bank for Reconstruction and Development</vote_document_text>
+  <vote_result_text>Nomination Confirmed (48-39)</vote_result_text>
   <question>On the Nomination</question>
-  <vote_title>Confirmation: Michelle Steel, of California, to be Ambassador of the United States of America to the Republic of Korea</vote_title>
+  <vote_title>Confirmation: George Holding, of North Carolina, to be United States Director of the European Bank for Reconstruction and Development</vote_title>
   <majority_requirement>1/2</majority_requirement>
   <vote_result>Nomination Confirmed</vote_result>
   <document>
     <document_congress>119</document_congress>
     <document_type>PN</document_type>
-    <document_number>901-8</document_number>
-    <document_name>PN901-8</document_name>
-    <document_title>Michelle Steel, of California, to be Ambassador to the Republic of Korea</document_title>
+    <document_number>730-33</document_number>
+    <document_name>PN730-33</document_name>
+    <document_title>George Holding, of North Carolina, to be United States Director of the European Bank for Reconstruction and Development</document_title>
     <document_short_title/>
   </document>
   <amendment>
@@ -29,10 +29,10 @@
     <amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
   </amendment>
   <count>
-    <yeas>55</yeas>
+    <yeas>48</yeas>
     <nays>39</nays>
     <present/>
-    <absent>6</absent>
+    <absent>13</absent>
   </count>
   <tie_breaker>
     <by_whom/>
@@ -45,7 +45,7 @@
       <first_name>Angela</first_name>
       <party>D</party>
       <state>MD</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S428</lis_member_id>
     </member>
     <member>
@@ -117,7 +117,7 @@
       <first_name>Lisa</first_name>
       <party>D</party>
       <state>DE</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S430</lis_member_id>
     </member>
     <member>
@@ -126,7 +126,7 @@
       <first_name>Cory</first_name>
       <party>D</party>
       <state>NJ</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S370</lis_member_id>
     </member>
     <member>
@@ -279,7 +279,7 @@
       <first_name>Tammy</first_name>
       <party>D</party>
       <state>IL</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S386</lis_member_id>
     </member>
     <member>
@@ -288,7 +288,7 @@
       <first_name>Richard</first_name>
       <party>D</party>
       <state>IL</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S253</lis_member_id>
     </member>
     <member>
@@ -324,7 +324,7 @@
       <first_name>Ruben</first_name>
       <party>D</party>
       <state>AZ</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S432</lis_member_id>
     </member>
     <member>
@@ -333,7 +333,7 @@
       <first_name>Kirsten</first_name>
       <party>D</party>
       <state>NY</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S331</lis_member_id>
     </member>
     <member>
@@ -414,7 +414,7 @@
       <first_name>John</first_name>
       <party>R</party>
       <state>ND</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S344</lis_member_id>
     </member>
     <member>
@@ -459,7 +459,7 @@
       <first_name>Timothy</first_name>
       <party>D</party>
       <state>VA</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S362</lis_member_id>
     </member>
     <member>
@@ -468,7 +468,7 @@
       <first_name>Mark</first_name>
       <party>D</party>
       <state>AZ</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S406</lis_member_id>
     </member>
     <member>
@@ -486,7 +486,7 @@
       <first_name>Andy</first_name>
       <party>D</party>
       <state>NJ</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S426</lis_member_id>
     </member>
     <member>
@@ -495,7 +495,7 @@
       <first_name>Angus</first_name>
       <party>I</party>
       <state>ME</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S363</lis_member_id>
     </member>
     <member>
@@ -594,7 +594,7 @@
       <first_name>Ashley</first_name>
       <party>R</party>
       <state>FL</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S439</lis_member_id>
     </member>
     <member>
@@ -603,7 +603,7 @@
       <first_name>Jerry</first_name>
       <party>R</party>
       <state>KS</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S347</lis_member_id>
     </member>
     <member>
@@ -783,7 +783,7 @@
       <first_name>Tim</first_name>
       <party>R</party>
       <state>SC</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S365</lis_member_id>
     </member>
     <member>
@@ -855,7 +855,7 @@
       <first_name>Tommy</first_name>
       <party>R</party>
       <state>AL</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S412</lis_member_id>
     </member>
     <member>
@@ -882,7 +882,7 @@
       <first_name>Raphael</first_name>
       <party>D</party>
       <state>GA</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S415</lis_member_id>
     </member>
     <member>

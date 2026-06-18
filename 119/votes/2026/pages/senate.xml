@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00181</vote_number>
+      <vote_date>18-Jun</vote_date>
+      <issue>PN730-33</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>48</yeas>
+        <nays>39</nays>
+      </vote_tally>
+      <title>Confirmation: George Holding, of North Carolina, to be United States Director of the European Bank for Reconstruction and Development</title>
+    </vote>
+    <vote>
       <vote_number>00180</vote_number>
       <vote_date>18-Jun</vote_date>
       <issue>H.R. 6644</issue>
