@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00180</vote_number>
+      <vote_date>18-Jun</vote_date>
+      <issue>H.R. 6644</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>84</yeas>
+        <nays>8</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Motion to Concur in the House Amendment to the Senate Amendment to H.R. 6644 with an Amendment (SA 5823); A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+    </vote>
+    <vote>
       <vote_number>00179</vote_number>
       <vote_date>17-Jun</vote_date>
       <issue>S.Res. 616</issue>
