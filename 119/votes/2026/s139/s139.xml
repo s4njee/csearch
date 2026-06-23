@@ -4,7 +4,7 @@
   <congress_year>2026</congress_year>
   <vote_number>139</vote_number>
   <vote_date>June 4, 2026,  02:24 PM</vote_date>
-  <modify_date>June 4, 2026,  03:50 PM</modify_date>
+  <modify_date>June 23, 2026,  04:54 PM</modify_date>
   <vote_question_text>On the Motion (Motion to Waive All Applicable Budgetary Discipline Re: Merkley Amdt. No. 5512)</vote_question_text>
   <vote_document_text>To provide a clarification relating to, and to prohibit the use of funds for, the White House Ballroom.</vote_document_text>
   <vote_result_text>Motion Rejected (53-46, 3/5 majority required)</vote_result_text>
@@ -22,7 +22,7 @@
   </document>
   <amendment>
     <amendment_number>S.Amdt. 5512</amendment_number>
-    <amendment_to_amendment_number/>
+    <amendment_to_amendment_number>S.Amdt. 5453</amendment_to_amendment_number>
     <amendment_to_amendment_to_amendment_number/>
     <amendment_to_document_number>S. 2</amendment_to_document_number>
     <amendment_to_document_short_title>No short title on file</amendment_to_document_short_title>

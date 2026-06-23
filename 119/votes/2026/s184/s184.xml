@@ -2,37 +2,37 @@
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
-  <vote_number>150</vote_number>
-  <vote_date>June 4, 2026,  10:57 PM</vote_date>
-  <modify_date>June 23, 2026,  05:09 PM</modify_date>
-  <vote_question_text>On the Motion (Motion to Waive All Applicable Budgetary Discipline Re: Booker Amdt. No. 5803)</vote_question_text>
-  <vote_document_text>To support the work performed by the Immigration Detention Ombudsman.</vote_document_text>
-  <vote_result_text>Motion Rejected (46-53, 3/5 majority required)</vote_result_text>
-  <question>On the Motion</question>
-  <vote_title>Motion to Waive All Applicable Budgetary Discipline Re: Booker Amdt. No. 5803</vote_title>
-  <majority_requirement>3/5</majority_requirement>
-  <vote_result>Motion Rejected</vote_result>
+  <vote_number>184</vote_number>
+  <vote_date>June 23, 2026,  03:01 PM</vote_date>
+  <modify_date>June 23, 2026,  04:01 PM</modify_date>
+  <vote_question_text>On the Concurrent Resolution H.Con.Res. 86</vote_question_text>
+  <vote_document_text>A concurrent resolution directing the President, pursuant to section 5(c) of the War Powers Resolution, to remove United States Armed Forces from hostilities with Iran.</vote_document_text>
+  <vote_result_text>Concurrent Resolution Agreed to (50-48)</vote_result_text>
+  <question>On the Concurrent Resolution</question>
+  <vote_title>H. Con. Res. 86</vote_title>
+  <majority_requirement>1/2</majority_requirement>
+  <vote_result>Concurrent Resolution Agreed to</vote_result>
   <document>
     <document_congress>119</document_congress>
-    <document_type>S.Amdt.</document_type>
-    <document_number/>
-    <document_name/>
-    <document_title/>
-    <document_short_title/>
+    <document_type>H.Con.Res.</document_type>
+    <document_number>86</document_number>
+    <document_name>H.Con.Res. 86</document_name>
+    <document_title>A concurrent resolution directing the President, pursuant to section 5(c) of the War Powers Resolution, to remove United States Armed Forces from hostilities with Iran.</document_title>
+    <document_short_title>A concurrent resolution directing the President, pursuant to section 5(c) of the War Powers Resolution, to remove United States Armed Forces from hostilities with Iran.</document_short_title>
   </document>
   <amendment>
-    <amendment_number>S.Amdt. 5803</amendment_number>
-    <amendment_to_amendment_number>S.Amdt. 5453</amendment_to_amendment_number>
+    <amendment_number/>
+    <amendment_to_amendment_number/>
     <amendment_to_amendment_to_amendment_number/>
-    <amendment_to_document_number>S. 2</amendment_to_document_number>
-    <amendment_to_document_short_title>No short title on file</amendment_to_document_short_title>
-    <amendment_purpose>To support the work performed by the Immigration Detention Ombudsman.</amendment_purpose>
+    <amendment_to_document_number/>
+    <amendment_to_document_short_title/>
+    <amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
   </amendment>
   <count>
-    <yeas>46</yeas>
-    <nays>53</nays>
+    <yeas>50</yeas>
+    <nays>48</nays>
     <present/>
-    <absent>1</absent>
+    <absent>2</absent>
   </count>
   <tie_breaker>
     <by_whom/>
@@ -90,7 +90,7 @@
       <first_name>Michael</first_name>
       <party>D</party>
       <state>CO</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S330</lis_member_id>
     </member>
     <member>
@@ -180,7 +180,7 @@
       <first_name>Bill</first_name>
       <party>R</party>
       <state>LA</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S373</lis_member_id>
     </member>
     <member>
@@ -189,7 +189,7 @@
       <first_name>Susan</first_name>
       <party>R</party>
       <state>ME</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S252</lis_member_id>
     </member>
     <member>
@@ -306,7 +306,7 @@
       <first_name>John</first_name>
       <party>D</party>
       <state>PA</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S418</lis_member_id>
     </member>
     <member>
@@ -567,7 +567,7 @@
       <first_name>Mitch</first_name>
       <party>R</party>
       <state>KY</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S174</lis_member_id>
     </member>
     <member>
@@ -576,7 +576,7 @@
       <first_name>David</first_name>
       <party>R</party>
       <state>PA</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S433</lis_member_id>
     </member>
     <member>
@@ -621,7 +621,7 @@
       <first_name>Lisa</first_name>
       <party>R</party>
       <state>AK</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S288</lis_member_id>
     </member>
     <member>
@@ -666,7 +666,7 @@
       <first_name>Rand</first_name>
       <party>R</party>
       <state>KY</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S348</lis_member_id>
     </member>
     <member>

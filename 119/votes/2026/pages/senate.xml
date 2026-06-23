@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00184</vote_number>
+      <vote_date>23-Jun</vote_date>
+      <issue>H.Con.Res. 86</issue>
+      <question>On the Concurrent Resolution
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>48</nays>
+      </vote_tally>
+      <title>H. Con. Res. 86; A concurrent resolution directing the President, pursuant to section 5(c) of the War Powers Resolution, to remove United States Armed Forces from hostilities with Iran.</title>
+    </vote>
+    <vote>
+      <vote_number>00183</vote_number>
+      <vote_date>23-Jun</vote_date>
+      <issue>PN859-3</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>67</yeas>
+        <nays>30</nays>
+      </vote_tally>
+      <title>Confirmation: Darrell Owens, of Pennsylvania, to be U.S. Representative to the Organization for Security and Cooperation in Europe</title>
+    </vote>
+    <vote>
       <vote_number>00182</vote_number>
       <vote_date>22-Jun</vote_date>
       <issue>H.R. 6644</issue>
