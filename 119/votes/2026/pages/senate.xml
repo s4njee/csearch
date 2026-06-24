@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00187</vote_number>
+      <vote_date>24-Jun</vote_date>
+      <issue>PN930-2</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>52</yeas>
+        <nays>45</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Michael J. Hendershot to be U.S. District Judge for the Northern District of Ohio</title>
+    </vote>
+    <vote>
+      <vote_number>00186</vote_number>
+      <vote_date>24-Jun</vote_date>
+      <issue>PN930-7</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>52</yeas>
+        <nays>45</nays>
+      </vote_tally>
+      <title>Confirmation: John George Edward Marck, of T.X., to be U.S. District Judge for the Southern District of Texas</title>
+    </vote>
+    <vote>
       <vote_number>00185</vote_number>
       <vote_date>24-Jun</vote_date>
       <issue>PN930-7</issue>
