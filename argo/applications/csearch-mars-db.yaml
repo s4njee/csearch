@@ -15,8 +15,10 @@ spec:
       kind: StatefulSet
       name: postgres
       jsonPointers:
-        - /spec/volumeClaimTemplates/0/status
-        - /spec/volumeClaimTemplates/0/spec/volumeMode
+        # volumeClaimTemplates are immutable post-creation; the API server also
+        # injects apiVersion/kind/volumeMode/status here that ArgoCD's
+        # server-side diff would otherwise flag as a permanent OutOfSync.
+        - /spec/volumeClaimTemplates
   source:
     repoURL: https://github.com/s4njee/csearch.git
     targetRevision: mars
