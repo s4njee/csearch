@@ -2,14 +2,16 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # Local k3s (node "mars") scraper + NLP pipeline. Reuses the netcup-scraper
-# CronJobs verbatim and only swaps the node-local hostPath volumes for
-# local-path PVCs (the congress code itself is repopulated each run by the
-# image entrypoint, so it lives on an emptyDir).
+# CronJobs verbatim and only repoints the node-local hostPath volumes at
+# /home/sanjee/congress (user-writable, uid 1000), so existing congress/data
+# can be seeded on disk. Layout mirrors the freya overlay:
+#   /home/sanjee/congress          -> congress code (repopulated by entrypoint)
+#   /home/sanjee/congress/data      -> scraped data
+#   /home/sanjee/congress/data/tarp -> NLP pipeline working data
 namespace: csearch
 
 resources:
   - ../netcup-scraper
-  - pvc.yaml
 
 images:
   - name: registry.s8njee.com/csearch-updater
@@ -29,10 +31,10 @@ patches:
         path: /spec/jobTemplate/spec/template/spec/volumes
         value:
           - name: congress-data
-            persistentVolumeClaim:
-              claimName: congress-data
-  # Orchestrator (csearch-data-pipeline): scraper code on emptyDir, shared
-  # congress-data + tarp-data on PVCs.
+            hostPath:
+              path: /home/sanjee/congress/data
+              type: DirectoryOrCreate
+  # Orchestrator (csearch-data-pipeline): code + shared data + tarp on host.
   - target:
       kind: CronJob
       name: csearch-data-pipeline
@@ -41,10 +43,14 @@ patches:
         path: /spec/jobTemplate/spec/template/spec/volumes
         value:
           - name: congress-code
-            emptyDir: {}
+            hostPath:
+              path: /home/sanjee/congress
+              type: DirectoryOrCreate
           - name: congress-data
-            persistentVolumeClaim:
-              claimName: congress-data
+            hostPath:
+              path: /home/sanjee/congress/data
+              type: DirectoryOrCreate
           - name: tarp-data
-            persistentVolumeClaim:
-              claimName: tarp-data
+            hostPath:
+              path: /home/sanjee/congress/data/tarp
+              type: DirectoryOrCreate
