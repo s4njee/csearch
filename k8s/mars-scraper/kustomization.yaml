@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Local k3s (node "mars") scraper + NLP pipeline. Reuses the netcup-scraper
+# CronJobs verbatim and only swaps the node-local hostPath volumes for
+# local-path PVCs (the congress code itself is repopulated each run by the
+# image entrypoint, so it lives on an emptyDir).
+namespace: csearch
+
+resources:
+  - ../netcup-scraper
+  - pvc.yaml
+
+images:
+  - name: registry.s8njee.com/csearch-updater
+    newName: registry.s8njee.com/csearch-updater
+    newTag: latest
+  - name: registry.s8njee.com/csearch-tarp-updater
+    newName: registry.s8njee.com/csearch-tarp-updater
+    newTag: latest
+
+patches:
+  # Second daily scrape (csearch-rscraper): only congress-data is a volume.
+  - target:
+      kind: CronJob
+      name: csearch-rscraper
+    patch: |-
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/volumes
+        value:
+          - name: congress-data
+            persistentVolumeClaim:
+              claimName: congress-data
+  # Orchestrator (csearch-data-pipeline): scraper code on emptyDir, shared
+  # congress-data + tarp-data on PVCs.
+  - target:
+      kind: CronJob
+      name: csearch-data-pipeline
+    patch: |-
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/volumes
+        value:
+          - name: congress-code
+            emptyDir: {}
+          - name: congress-data
+            persistentVolumeClaim:
+              claimName: congress-data
+          - name: tarp-data
+            persistentVolumeClaim:
+              claimName: tarp-data

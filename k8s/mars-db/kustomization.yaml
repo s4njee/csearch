@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Local k3s (node "mars") Postgres. Bases on netcup-db (already node-agnostic,
+# uses the local-path storageClass which is the k3s default) and drops the
+# one-off zip-districts migration Job — only the base schema bootstraps here.
+namespace: csearch
+
+resources:
+  - ../netcup-db
+
+images:
+  - name: registry.s8njee.com/csearch-postgres
+    newName: registry.s8njee.com/csearch-postgres
+    newTag: latest
+
+patches:
+  - target:
+      kind: Job
+      name: postgres-zip-districts-migration
+    patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: postgres-zip-districts-migration

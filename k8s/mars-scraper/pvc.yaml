@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: congress-data
+  labels:
+    app.kubernetes.io/name: csearch-updater
+    app.kubernetes.io/component: scraper
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tarp-data
+  labels:
+    app.kubernetes.io/name: csearch-updater
+    app.kubernetes.io/component: nlp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
