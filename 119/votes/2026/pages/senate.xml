@@ -4,6 +4,71 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00192</vote_number>
+      <vote_date>24-Jun</vote_date>
+      <issue>S.J.Res. 185</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>50</nays>
+      </vote_tally>
+      <title>Motion to Proceed to S. J. Res. 185; A joint resolution to direct the removal of United States Armed Forces from hostilities within or against the Islamic Republic of Iran that have not been authorized by Congress.</title>
+    </vote>
+    <vote>
+      <vote_number>00191</vote_number>
+      <vote_date>24-Jun</vote_date>
+      <issue>PN938-2</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>52</yeas>
+        <nays>45</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Matthew A. Schwartz, to be U.S. Circuit Judge for the Second Circuit</title>
+    </vote>
+    <vote>
+      <vote_number>00190</vote_number>
+      <vote_date>24-Jun</vote_date>
+      <issue>S.J.Res. 196</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>45</yeas>
+        <nays>52</nays>
+      </vote_tally>
+      <title>Motion to Proceed to S.J.Res. 196; A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Department of Education relating to "Reimagining and Improving Student Education-Federal Student Loan Program Final Regulations".</title>
+    </vote>
+    <vote>
+      <vote_number>00189</vote_number>
+      <vote_date>24-Jun</vote_date>
+      <issue>PN930-3</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>44</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Arthur Roberts Jones to be U.S. District Judge for the Southern District of Texas</title>
+    </vote>
+    <vote>
+      <vote_number>00188</vote_number>
+      <vote_date>24-Jun</vote_date>
+      <issue>PN930-2</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>44</nays>
+      </vote_tally>
+      <title>Confirmation: Michael J. Hendershot, of O.H., to be U.S. District Judge for the Northern District of Ohio</title>
+    </vote>
+    <vote>
       <vote_number>00187</vote_number>
       <vote_date>24-Jun</vote_date>
       <issue>PN930-2</issue>
