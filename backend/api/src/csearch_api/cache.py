@@ -51,6 +51,25 @@ class Cache:
             logger.warning("cache error: %s", e)
             return None
 
+    async def rate_limit_allow(self, key: str, limit: int, window_seconds: int) -> bool:
+        """Fixed-window per-key rate limiter shared across API pods via Redis.
+
+        Returns True if the call is within budget. Fails open: if Redis is
+        unreachable the request is allowed rather than dropped, so a cache
+        outage never takes the API down.
+        """
+        if limit <= 0:
+            return True
+        redis_key = f"{KEY_PREFIX}ratelimit:{key}"
+        try:
+            count = await self.redis.incr(redis_key)
+            if count == 1:
+                await self.redis.expire(redis_key, window_seconds)
+            return count <= limit
+        except Exception as e:
+            logger.warning("rate limit error: %s", e)
+            return True
+
     async def reset(self) -> None:
         try:
             async for key in self.redis.scan_iter(match=f"{KEY_PREFIX}*"):

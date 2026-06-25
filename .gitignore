@@ -16,6 +16,7 @@ backend/scraper/scraper
 # Python virtualenv and build artifacts
 **/env/
 **/.venv/
+**/venv/
 **/__pycache__/
 **/*.pyc
 **/.pytest_cache/
@@ -61,3 +62,9 @@ backend/api/sql/explore.sql
 
 # Local pg_dump output
 schema.sql
+
+# Generated from ARCHITECTURE.md
+ARCHITECTURE.html
+
+# Stray local artifact
+/date

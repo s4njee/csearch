@@ -76,10 +76,19 @@ cd backend/scraper && cargo test
 
 ## Further reading
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — runtime architecture, data flows, component details, caching
-- [`DEPLOY.md`](DEPLOY.md) — how to build and deploy each component, CI setup, secrets
-- [`backend/scraper/README.md`](backend/scraper/README.md) — scraper internals
-- [`backend/nlp/`](backend/nlp/) — NLP pipeline implementation and operational notes
+One source-of-truth doc per topic (archived docs live under `docs/archive/`):
+
+| Topic | Doc |
+| --- | --- |
+| Architecture & data freshness | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Deploy | [`DEPLOY.md`](DEPLOY.md) |
+| Local dev | [`DEV_SETUP.md`](DEV_SETUP.md) |
+| Day-to-day engineering | [`docs/engineering-guide.md`](docs/engineering-guide.md) |
+| Database schema & migrations | [`db/README.md`](db/README.md) |
+| Product surface (Browse/Find/Search/Analyze/Answer) | [`docs/PRODUCT.md`](docs/PRODUCT.md) |
+| Caching | [`docs/caching.md`](docs/caching.md) |
+| Scraper internals | [`backend/scraper/README.md`](backend/scraper/README.md) |
+| NLP pipeline & retrieval eval | [`backend/nlp/`](backend/nlp/), [`backend/nlp/eval/`](backend/nlp/eval/) |
 
 ## License
 

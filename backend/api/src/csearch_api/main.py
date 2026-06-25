@@ -5,7 +5,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -13,6 +13,7 @@ from openai import AsyncOpenAI
 from starlette.middleware.base import RequestResponseEndpoint
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
+from . import metrics
 from .cache import Cache
 from .db import Database
 from .routes import bills_router, committees_router, explore_router, members_router, representatives_router, root_router, semantic_router, votes_router
@@ -94,23 +95,40 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
     # --- Middleware ---
 
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+    # A wildcard origin cannot be combined with credentials per the CORS spec,
+    # and this is a public read API that needs no cookies, so credentials are
+    # only enabled when the origin list is explicitly narrowed.
+    cors_origins = resolved_settings.cors_origin_list()
+    allow_credentials = cors_origins != ["*"]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=allow_credentials,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next: RequestResponseEndpoint):
         started = time.perf_counter()
         response = await call_next(request)
+        duration = time.perf_counter() - started
 
         cache_header = getattr(request.state, "cache_header", None)
         if cache_header:
             response.headers["X-Cache"] = cache_header
 
         cache_header = response.headers.get("X-Cache", "NONE")
+        # Use the matched route template (e.g. /bills/{billtype}/{congress}/...)
+        # instead of the raw path so metric label cardinality stays bounded.
+        matched_route = request.scope.get("route")
+        route_label = getattr(matched_route, "path", None) or "unmatched"
+        metrics.observe_request(route_label, request.method, response.status_code, duration, cache_header)
         logger.info(
             "request completed",
             extra={
-                "responseTime": round((time.perf_counter() - started) * 1000, 2),
+                "responseTime": round(duration * 1000, 2),
                 "statusCode": response.status_code,
                 "cache": cache_header or "NONE",
                 "clientIp": request.client.host if request.client else None,
@@ -118,6 +136,31 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
             },
         )
         return response
+
+    async def _gauge(db, kind: str, query: str, setter) -> None:
+        try:
+            setter(kind, await db.fetchval(query))
+        except Exception:
+            # Optional signal (e.g. nlp/ops tables absent) — skip silently.
+            pass
+
+    @app.get("/metrics")
+    async def prometheus_metrics(request: Request):
+        # Refresh freshness/corpus gauges so staleness alerts have live data.
+        db = getattr(request.app.state, "db", None)
+        if db is not None and metrics.AVAILABLE:
+            await _gauge(db, "bill_update", "SELECT extract(epoch FROM MAX(update_date)) FROM bills", metrics.set_freshness)
+            await _gauge(db, "vote", "SELECT extract(epoch FROM MAX(votedate)) FROM votes", metrics.set_freshness)
+            await _gauge(db, "nlp_run", "SELECT extract(epoch FROM MAX(finished_at)) FROM nlp.ingest_runs WHERE status = 'success'", metrics.set_freshness)
+            await _gauge(db, "scraper_run", "SELECT extract(epoch FROM MAX(finished_at)) FROM ops.scraper_runs WHERE status = 'success'", metrics.set_freshness)
+            await _gauge(db, "bills", "SELECT count(*) FROM bills", metrics.set_corpus)
+            await _gauge(db, "semantic_chunks", "SELECT count(*) FROM nlp.bill_chunks", metrics.set_corpus)
+
+        rendered = metrics.render()
+        if rendered is None:
+            return JSONResponse(status_code=501, content={"error": "Metrics not available: prometheus_client not installed"})
+        payload, content_type = rendered
+        return Response(content=payload, media_type=content_type)
 
     # --- Exception handlers ---
 
@@ -138,12 +181,15 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
     app.include_router(root_router)
+    # Semantic routes use literal paths under /search/semantic/* and must be
+    # registered before the bills catch-all GET /search/{table}/{filter}, which
+    # would otherwise shadow GET /search/semantic/coverage.
+    app.include_router(semantic_router)
     app.include_router(bills_router)
     app.include_router(votes_router)
     app.include_router(explore_router)
     app.include_router(members_router)
     app.include_router(committees_router)
-    app.include_router(semantic_router)
     app.include_router(representatives_router)
     return app
 

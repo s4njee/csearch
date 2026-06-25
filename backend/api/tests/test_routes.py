@@ -45,14 +45,20 @@ class FakeDB:
 
 
 class FakeCache:
-    def __init__(self):
+    def __init__(self, allow_rate_limit: bool = True):
         self.values = {}
+        self.allow_rate_limit = allow_rate_limit
+        self.rate_limit_calls = []
 
     async def get(self, key: str):
         return self.values.get(key)
 
     async def set(self, key: str, value, ttl: int | None = None):
         self.values[key] = value
+
+    async def rate_limit_allow(self, key: str, limit: int, window_seconds: int):
+        self.rate_limit_calls.append((key, limit, window_seconds))
+        return self.allow_rate_limit
 
     async def reset(self):
         self.values.clear()
@@ -394,6 +400,90 @@ def test_semantic_warmup_reuses_cached_embedding():
     assert app.state.openai_client.embeddings.calls == 1
     assert db.last_args[3] == 500
     assert db.last_args[4] == 1
+
+
+def test_semantic_exact_bill_reference_skips_openai():
+    class ExplodingEmbeddings:
+        async def create(self, *args, **kwargs):
+            raise AssertionError("OpenAI must not be called for an exact bill reference")
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = ExplodingEmbeddings()
+
+    db = FakeDB(rows=[{"billid": 1001, "bill_type": "hr", "bill_number": "42", "similarity": 1.0}])
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+
+    response = client.post("/search/semantic", json={"query": "HR 42"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["bill_number"] == "42"
+    # Direct lookup binds billtype/billnumber, not a vector string.
+    assert db.last_args[0] == "hr"
+    assert db.last_args[1] == 42
+    assert "public.bills" in db.last_query
+
+
+def test_semantic_query_too_long_is_rejected():
+    db = FakeDB(rows=[])
+    app = create_app(settings=Settings(openai_api_key="test-key", semantic_max_query_chars=20), db=db, cache=FakeCache())
+    client = TestClient(app)
+    response = client.post("/search/semantic", json={"query": "x" * 21})
+    assert response.status_code == 413
+    assert "too long" in response.json()["error"]
+
+
+def test_semantic_rate_limit_returns_429():
+    class FakeEmbeddings:
+        async def create(self, model, input, dimensions):
+            return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = FakeEmbeddings()
+
+    db = FakeDB(rows=[])
+    app = create_app(
+        settings=Settings(openai_api_key="test-key", semantic_rate_limit_per_minute=1),
+        db=db,
+        cache=FakeCache(allow_rate_limit=False),
+    )
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+    response = client.post("/search/semantic", json={"query": "a natural language policy question about climate"})
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "60"
+
+
+def test_semantic_coverage_reports_breakdowns():
+    db = SequencedDB(
+        fetchrow_results=[{"chunks_total": 100, "embeddings_total": 100, "bills_total": 40, "last_chunk_at": "2026-05-29T00:00:00+00:00"}],
+        fetch_results=[
+            [{"congress": 119, "chunks": 60}],
+            [{"bill_type": "hr", "chunks": 80}],
+            [{"model": "text-embedding-3-small", "embeddings": 100}],
+        ],
+        fetchval_results=[7],
+    )
+    client = build_client(db)
+    response = client.get("/search/semantic/coverage")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bills_missing_chunks"] == 7
+    assert body["totals"]["chunks_total"] == 100
+    assert body["chunks_by_congress"][0]["congress"] == 119
+
+
+def test_metrics_endpoint_exposes_prometheus_text():
+    client = build_client()
+    client.get("/health")
+    response = client.get("/metrics")
+    # 200 when prometheus_client is installed, 501 when it is not.
+    assert response.status_code in (200, 501)
+    if response.status_code == 200:
+        assert "csearch_requests_total" in response.text
 
 
 def test_votes_latest_and_detail_and_explore():

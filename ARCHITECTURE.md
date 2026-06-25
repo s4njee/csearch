@@ -10,6 +10,8 @@ This document describes the architecture reflected by the current repository.
 The active repo-managed path uses PostgreSQL + `pgvector` for vectors, Argo CD
 for cluster workloads, and Cloudflare Pages for the public static frontend.
 
+_Last verified against code: 2026-05-30._
+
 ## System Overview
 
 ```mermaid
@@ -120,9 +122,14 @@ Both jobs use `concurrencyPolicy: Forbid`.
 
 ## Database Architecture
 
-PostgreSQL is the system of record. The active Kubernetes database manifests
-mount `k8s/{netcup,freya}-db/001-schema.sql`, which mirrors the scraper schema
-for the public data model and enables both `pg_trgm` and `vector`.
+PostgreSQL is the system of record. The schema **source of truth** is the
+versioned migration sequence in `db/migrations/` (see [`db/README.md`](db/README.md));
+`python db/migrate.py` applies it to any environment, and CI applies it to a
+clean `pgvector` Postgres on every build. The active Kubernetes database
+manifests still mount `k8s/{netcup,freya}-db/001-schema.sql` to bootstrap a
+fresh cluster on first start; `scripts/check-schema-drift.sh` keeps those
+bootstrap copies byte-identical to migration `0001`, so there is one effective
+source of truth.
 
 ### Public Schema
 
@@ -145,21 +152,24 @@ trigram fuzzy matching for longer user queries.
 
 ### NLP Schema
 
-The semantic index lives in the same PostgreSQL database under the `nlp` schema.
-The TARP upserter creates and maintains the bill vector tables:
+The semantic index lives in the same PostgreSQL database under the `nlp` schema,
+defined by migration `0002_nlp_bill_vectors.sql`:
 
 | Table | Purpose |
 | --- | --- |
 | `nlp.bill_chunks` | Embedding text and metadata. Each row is a section-oriented bill chunk with bill id, Congress, bill type/number, title, status, section metadata, source hashes, and token count. |
 | `nlp.bill_embeddings` | One `vector(1536)` embedding per chunk, keyed by `chunk_id`, with the embedding model name. |
+| `nlp.ingest_runs` / `nlp.ingest_run_items` | Per-run pipeline audit (git SHA, counts, model, shard checksums, status) so a partial or stale load is never silent. |
 
-The root `schema.sql` dump includes the current `nlp` table shape and HNSW
-index. The pipeline code can also create the schema from scratch through
-`backend/nlp/project-tarp/upserter.py`.
+`backend/nlp/project-tarp/upserter.py` **validates** this schema and fails with a
+clear error if it is missing; it no longer creates production tables
+opportunistically (pass `--ensure-schema` only when bootstrapping). Every run
+writes a JSON manifest and an `nlp.ingest_runs` row. The root `schema.sql` dump
+is a generated artifact, not an input.
 
-`upserter.py` also contains a `--mode votes` path for future `nlp.vote_chunks`
-and `nlp.vote_embeddings`, but the production API route currently searches bill
-embeddings.
+`upserter.py` also contains a `--mode votes` path for `nlp.vote_chunks` and
+`nlp.vote_embeddings` (also in migration `0002`), but the production API route
+currently searches bill embeddings.
 
 ## API Architecture
 
@@ -359,6 +369,35 @@ Behavior:
 This Worker is a frontend/API freshness backstop; it does not replace Redis.
 Redis remains the in-cluster application cache used by FastAPI.
 
+## Data Freshness Contract
+
+Freshness is spread across several layers (scraper → Postgres → Redis invalidation
+→ NLP vectors → Pages rebuild → optional Worker cache). The contract below defines
+what "fresh" means so the user-facing question — *how old is what I'm looking at?* —
+has a measurable answer. Each signal is exposed by `GET /freshness` and as
+Prometheus gauges (`csearch_freshness_timestamp_seconds`); alerts live in
+`k8s/logging/alerts/csearch-alerts.yaml`.
+
+| Data | Fresh when | p50 target | p95 target | Worst case (alert) |
+| --- | --- | --- | --- | --- |
+| Bills | reflects the latest GovInfo/congress.gov update | < 6 h | < 24 h | 48 h |
+| Votes | latest roll-call ingested | < 6 h | < 24 h | 48 h |
+| Semantic chunks | embeddings cover the latest changed bill text | < 24 h | < 36 h | 48 h |
+| Frontend | static build newer than the latest data change | < 12 h | < 24 h | 36 h |
+
+What each layer contributes:
+
+- The scraper writes Postgres and clears Redis (`csearch:*`) on every run, and
+  records `ops.scraper_runs`.
+- The NLP updater writes vectors, records `nlp.ingest_runs`, and may trip a
+  Cloudflare Pages deploy sentinel.
+- Cloudflare Pages rebuilds the static output; the optional Worker adds a 5-minute
+  fresh / 24-hour stale window on top.
+
+Alerts fire when the scraper has not succeeded in 24 h, the NLP pipeline has not
+succeeded in 48 h, or the latest bill update lags by more than the worst-case
+target. See [§ Observability](#observability).
+
 ## Deployment and Operations
 
 ### Argo CD Applications
@@ -386,6 +425,12 @@ Redis remains the in-cluster application cache used by FastAPI.
 | `registry.s8njee.com/csearch-upserter:latest` | `backend/nlp/project-tarp/Dockerfile.upserter` |
 | `registry.s8njee.com/csearch-tarp-updater:latest` | `backend/nlp/project-tarp/Dockerfile.nightly-updater` |
 
+Image builds are gated on `.github/workflows/ci.yml` (the `gate` job): API and
+Rust tests, frontend build, worker typecheck, migration apply + pgvector smoke,
+manifest rendering, and repo/schema hygiene all pass before any `:latest` image
+is pushed. CI also tags each image with the immutable `:<git-sha>`; production
+rollouts should pin that digest/SHA rather than relying solely on `:latest`.
+
 There is no root-level deployment script in the active tree. Use `DEPLOY.md`,
 the Argo-managed paths, and `frontend/deploy.sh` for current deployment work.
 
@@ -407,6 +452,16 @@ Do not commit plaintext secrets.
 The scraper and API emit structured JSON logs to stdout. Kubernetes logging is
 handled through manifests under `k8s/logging/`, including Fluent Bit and an
 optional HTTP/S3 log shipping path.
+
+### Observability
+
+Beyond logs, the API exposes Prometheus metrics at `GET /metrics`
+(`csearch_api.metrics`): request rate/latency/errors by route, cache hit/miss,
+semantic latency and OpenAI status, and the freshness/corpus gauges that back
+the alerts. Job history is queryable in Postgres (`ops.scraper_runs`,
+`nlp.ingest_runs`). Dashboards and alert rules ship as code under
+`k8s/logging/dashboards/csearch-api-metrics.json` and
+`k8s/logging/alerts/csearch-alerts.yaml`.
 
 ## Architectural Invariants
 

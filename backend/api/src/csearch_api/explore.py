@@ -68,6 +68,13 @@ def _normalize_optional_integer(value: Any) -> int | None:
         return None
 
 
+def _normalize_chamber(value: Any) -> str | None:
+    if value in (None, ""):
+        return None
+    from .constants import CHAMBER_ABBREV
+    return CHAMBER_ABBREV.get(str(value).lower())
+
+
 def _normalize_limit(value: Any, default_value: int) -> int:
     try:
         parsed = int(value)
@@ -184,7 +191,7 @@ def _build_execution(query: ExploreQuery, request_query: dict[str, Any]) -> tupl
             [
                 request_query.get("q") or "cloture nomination",
                 _normalize_optional_integer(request_query.get("congress")),
-                _normalize_optional_text(request_query.get("chamber")),
+                _normalize_chamber(request_query.get("chamber")),
                 _normalize_limit(request_query.get("limit"), 20),
             ],
         )
@@ -206,7 +213,8 @@ async def execute_explore_query(db, query_id: str, request_query: dict[str, Any]
             "title": query.title,
             "parameters": query.parameters,
         },
-        "sql": sql,
-        "bindings": bindings,
+        # NOTE: raw SQL and bindings are intentionally omitted from the response
+        # to avoid coupling the client to the internal query structure and to
+        # prevent information leakage (§10/§11 docs/CRITICISMS2.md).
         "rows": result["rows"],
     }

@@ -6,10 +6,11 @@ const route = useRoute()
 const router = useRouter()
 const { latestVotes, searchVotes } = useCongressApi()
 
-const loading = ref(false)
+const loading = ref(true)
 const errorMessage = ref('')
 const votes = ref<VoteRecord[]>([])
 const draftQuery = ref('')
+let loadSequence = 0
 
 const filterOutcome = ref('')
 const filterMargin = ref<number | ''>('')
@@ -116,8 +117,8 @@ const availableMonths = computed(() => {
 })
 
 const chamber = computed<'house' | 'senate'>(() => {
-  const raw = typeof route.query.chamber === 'string' ? route.query.chamber.toLowerCase() : 'senate'
-  return raw === 'house' ? 'house' : 'senate'
+  const raw = typeof route.query.chamber === 'string' ? route.query.chamber.toLowerCase() : 'house'
+  return raw === 'senate' ? 'senate' : 'house'
 })
 
 const chamberLabel = computed(() => chamber.value === 'house' ? 'House' : 'Senate')
@@ -183,28 +184,38 @@ function formatMonthLabel(yyyyMm: string) {
 const { formatDate } = useFormatters()
 
 async function loadVotes() {
+  const sequence = ++loadSequence
   loading.value = true
   errorMessage.value = ''
 
   try {
+    let nextVotes: VoteRecord[]
     if (searchQuery.value) {
       const payload = await searchVotes({
         q: searchQuery.value,
         chamber: chamber.value,
         limit: 24,
       })
-      votes.value = payload.results as unknown as VoteRecord[]
+      nextVotes = payload.results as unknown as VoteRecord[]
     }
     else {
-      votes.value = await latestVotes(chamber.value)
+      nextVotes = await latestVotes(chamber.value)
+    }
+
+    if (sequence === loadSequence) {
+      votes.value = nextVotes
     }
   }
   catch (error: any) {
-    votes.value = []
-    errorMessage.value = error?.data?.message || error?.message || 'Unable to load votes right now.'
+    if (sequence === loadSequence) {
+      votes.value = []
+      errorMessage.value = error?.data?.message || error?.message || 'Unable to load votes right now.'
+    }
   }
   finally {
-    loading.value = false
+    if (sequence === loadSequence) {
+      loading.value = false
+    }
   }
 }
 
@@ -213,21 +224,29 @@ async function submitSearch() {
   await router.push(voteRoute(chamber.value, query || undefined))
 }
 
+draftQuery.value = searchQuery.value
+syncVoteFacetsFromRoute()
+
 watch(
   () => [
     chamber.value,
     searchQuery.value,
+  ],
+  () => {
+    draftQuery.value = searchQuery.value
+    loadVotes()
+  },
+  { immediate: true },
+)
+
+watch(
+  () => [
     route.query.outcome,
     route.query.voteType,
     route.query.month,
     route.query.maxMargin,
   ],
-  () => {
-    draftQuery.value = searchQuery.value
-    syncVoteFacetsFromRoute()
-    loadVotes()
-  },
-  { immediate: true },
+  syncVoteFacetsFromRoute,
 )
 
 watch([filterOutcome, filterVoteType, filterMonth, filterMargin], async () => {

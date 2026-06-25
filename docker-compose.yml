@@ -1,8 +1,9 @@
+# Local development stack. One blessed path: `make dev` (or `docker compose up`).
+# Postgres comes up already migrated and seeded via db/docker-initdb.sh, so the
+# API and a fixture-backed semantic search work with no secrets.
 services:
   postgres:
-    build:
-      context: .
-      dockerfile: k8s/archive/legacy/db/Dockerfile
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: csearch
       POSTGRES_USER: postgres
@@ -12,34 +13,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-      start_period: 5s
+      start_period: 10s
     ports:
       - "5433:5432"
     volumes:
+      - ./db:/opt/db:ro
+      - ./db/docker-initdb.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
       - postgres_data:/var/lib/postgresql/data
-
-  scraper:
-    build:
-      context: .
-      dockerfile: backend/scraper/Dockerfile
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      CONGRESSDIR: /srv/csearch
-      POSTGRESURI: postgres
-      REDIS_URL: redis://redis:6379
-      DB_USER: postgres
-      DB_PASSWORD: ${DB_PASSWORD:-change-me-local-postgres}
-      DB_NAME: csearch
-      LOG_LEVEL: ${LOG_LEVEL:-debug}
-      RUN_BILLS: "true"
-      RUN_VOTES: "true"
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./backend/scraper/congress:/srv/csearch/congress
 
   redis:
     image: redis:7-alpine
@@ -51,10 +31,12 @@ services:
       timeout: 3s
       retries: 10
 
+  # The API Dockerfile copies paths relative to the repo root (it needs
+  # backend/scraper/explore.sql), so the build context must be the repo root.
   api:
     build:
-      context: ./backend/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/api/Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,18 +46,47 @@ services:
       HOST: 0.0.0.0
       PORT: 3000
       POSTGRESURI: postgres
-      SECRET_KEY: ${SECRET_KEY:-change-me-local-api-secret}
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-postgres}
+      DB_NAME: csearch
       REDIS_URL: redis://redis:6379
       LOG_LEVEL: ${LOG_LEVEL:-debug}
-    expose:
-      - "3000"
+      # Optional: set OPENAI_API_KEY in your shell to enable live semantic search.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "3000:3000"
+
+  scraper:
+    build:
+      context: .
+      dockerfile: backend/scraper/Dockerfile
+    profiles: ["ingest"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      CONGRESSDIR: /srv/csearch
+      POSTGRESURI: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-postgres}
+      DB_NAME: csearch
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      RUN_BILLS: "true"
+      RUN_VOTES: "true"
+    volumes:
+      - ./backend/scraper/congress:/srv/csearch/congress
 
   frontend:
     image: node:20-alpine
     working_dir: /app
+    profiles: ["frontend"]
     environment:
-      NUXT_API_SERVER: /api
-      PROXY_API: "http://api:3000/**"
+      NUXT_API_SERVER: http://localhost:3000
     volumes:
       - ./frontend:/app
       - /app/node_modules

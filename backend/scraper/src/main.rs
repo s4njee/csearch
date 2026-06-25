@@ -216,6 +216,28 @@ async fn run() -> anyhow::Result<()> {
         );
     }
 
+    // Record a machine-readable run summary for ops/freshness dashboards.
+    // Best-effort: a missing ops schema (un-migrated DB) only warns.
+    let duration_ms = started_at.elapsed().as_millis() as i64;
+    let processed = (stats.bills_processed + stats.votes_processed) as i64;
+    let skipped = (stats.bills_skipped + stats.votes_skipped) as i64;
+    let failed = (stats.bills_failed + stats.votes_failed) as i64;
+    if let Err(err) = db::record_scraper_run(
+        &pool,
+        cfg.run_bills,
+        cfg.run_votes,
+        processed,
+        processed,
+        skipped,
+        failed,
+        duration_ms,
+        std::env::var("VCS_REF").ok(),
+    )
+    .await
+    {
+        warn!(error = %err, "unable to record scraper run summary");
+    }
+
     // Log final statistics. `started_at.elapsed()` returns the wall-clock
     // time since `Instant::now()` was called at the start.
     info!(

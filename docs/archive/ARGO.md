@@ -1,3 +1,5 @@
+> **Archived:** not the current architecture or deployment path. Kept for historical context only — verify against the live code and `ARCHITECTURE.md` before relying on anything here.
+
 # Argo CD Deployment Notes
 
 This file documents the current Argo-first deployment layout in this repo.

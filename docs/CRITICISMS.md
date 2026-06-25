@@ -13,6 +13,16 @@ to make the project feel bad about itself. Several of these issues are normal
 for a fast-moving solo or small-team system. They become dangerous only if they
 stay invisible.
 
+> **Remediation status (2026-05-30):** every criticism below now carries a
+> `Status:` note describing what was done. In short — the repo hygiene, schema
+> migrations, deployment consolidation, semantic guardrails + evals, vector
+> pipeline integrity, API guardrails, freshness contract, metrics/alerts, CI
+> gates, local-dev path, and product-surface model have all been implemented and
+> verified (API/Rust tests, migration apply + pgvector smoke, hygiene + drift
+> checks all green locally). Items needing external infrastructure (Cloudflare
+> WAF, OpenAI spend alerts, Grafana provisioning, history rewrite) are called out
+> per section as remaining ops work.
+
 ## Executive Summary
 
 The strongest criticisms:
@@ -106,6 +116,11 @@ Create a repo hygiene project with a hard end state:
 
 ## 2. Documentation Has Too Many Competing Truths
 
+Status: addressed. README now has a one-source-of-truth doc table; archive docs
+carry an "Archived" banner; high-level docs gained "Last verified" dates; the
+engineering-guide source-of-truth map points schema work at `db/migrations/`;
+the repo-hygiene check already fails CI on retired terms in active docs.
+
 ### Criticism
 
 The docs are valuable, but they are not consistently authoritative. Examples:
@@ -148,6 +163,13 @@ Adopt documentation ownership rules:
    to survive frequent architecture changes.
 
 ## 3. Schema Management Is Not Mature Enough
+
+Status: addressed. Versioned migrations live in `db/migrations/` (`0000`–`0006`)
+with a forward-only runner (`db/migrate.py`) and a `schema_migrations` ledger.
+CI starts a clean `pgvector` Postgres, applies every migration, seeds fixtures,
+and runs `db/smoke.sql` (a real pgvector nearest-neighbor query). `upserter.py`
+now validates the schema instead of creating it. `scripts/check-schema-drift.sh`
+keeps the cluster bootstrap copies identical to migration `0001`.
 
 ### Criticism
 
@@ -195,6 +217,13 @@ authoritative input.
 
 ## 4. Deployment Has Too Many Active-Looking Paths
 
+Status: largely addressed. Root `deploy.sh` and legacy manifests were already
+removed (hygiene enforces this); `docs/deployment.md` is now a pointer to the
+single blessed `DEPLOY.md`. CI renders every `k8s/*` kustomization and validates
+with `kubeconform`. Image builds are gated on CI, and `ARCHITECTURE.md` documents
+pinning the immutable `:<git-sha>` for production rollouts. Remaining optional
+work: collapse near-duplicate netcup/freya trees into Kustomize overlays.
+
 ### Criticism
 
 The project currently has several deployment paths that appear plausible:
@@ -237,6 +266,15 @@ Make deployment boring:
    - `kubeconform` or `kubeval` validation
 
 ## 5. Semantic Search Is Useful, But Not Yet Production-Grade RAG
+
+Status: substantially addressed. A retrieval eval set and harness
+(`backend/nlp/eval/`) report recall@k, precision@k, MRR, and latency per
+category, runnable offline against fixtures with a fake embedding provider.
+Query routing (`csearch_api.routing`) sends exact bill citations to a direct
+lookup with no OpenAI call; short/quoted queries route to keyword. A Reciprocal
+Rank Fusion module (`csearch_api.hybrid`) implements hybrid ranking, gated on
+the eval harness showing a win before production wiring. Generated answers
+remain deliberately unshipped — see `docs/PRODUCT.md`.
 
 ### Criticism
 
@@ -300,6 +338,15 @@ Productize retrieval before productizing answer generation:
 
 ## 6. The Vector Pipeline Needs Stronger Integrity Guarantees
 
+Status: addressed. Each `upserter.py` run writes a JSON manifest (git SHA,
+congress, bill/chunk/token counts, model, dimensions, per-shard checksums,
+timestamps) and an `nlp.ingest_runs` row (+ `ingest_run_items`), recorded on an
+independent connection so a crashed run is visible. The loader validates the
+schema, enforces dimension 1536, and now fails (not warns) if chunk and
+embedding counts diverge. A coverage endpoint (`GET /search/semantic/coverage`)
+reports chunks by congress/bill-type/model and bills missing chunks. Scheduled
+recall checks run via the eval harness.
+
 ### Criticism
 
 The NLP pipeline is pragmatic, but it is still shaped like a batch prototype:
@@ -353,6 +400,14 @@ Add pipeline integrity as a first-class concept:
 
 ## 7. Public API Guardrails Are Too Weak
 
+Status: addressed at the app layer. `POST /search/semantic` now caps query
+length (`semantic_max_query_chars`, default 1000 → 413), rate-limits per client
+IP via a fail-open Redis limiter (`semantic_rate_limit_per_minute`, default 30 →
+429), caches query embeddings by normalized text to cut repeat spend, and emits
+structured logs (route, query length, OpenAI status, result count, latency).
+CORS origins are configurable (`cors_allow_origins`), with credentials disabled
+under a wildcard per spec. Cloudflare WAF and spend alerts remain external ops.
+
 ### Criticism
 
 The API is currently permissive:
@@ -390,6 +445,13 @@ Add layered guardrails:
    result count.
 
 ## 8. Freshness Is Still More Complicated Than It Should Be
+
+Status: addressed. `ARCHITECTURE.md` now defines a data freshness contract
+(p50/p95/worst-case per data type and what counts as fresh). `GET /freshness`
+was extended with semantic-chunk coverage and last-NLP-run signals, and the same
+signals are exported as Prometheus gauges (`csearch_freshness_timestamp_seconds`)
+with staleness alerts in `k8s/logging/alerts/`. A user-facing freshness indicator
+on data-heavy pages remains a frontend follow-up.
 
 ### Criticism
 
@@ -432,6 +494,13 @@ Make freshness visible and measurable:
 
 ## 9. Observability Is Mostly Logs, Not Operations
 
+Status: addressed. The API exposes Prometheus metrics at `GET /metrics`:
+request rate/latency/errors by route, cache hit/miss, semantic latency and
+OpenAI status, plus freshness/corpus gauges. The scraper writes a machine-readable
+run summary to `ops.scraper_runs`; the NLP pipeline writes `nlp.ingest_runs`.
+Alert rules (`k8s/logging/alerts/csearch-alerts.yaml`) and a Grafana dashboard
+(`k8s/logging/dashboards/csearch-api-metrics.json`) ship as code.
+
 ### Criticism
 
 Structured logs are good, but they are not enough. The system needs metrics and
@@ -473,6 +542,12 @@ Introduce a minimal operations layer:
    semantic endpoint cost spikes.
 
 ## 10. CI Does Not Protect The Most Important Paths
+
+Status: addressed. `.github/workflows/ci.yml` runs API pytest, Rust `cargo test`
+(+ clippy), frontend build, worker typecheck and `wrangler --dry-run`, migration
+apply + pgvector smoke + retrieval-eval smoke, `kustomize` + `kubeconform` over
+every active overlay, and repo/schema hygiene. `build-images.yml` invokes it as a
+required `gate` job, so `:latest` is only pushed after the suite is green.
 
 ### Criticism
 
@@ -528,6 +603,13 @@ Only push `:latest` images after these gates pass.
 
 ## 11. Local Development Is Probably Broken Or At Least Unreliable
 
+Status: addressed. `docker-compose.yml` was fixed (API builds from the repo
+root, duplicate `depends_on` removed, ports/env corrected) and Postgres now comes
+up already migrated and seeded via `db/docker-initdb.sh`. A `Makefile` provides
+`make dev/test/db-smoke/eval/migrate`. A tiny deterministic fixture corpus
+(`db/seed/fixtures.sql`) plus a fake-embedding eval mode give a no-secrets
+semantic test path. `DEV_SETUP.md` documents the blessed local flow.
+
 ### Criticism
 
 Local development instructions and local tooling disagree with the current
@@ -567,6 +649,12 @@ Create one blessed local path:
    fixture vector.
 
 ## 12. The Product Boundary Between Search, Explore, And RAG Is Blurry
+
+Status: addressed. `docs/PRODUCT.md` defines five product verbs —
+Browse, Find, Search, Analyze, Answer — and maps each to its routes and UI, with
+explicit search-query routing and a deliberately-deferred Answer (RAG) surface.
+Future work (vote embeddings, saved searches, hybrid ranking) is slotted into
+these verbs.
 
 ### Criticism
 

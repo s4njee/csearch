@@ -6,7 +6,9 @@ This is the practical onboarding guide for day-to-day work in CSearch. It answer
 2. Which file is the source of truth?
 3. What are the common patterns and pitfalls?
 
-For deployment specifics, see [`../DEPLOY.md`](../DEPLOY.md). For caching details, see [`caching.md`](caching.md).
+For deployment specifics, see [`../DEPLOY.md`](../DEPLOY.md). For caching details, see [`caching.md`](caching.md). For the product model, see [`PRODUCT.md`](PRODUCT.md).
+
+_Last verified against code: 2026-05-30._
 
 ## Mental Model
 
@@ -32,13 +34,17 @@ Use this ownership model to localize bugs quickly:
 
 | Concern | Source of truth |
 | --- | --- |
-| Database schema bootstrap | `backend/scraper/schema.sql` |
+| Database schema | `db/migrations/` (applied by `db/migrate.py`) |
+| Public-schema cluster bootstrap | `backend/scraper/schema.sql` ≡ `k8s/{netcup,freya}-db/001-schema.sql` (kept in sync with migration `0001` by `scripts/check-schema-drift.sh`) |
 | Scraper DB write logic | `backend/scraper/src/db.rs` |
 | Explore SQL | `backend/scraper/explore.sql` |
 | API cache implementation | `backend/api/src/csearch_api/cache.py` |
+| Search query routing | `backend/api/src/csearch_api/routing.py` |
+| Retrieval evaluation | `backend/nlp/eval/` |
+| Product surface model | `docs/PRODUCT.md` |
 | Default deployment entry points | `argo/applications/` |
 | Default synced manifests | `k8s/netcup-db/`, `k8s/netcup-core/`, `k8s/netcup-scraper/`, `k8s/netcup-test-frontend/` |
-| Logging shipper and collector config | `k8s/logging/` |
+| Logging / metrics / alerts | `k8s/logging/` |
 
 **Important:** `backend/api/sql/explore.sql` is a copied build artifact, not the source of truth. Changes made only there will be overwritten.
 
@@ -53,7 +59,7 @@ Use this ownership model to localize bugs quickly:
 ### API behavior
 
 1. [`backend/api/README.md`](../backend/api/README.md)
-2. The relevant file in `backend/api/routes/`
+2. The relevant file in `backend/api/src/csearch_api/routes/`
 3. `backend/api/src/csearch_api/db.py`
 4. `backend/api/src/csearch_api/cache.py` if the route is cached
 
@@ -161,7 +167,7 @@ Work left to right through the pipeline:
 
 ### Data exists in Postgres but not in the API
 
-Check the route file in `backend/api/routes/`, any route-level cache behavior, and any response shaping in `services/` or route-specific SQL.
+Check the route file in `backend/api/src/csearch_api/routes/`, any route-level cache behavior, and any response shaping or route-specific SQL.
 
 ### The frontend is talking to the wrong API
 

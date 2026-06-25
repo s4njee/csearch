@@ -1,3 +1,5 @@
+> **Archived:** not the current architecture or deployment path. Kept for historical context only — verify against the live code and `ARCHITECTURE.md` before relying on anything here.
+
 # CSearch WIP
 
 This document is the active working view of the project. It is derived from:
