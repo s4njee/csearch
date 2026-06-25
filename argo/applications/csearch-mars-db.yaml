@@ -7,6 +7,16 @@ metadata:
     argocd.argoproj.io/sync-wave: "-10"
 spec:
   project: default
+  # The API server defaults volumeMode/status on the StatefulSet's
+  # volumeClaimTemplates; ArgoCD doesn't run that defaulting and would otherwise
+  # report a permanent (cosmetic) OutOfSync.
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: postgres
+      jsonPointers:
+        - /spec/volumeClaimTemplates/0/status
+        - /spec/volumeClaimTemplates/0/spec/volumeMode
   source:
     repoURL: https://github.com/s4njee/csearch.git
     targetRevision: mars
