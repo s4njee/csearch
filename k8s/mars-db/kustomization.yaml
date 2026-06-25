@@ -9,6 +9,18 @@ namespace: csearch
 resources:
   - ../netcup-db
 
+# Replace the netcup-db generator, which also bundles the 939KB
+# 003-zip-districts.sql blob. Only 001-schema.sql is mounted by the
+# StatefulSet, and the oversized ConfigMap breaks client-side apply.
+configMapGenerator:
+  - name: postgres-schema
+    behavior: replace
+    files:
+      - 001-schema.sql
+
+generatorOptions:
+  disableNameSuffixHash: true
+
 images:
   - name: registry.s8njee.com/csearch-postgres
     newName: registry.s8njee.com/csearch-postgres
