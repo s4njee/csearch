@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 logger = logging.getLogger(__name__)
 
 TTL_SECONDS = 60 * 60 * 24
+EXPLORE_TTL_SECONDS = 60 * 60 * 12
 KEY_PREFIX = "csearch:"
 
 
@@ -43,9 +44,9 @@ class Cache:
             logger.warning("cache error: %s", e)
             return None
 
-    async def set(self, key: str, value) -> None:
+    async def set(self, key: str, value, ttl: int | None = None) -> None:
         try:
-            await self.redis.set(f"{KEY_PREFIX}{key}", json.dumps(value, default=str), ex=TTL_SECONDS)
+            await self.redis.set(f"{KEY_PREFIX}{key}", json.dumps(value, default=str), ex=ttl or TTL_SECONDS)
         except Exception as e:
             logger.warning("cache error: %s", e)
             return None

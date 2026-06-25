@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 
 from ..constants import VALID_BILL_TYPES
 from ..queries import (
@@ -17,6 +17,9 @@ router = APIRouter()
 
 LATEST_BILLS_LIMIT = 500
 SEARCH_RESULT_LIMIT = 30
+
+# Edge can serve cached bill JSON for an hour, then revalidate in the background.
+DETAIL_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400"
 
 
 def _bill_list_select() -> str:
@@ -114,9 +117,10 @@ async def search_bills(request: Request, table: str, filter: str, query: str | N
 
 
 @router.get("/bills/{billtype}/{congress}/{billnumber}")
-async def bill_detail(request: Request, billtype: str, congress: str, billnumber: str):
+async def bill_detail(request: Request, response: Response, billtype: str, congress: str, billnumber: str):
     """Return a single bill with its actions, cosponsors, votes, and committees."""
     _validate_billtype(billtype)
+    response.headers["Cache-Control"] = DETAIL_CACHE_CONTROL
 
     if not congress.isdigit():
         raise HTTPException(status_code=400, detail={"error": "Invalid congress; must be a number"})

@@ -51,7 +51,7 @@ class FakeCache:
     async def get(self, key: str):
         return self.values.get(key)
 
-    async def set(self, key: str, value):
+    async def set(self, key: str, value, ttl: int | None = None):
         self.values[key] = value
 
     async def reset(self):
@@ -108,6 +108,31 @@ def test_health():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "db": "connected"}
+
+
+def test_freshness():
+    db = SequencedDB(
+        fetchrow_results=[
+            {
+                "last_bill_action_at": "2026-05-06",
+                "last_bill_update_at": "2026-05-07T10:00:00+00:00",
+                "bills_updated_24h": 17,
+                "bills_total": 60123,
+            },
+            {"last_vote_at": "2026-05-06T18:30:00+00:00", "votes_total": 1492},
+        ]
+    )
+    client = build_client(db)
+    response = client.get("/freshness")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    body = response.json()
+    assert body["bills_updated_24h"] == 17
+    assert body["bills_total"] == 60123
+    assert body["votes_total"] == 1492
+    assert body["last_bill_action_at"] == "2026-05-06"
+    assert body["last_vote_at"] == "2026-05-06T18:30:00+00:00"
+    assert "now" in body
 
 
 def test_latest_billtype_validation():

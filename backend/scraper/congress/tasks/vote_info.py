@@ -21,7 +21,8 @@ def fetch_vote(vote_id, options):
         url = "https://www.senate.gov/legislative/LIS/roll_call_votes/vote%d%d/vote_%d_%d_%05d.xml" % (int(vote_congress), session_num, int(vote_congress), session_num, int(vote_number))
 
     # fetch vote XML page
-    body = utils.download(
+    download = utils.download if vote_chamber == "h" else utils.download_with_senate_cache
+    body = download(
         url,
         "%s/votes/%s/%s%s/%s%s.xml" % (vote_congress, vote_session_year, vote_chamber, vote_number, vote_chamber, vote_number),
         utils.merge(options, {'binary': True}),

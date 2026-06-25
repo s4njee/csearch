@@ -174,7 +174,7 @@ def vote_ids_for_senate(congress, session_year, options):
     page_options = vote_listing_options(congress, options)
 
     url = "https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_%s_%d.xml" % (congress, session_num)
-    page = utils.download(
+    page = utils.download_with_senate_cache(
         url,
         "%s/votes/%s/pages/senate.xml" % (congress, session_year),
         utils.merge(page_options, {'binary': True})

@@ -8,6 +8,11 @@ postgres_db="${DB_NAME:-csearch}"
 
 mkdir -p "$runtime_root"
 mkdir -p "$runtime_root/data" "$runtime_root/cache"
+cat > "$runtime_root/config.yml" <<EOF
+output:
+  cache: "$runtime_root/cache"
+  data: "$runtime_root/congress/data"
+EOF
 
 if [ ! -f "$runtime_root/congress/run.py" ]; then
     mkdir -p "$runtime_root/congress" 2>/dev/null || true

@@ -1,0 +1,27 @@
+name = "csearch-api-cache"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+workers_dev = false
+
+# Origin to proxy. Override per-environment if needed.
+[vars]
+ORIGIN = "https://api.csearch.org"
+
+# KV namespace IDs are placeholders — replace after running:
+#   wrangler kv namespace create CACHE
+#   wrangler kv namespace create CACHE --preview
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_WITH_PROD_KV_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_ID"
+
+# Custom domain. Requires `api-cache.csearch.org` to be added as a Custom Domain
+# on this Worker via the Cloudflare dashboard (Workers & Pages → csearch-api-cache
+# → Settings → Triggers → Custom Domains → Add Custom Domain), or via:
+#   wrangler deployments domains add api-cache.csearch.org
+[[routes]]
+pattern = "api-cache.csearch.org"
+custom_domain = true
+
+[observability]
+enabled = true
