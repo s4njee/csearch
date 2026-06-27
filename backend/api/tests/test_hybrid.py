@@ -26,8 +26,7 @@ def test_fuse_ids_respects_limit_and_weights():
 
 
 def test_rrf_weight_validation():
-    try:
+    import pytest
+
+    with pytest.raises(ValueError):
         reciprocal_rank_fusion([["a"], ["b"]], weights=[1.0])
-        assert False, "expected ValueError"
-    except ValueError:
-        pass

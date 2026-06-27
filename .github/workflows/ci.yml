@@ -33,8 +33,12 @@ jobs:
           python-version: "3.11"
       - name: Install API
         run: pip install -e "backend/api[dev]"
+      - name: Lint (ruff)
+        run: cd backend/api && ruff check .
+      - name: Type check (mypy)
+        run: cd backend/api && mypy
       - name: Run pytest
-        run: cd backend/api && pytest -q
+        run: cd backend/api && pytest -q --cov=csearch_api --cov-report=term-missing
 
   database:
     name: Migrations + pgvector smoke

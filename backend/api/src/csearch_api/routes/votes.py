@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from ..cache import Cache
 from ..constants import CHAMBER_ABBREV, MIN_FUZZY_QUERY_LENGTH
+from ..db import Database
+from ..deps import get_cache, get_db
+from ..models import VoteDetail, VoteSummary
 
 VOTE_FUZZY_SEARCH_EXPR = (
     "concat_ws(' ', coalesce(v.question, ''), coalesce(v.result, ''), "
@@ -21,9 +25,9 @@ def _normalize_chamber(chamber: str | None) -> str | None:
     return CHAMBER_ABBREV.get(str(chamber).lower())
 
 
-def _build_vote_search_query(search_query: str, chamber: str | None, fuzzy: bool) -> tuple[str, list[str]]:
+def _build_vote_search_query(search_query: str, chamber: str | None, fuzzy: bool) -> tuple[str, list[str | None]]:
     where_sql = "($1::text IS NULL OR v.chamber = $1) AND (v.search_document @@ websearch_to_tsquery('english', $2)"
-    bindings: list[str] = [chamber, search_query]
+    bindings: list[str | None] = [chamber, search_query]
     if fuzzy:
         where_sql += f" OR lower({VOTE_FUZZY_SEARCH_EXPR}) % lower($3)"
         bindings.append(search_query)
@@ -54,8 +58,8 @@ def _build_vote_search_query(search_query: str, chamber: str | None, fuzzy: bool
     return sql, bindings
 
 
-@router.get("/votes/search")
-async def search_votes(request: Request, query: str | None = None, chamber: str | None = None):
+@router.get("/votes/search", response_model=list[VoteSummary])
+async def search_votes(query: str | None = None, chamber: str | None = None, db: Database = Depends(get_db)):
     """Full-text and fuzzy search votes, optionally filtered by chamber."""
     search_query = (query or "").strip()
     if not search_query:
@@ -66,13 +70,13 @@ async def search_votes(request: Request, query: str | None = None, chamber: str 
         raise HTTPException(status_code=400, detail={"error": "Invalid chamber; use 'house' or 'senate'"})
 
     sql, bindings = _build_vote_search_query(search_query, normalized, len(search_query) >= MIN_FUZZY_QUERY_LENGTH)
-    return await request.app.state.db.fetch(sql, *bindings)
+    return await db.read_fetch(sql, *bindings)
 
 
-@router.get("/votes/detail/{voteid}")
-async def vote_detail(request: Request, voteid: str):
+@router.get("/votes/detail/{voteid}", response_model=VoteDetail)
+async def vote_detail(voteid: str, db: Database = Depends(get_db)):
     """Return a single vote with its full member position breakdown."""
-    vote = await request.app.state.db.fetchrow(
+    vote = await db.read_fetchrow(
         """
         SELECT
             voteid,
@@ -96,7 +100,7 @@ async def vote_detail(request: Request, voteid: str):
     if not vote:
         raise HTTPException(status_code=404, detail={"error": "Vote not found"})
 
-    members = await request.app.state.db.fetch(
+    members = await db.read_fetch(
         """
         SELECT bioguide_id, display_name, party, state, position
         FROM vote_members
@@ -110,20 +114,24 @@ async def vote_detail(request: Request, voteid: str):
     return vote
 
 
-@router.get("/votes/{chamber}")
-async def latest_votes(request: Request, chamber: str):
-    """Return the most recent votes for the given chamber."""
+@router.get("/votes/{chamber}", response_model=list[VoteSummary])
+async def latest_votes(request: Request, chamber: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+    """Return the most recent votes for the given chamber (default 60)."""
     normalized = _normalize_chamber(chamber)
     if not normalized:
         raise HTTPException(status_code=400, detail={"error": "Invalid chamber; use 'house' or 'senate'"})
 
-    cache_key = f"latest_votes_v2_{chamber}"
-    cached = await request.app.state.cache.get(cache_key)
+    # Optional, additive pagination; defaults preserve the historical response.
+    resolved_limit = LATEST_VOTES_LIMIT if limit is None else max(1, min(limit, LATEST_VOTES_LIMIT))
+    resolved_offset = max(0, offset or 0)
+
+    cache_key = f"latest_votes_v2_{chamber}_{resolved_limit}_{resolved_offset}"
+    cached = await cache.get(cache_key)
     if cached is not None:
         request.state.cache_header = "HIT"
         return cached
 
-    rows = await request.app.state.db.fetch(
+    rows = await db.read_fetch(
         f"""
         SELECT
             v.congress::text AS congress,
@@ -147,10 +155,10 @@ async def latest_votes(request: Request, chamber: str):
             v.voteid, v.congress, v.votenumber, v.votedate, v.question,
             v.votesession, v.result, v.chamber, v.votetype, v.source_url
         ORDER BY v.votedate DESC
-        LIMIT {LATEST_VOTES_LIMIT}
+        LIMIT {resolved_limit} OFFSET {resolved_offset}
         """,
         normalized,
     )
-    await request.app.state.cache.set(cache_key, rows)
+    await cache.set(cache_key, rows)
     request.state.cache_header = "MISS"
     return rows

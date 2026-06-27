@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -41,8 +42,13 @@ class ExploreQuery:
     parameters: list[dict[str, Any]]
 
 
-# Path is resolved relative to __file__ so it works both locally and inside the Docker container.
+# CSEARCH_EXPLORE_SQL overrides the path (set in the Docker image so a
+# non-editable install still finds the file); otherwise resolve relative to the
+# source tree for local dev / tests.
 def _sql_path() -> Path:
+    override = os.environ.get("CSEARCH_EXPLORE_SQL")
+    if override:
+        return Path(override)
     return Path(__file__).resolve().parents[3] / "api" / "sql" / "explore.sql"
 
 
@@ -205,7 +211,8 @@ async def execute_explore_query(db, query_id: str, request_query: dict[str, Any]
         return None
 
     sql, bindings = _build_execution(query, request_query)
-    result = await db.raw(sql, *bindings)
+    # Reads route to the replica when one is configured (§1 CRITICISMS2.md).
+    result = await db.read_raw(sql, *bindings)
     return {
         "query": {
             "id": query.id,

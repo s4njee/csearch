@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
 from csearch_api import queries
+from csearch_api.db import Database
+from csearch_api.deps import get_db
+from csearch_api.models import MemberDetail
 
 router = APIRouter()
 
@@ -18,12 +21,12 @@ def _validate_bioguide_id(bioguide_id: str) -> str:
     return bioguide_id.upper()
 
 
-@router.get("/members/{bioguide_id}")
-async def member_detail(request: Request, bioguide_id: str):
+@router.get("/members/{bioguide_id}", response_model=MemberDetail)
+async def member_detail(bioguide_id: str, db: Database = Depends(get_db)):
     """Return a member's profile, sponsored bills, recent votes, and sponsorship counts."""
     upper_id = _validate_bioguide_id(bioguide_id)
 
-    profile = await request.app.state.db.fetchrow(
+    profile = await db.read_fetchrow(
         """
         SELECT display_name AS name, party, state
         FROM vote_members
@@ -33,7 +36,7 @@ async def member_detail(request: Request, bioguide_id: str):
         upper_id,
     )
     if not profile:
-        profile = await request.app.state.db.fetchrow(
+        profile = await db.read_fetchrow(
             """
             SELECT full_name AS name, party, state
             FROM bill_cosponsors
@@ -43,7 +46,7 @@ async def member_detail(request: Request, bioguide_id: str):
             upper_id,
         )
     if not profile:
-        profile = await request.app.state.db.fetchrow(
+        profile = await db.read_fetchrow(
             """
             SELECT sponsor_name AS name, sponsor_party AS party, sponsor_state AS state
             FROM bills
@@ -56,7 +59,7 @@ async def member_detail(request: Request, bioguide_id: str):
     if not profile:
         raise HTTPException(status_code=404, detail={"error": "Member not found in recent records"})
 
-    sponsored_bills_task = request.app.state.db.fetch(
+    sponsored_bills_task = db.read_fetch(
         f"""
         SELECT
             b.billid,
@@ -79,7 +82,7 @@ async def member_detail(request: Request, bioguide_id: str):
         """,
         upper_id,
     )
-    recent_votes_task = request.app.state.db.fetch(
+    recent_votes_task = db.read_fetch(
         f"""
         SELECT
             votes.voteid,
@@ -99,7 +102,7 @@ async def member_detail(request: Request, bioguide_id: str):
         """,
         upper_id,
     )
-    sponsored_count_task = request.app.state.db.fetchrow(
+    sponsored_count_task = db.read_fetchrow(
         """
         SELECT COUNT(*)::int AS total
         FROM bills
@@ -107,7 +110,7 @@ async def member_detail(request: Request, bioguide_id: str):
         """,
         upper_id,
     )
-    cosponsored_count_task = request.app.state.db.fetchrow(
+    cosponsored_count_task = db.read_fetchrow(
         """
         SELECT COUNT(*)::int AS total
         FROM bill_cosponsors

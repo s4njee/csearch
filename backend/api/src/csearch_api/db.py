@@ -15,7 +15,7 @@ class Database:
     # --- Connection lifecycle ---
 
     @classmethod
-    async def connect(cls, settings: Settings) -> "Database":
+    async def connect(cls, settings: Settings) -> Database:
         pool = await asyncpg.create_pool(
             host=settings.postgresuri,
             port=settings.db_port,
@@ -86,4 +86,21 @@ class Database:
 
     async def raw(self, query: str, *args, timeout: float | None = None):
         rows = await self.pool.fetch(query, *args, timeout=timeout)
+        return {"rows": [dict(row) for row in rows]}
+
+    # --- Read-replica variants (§1 CRITICISMS2.md) ---
+    # Mirror the helpers above but use the read pool. When no READ_POSTGRESURI is
+    # configured, _read_pool is the primary pool, so these are identical to the
+    # write-path helpers and no behaviour diverges. GET route handlers use these
+    # so a configured replica actually offloads user-facing reads.
+
+    async def read_fetchrow(self, query: str, *args, timeout: float | None = None):
+        row = await self._read_pool.fetchrow(query, *args, timeout=timeout)
+        return dict(row) if row is not None else None
+
+    async def read_fetchval(self, query: str, *args, timeout: float | None = None):
+        return await self._read_pool.fetchval(query, *args, timeout=timeout)
+
+    async def read_raw(self, query: str, *args, timeout: float | None = None):
+        rows = await self._read_pool.fetch(query, *args, timeout=timeout)
         return {"rows": [dict(row) for row in rows]}

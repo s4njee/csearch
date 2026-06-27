@@ -17,7 +17,7 @@ class Cache:
         self.redis = redis
 
     @classmethod
-    def connect(cls, redis_url: str) -> "Cache":
+    def connect(cls, redis_url: str) -> Cache:
         return cls(
             Redis.from_url(
                 redis_url,
@@ -69,6 +69,14 @@ class Cache:
         except Exception as e:
             logger.warning("rate limit error: %s", e)
             return True
+
+    async def ping(self) -> bool:
+        """Liveness probe for the Redis backend (used by /readyz)."""
+        try:
+            return bool(await self.redis.ping())  # type: ignore[misc]
+        except Exception as e:
+            logger.warning("cache ping failed: %s", e)
+            return False
 
     async def reset(self) -> None:
         try:

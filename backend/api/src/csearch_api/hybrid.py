@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Hybrid rank fusion for search.
 
 Combines a keyword (full-text) ranking with a vector (semantic) ranking using
@@ -8,6 +6,8 @@ very different scales (ts_rank vs cosine similarity). This is the ranking layer
 the production search path should adopt once the eval harness
 (backend/nlp/eval) shows it beats vector-only; see docs/PRODUCT.md.
 """
+
+from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
@@ -31,7 +31,7 @@ def reciprocal_rank_fusion(
         raise ValueError("weights must match the number of rankings")
 
     scores: dict[str, float] = {}
-    for ranking, weight in zip(rankings, weights):
+    for ranking, weight in zip(rankings, weights, strict=True):
         for rank, item_id in enumerate(ranking):
             scores[item_id] = scores.get(item_id, 0.0) + weight * (1.0 / (k + rank))
 

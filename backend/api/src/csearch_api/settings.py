@@ -35,6 +35,11 @@ class Settings(BaseSettings):
 
     cache_ttl_seconds: int = 86400
 
+    # Bearer token for POST /admin/cache/reset (cache invalidation hook). Empty
+    # disables the endpoint (returns 503). Set it and have the scraper/NLP
+    # pipeline call the endpoint after an ingest so cached lists refresh.
+    admin_token: str = ""
+
     # Comma-separated allowlist of CORS origins. "*" keeps the API fully open
     # (credentials are then disabled, per the CORS spec). Narrow this to known
     # origins in production to reduce the blast radius of abuse.
@@ -46,6 +51,11 @@ class Settings(BaseSettings):
     # unavailable.
     semantic_max_query_chars: int = 1000
     semantic_rate_limit_per_minute: int = 30
+
+    # Coarse per-IP rate limit applied to all routes (health/readiness/metrics
+    # excepted). 0 (default) disables it entirely — zero overhead. Fails open if
+    # Redis is unavailable, like the semantic limiter.
+    global_rate_limit_per_minute: int = 0
 
     # Circuit breaker for the OpenAI embedding call (§4 CRITICISMS2.md).
     # After `semantic_circuit_breaker_threshold` consecutive failures the

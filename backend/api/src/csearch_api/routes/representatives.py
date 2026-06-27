@@ -1,32 +1,37 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from ..cache import Cache
+from ..db import Database
+from ..deps import get_cache, get_db
+from ..models import RepresentativesResponse
 
 router = APIRouter()
 
 
-@router.get("/representatives/{zipcode}")
-async def representatives_by_zip(request: Request, zipcode: str):
-    return await _representatives_by_zip(request, zipcode)
+@router.get("/representatives/{zipcode}", response_model=RepresentativesResponse)
+async def representatives_by_zip(request: Request, zipcode: str, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+    return await _representatives_by_zip(request, db, cache, zipcode)
 
 
-@router.get("/representatives")
-async def representatives_by_zip_query(request: Request, zip: str):
-    return await _representatives_by_zip(request, zip)
+@router.get("/representatives", response_model=RepresentativesResponse)
+async def representatives_by_zip_query(request: Request, zip: str, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+    return await _representatives_by_zip(request, db, cache, zip)
 
 
-async def _representatives_by_zip(request: Request, zipcode: str):
+async def _representatives_by_zip(request: Request, db: Database, cache: Cache, zipcode: str):
     """Return senators and house members for a given ZIP code."""
     if not zipcode.isdigit() or len(zipcode) != 5:
         raise HTTPException(status_code=400, detail={"error": "ZIP code must be exactly 5 digits"})
 
     cache_key = f"representatives_{zipcode}"
-    cached = await request.app.state.cache.get(cache_key)
+    cached = await cache.get(cache_key)
     if cached is not None:
         request.state.cache_header = "HIT"
         return cached
 
-    districts = await request.app.state.db.fetch(
+    districts = await db.read_fetch(
         """
         SELECT state_abbr, cd
         FROM zip_districts
@@ -41,11 +46,11 @@ async def _representatives_by_zip(request: Request, zipcode: str):
 
     district_rows = [{"state": row["state_abbr"], "district": row["cd"]} for row in districts]
 
-    current_congress = await request.app.state.db.fetchval(
+    current_congress = await db.read_fetchval(
         "SELECT MAX(congress) FROM bills"
     ) or 0
 
-    senators = await request.app.state.db.fetch(
+    senators = await db.read_fetch(
         """
         SELECT DISTINCT ON (b.sponsor_bioguide_id)
             b.sponsor_bioguide_id AS bioguide_id,
@@ -69,7 +74,7 @@ async def _representatives_by_zip(request: Request, zipcode: str):
         current_congress,
     )
 
-    house_members = await request.app.state.db.fetch(
+    house_members = await db.read_fetch(
         """
         WITH zip_districts_for_zip AS (
             SELECT DISTINCT state_abbr, cd
@@ -118,7 +123,7 @@ async def _representatives_by_zip(request: Request, zipcode: str):
         "housemembers": formatted_house_members,
         "representatives": formatted_house_members,
     }
-    await request.app.state.cache.set(cache_key, response)
+    await cache.set(cache_key, response)
     request.state.cache_header = "MISS"
     return response
 

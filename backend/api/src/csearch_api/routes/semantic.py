@@ -14,6 +14,7 @@ from csearch_api.embedding import (
     EMBEDDING_MODEL,
     embedding_cache_key,
 )
+from csearch_api.models import CoverageResponse, SemanticResult
 from csearch_api.routing import parse_bill_reference
 
 logger = logging.getLogger("csearch-api")
@@ -244,7 +245,7 @@ async def _embed_query(request: Request, query: str) -> str | None:
         return None
 
 
-async def _warmup_vector(request: Request) -> tuple[str, bool]:
+async def _warmup_vector(request: Request) -> tuple[str | None, bool]:
     global _warmup_vector_str
 
     if _warmup_vector_str is not None:
@@ -266,7 +267,7 @@ async def _semantic_rows(
     result_limit: int,
 ):
     candidate_limit = _candidate_limit(result_limit)
-    return await request.app.state.db.fetch(
+    return await request.app.state.db.read_fetch(
         _SEARCH_SQL,
         vector_str,
         congress_min,
@@ -305,7 +306,7 @@ async def _enforce_rate_limit(request: Request) -> None:
 
 
 async def _exact_bill_rows(request: Request, ref, congress_min: int, congress_max: int, result_limit: int):
-    return await request.app.state.db.fetch(
+    return await request.app.state.db.read_fetch(
         _EXACT_BILL_SQL,
         ref.billtype,
         ref.billnumber,
@@ -316,7 +317,10 @@ async def _exact_bill_rows(request: Request, ref, congress_min: int, congress_ma
     )
 
 
-@router.post("/search/semantic")
+# No response_model: this route returns a list of results normally, or a
+# {degraded, results} object when the circuit breaker is open. The 200 shape is
+# documented via `responses` so OpenAPI is accurate without runtime coupling.
+@router.post("/search/semantic", responses={200: {"model": list[SemanticResult]}})
 async def semantic_search(request: Request, body: SemanticSearchRequest):
     """Embed the query via OpenAI and return the most semantically similar bills.
 
@@ -394,7 +398,7 @@ async def semantic_search(request: Request, body: SemanticSearchRequest):
     return rows
 
 
-@router.get("/search/semantic/coverage")
+@router.get("/search/semantic/coverage", response_model=CoverageResponse)
 async def semantic_coverage(request: Request, response: Response):
     """Vector-corpus coverage so a partial/stale load is visible, not silent.
 
@@ -405,7 +409,7 @@ async def semantic_coverage(request: Request, response: Response):
     response.headers["Cache-Control"] = "no-store"
     db = request.app.state.db
     try:
-        totals = await db.fetchrow(
+        totals = await db.read_fetchrow(
             """
             SELECT
                 (SELECT COUNT(*) FROM nlp.bill_chunks) AS chunks_total,
@@ -414,16 +418,16 @@ async def semantic_coverage(request: Request, response: Response):
                 (SELECT MAX(created_at) FROM nlp.bill_chunks) AS last_chunk_at
             """
         )
-        by_congress = await db.fetch(
+        by_congress = await db.read_fetch(
             "SELECT congress, COUNT(*) AS chunks FROM nlp.bill_chunks GROUP BY congress ORDER BY congress DESC"
         )
-        by_bill_type = await db.fetch(
+        by_bill_type = await db.read_fetch(
             "SELECT bill_type, COUNT(*) AS chunks FROM nlp.bill_chunks GROUP BY bill_type ORDER BY chunks DESC"
         )
-        by_model = await db.fetch(
+        by_model = await db.read_fetch(
             "SELECT model, COUNT(*) AS embeddings FROM nlp.bill_embeddings GROUP BY model ORDER BY embeddings DESC"
         )
-        missing = await db.fetchval(
+        missing = await db.read_fetchval(
             """
             SELECT COUNT(*) FROM public.bills b
             WHERE NOT EXISTS (
@@ -438,7 +442,7 @@ async def semantic_coverage(request: Request, response: Response):
         # match any bill_uid in public.bills (the FK seam check before the
         # actual FK is added in migration 0008 + maintenance window).
         # Falls back to 0 gracefully when bill_uid column is not yet present.
-        orphans = await db.fetchval(
+        orphans = await db.read_fetchval(
             """
             SELECT COUNT(*) FROM nlp.bill_chunks c
             WHERE NOT EXISTS (
@@ -451,7 +455,7 @@ async def semantic_coverage(request: Request, response: Response):
             """
         )
     except Exception:
-        raise HTTPException(status_code=503, detail={"error": "Semantic coverage unavailable: nlp schema not present"})
+        raise HTTPException(status_code=503, detail={"error": "Semantic coverage unavailable: nlp schema not present"}) from None
 
     return {
         "totals": totals,
@@ -469,6 +473,10 @@ async def semantic_search_warmup(request: Request):
     _require_semantic_configured(request)
 
     vector_str, cache_hit = await _warmup_vector(request)
+    if vector_str is None:
+        # Embedding failed (e.g. circuit breaker open) — report rather than 500.
+        return {"ok": False, "cache_hit": cache_hit, "query": SEMANTIC_WARMUP_QUERY, "rows": 0}
+
     rows = await _semantic_rows(
         request,
         vector_str,

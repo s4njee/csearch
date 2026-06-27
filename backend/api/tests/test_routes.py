@@ -43,6 +43,20 @@ class FakeDB:
         self.last_kwargs = kwargs
         return {"rows": self.rows}
 
+    # Read-replica variants delegate to the primary methods so call capture and
+    # behaviour are identical in tests (no replica configured).
+    async def read_fetch(self, query: str, *args, **kwargs):
+        return await self.fetch(query, *args, **kwargs)
+
+    async def read_fetchrow(self, query: str, *args, **kwargs):
+        return await self.fetchrow(query, *args, **kwargs)
+
+    async def read_fetchval(self, query: str, *args, **kwargs):
+        return await self.fetchval(query, *args, **kwargs)
+
+    async def read_raw(self, query: str, *args, **kwargs):
+        return await self.raw(query, *args, **kwargs)
+
 
 class FakeCache:
     def __init__(self, allow_rate_limit: bool = True):
@@ -59,6 +73,9 @@ class FakeCache:
     async def rate_limit_allow(self, key: str, limit: int, window_seconds: int):
         self.rate_limit_calls.append((key, limit, window_seconds))
         return self.allow_rate_limit
+
+    async def ping(self):
+        return True
 
     async def reset(self):
         self.values.clear()
@@ -90,6 +107,20 @@ class SequencedDB:
     async def raw(self, query: str, *args, **kwargs):
         self.calls.append(("raw", query, args))
         return self.raw_results.pop(0) if self.raw_results else {"rows": []}
+
+    # Read-replica variants delegate to the primary methods so call sequencing
+    # and result sequencing are identical in tests (no replica configured).
+    async def read_fetch(self, query: str, *args, **kwargs):
+        return await self.fetch(query, *args, **kwargs)
+
+    async def read_fetchrow(self, query: str, *args, **kwargs):
+        return await self.fetchrow(query, *args, **kwargs)
+
+    async def read_fetchval(self, query: str, *args, **kwargs):
+        return await self.fetchval(query, *args, **kwargs)
+
+    async def read_raw(self, query: str, *args, **kwargs):
+        return await self.raw(query, *args, **kwargs)
 
 
 def build_client(db: FakeDB | None = None):

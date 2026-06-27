@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,10 +18,36 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from . import metrics
 from .cache import Cache
 from .db import Database
-from .routes import bills_router, committees_router, explore_router, members_router, representatives_router, root_router, semantic_router, votes_router
+from .models import ErrorResponse
+from .routes import (
+    bills_router,
+    committees_router,
+    explore_router,
+    members_router,
+    representatives_router,
+    root_router,
+    semantic_router,
+    votes_router,
+)
 from .settings import Settings, get_settings
 
 logger = logging.getLogger("csearch-api")
+
+# How long the /metrics freshness/corpus gauges are cached between refreshes.
+METRICS_GAUGE_TTL_SECONDS = 60
+
+API_DESCRIPTION = (
+    "Read API for CSearch — U.S. Congress bills, votes, members, committees, "
+    "representatives, prebuilt explore queries, and pgvector-backed semantic search."
+)
+
+# Documented error shape, applied to every router so 4xx/5xx responses carry a
+# consistent, typed body in the OpenAPI schema.
+ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    400: {"model": ErrorResponse, "description": "Invalid request"},
+    404: {"model": ErrorResponse, "description": "Not found"},
+    503: {"model": ErrorResponse, "description": "Service unavailable"},
+}
 
 
 # --- Logging ---
@@ -85,7 +113,22 @@ async def lifespan(app: FastAPI):
 
 def create_app(settings: Settings | None = None, db: Database | None = None, cache: Cache | None = None) -> FastAPI:
     _install_logging()
-    app = FastAPI(lifespan=lifespan)
+    app = FastAPI(
+        title="CSearch API",
+        version="0.1.0",
+        description=API_DESCRIPTION,
+        lifespan=lifespan,
+        openapi_tags=[
+            {"name": "meta", "description": "Root, health, and data-freshness checks."},
+            {"name": "bills", "description": "Bill lists, search, and detail."},
+            {"name": "votes", "description": "Roll-call vote lists, search, and detail."},
+            {"name": "members", "description": "Member profiles."},
+            {"name": "committees", "description": "Committees and referred bills."},
+            {"name": "representatives", "description": "Representatives by ZIP code."},
+            {"name": "explore", "description": "Prebuilt exploratory queries."},
+            {"name": "semantic", "description": "pgvector semantic search + coverage."},
+        ],
+    )
     resolved_settings = settings or get_settings()
     app.state.settings = resolved_settings
     app.state.db = db
@@ -112,8 +155,14 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
     @app.middleware("http")
     async def log_requests(request: Request, call_next: RequestResponseEndpoint):
         started = time.perf_counter()
+        # Accept an inbound correlation id or mint one; echo it back and log it
+        # so a request can be traced across the proxy, app, and aggregated logs.
+        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        request.state.request_id = request_id
         response = await call_next(request)
         duration = time.perf_counter() - started
+
+        response.headers["X-Request-ID"] = request_id
 
         cache_header = getattr(request.state, "cache_header", None)
         if cache_header:
@@ -133,9 +182,30 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
                 "cache": cache_header or "NONE",
                 "clientIp": request.client.host if request.client else None,
                 "route": request.url.path,
+                "requestId": request_id,
             },
         )
         return response
+
+    # Coarse per-IP rate limit, opt-in via GLOBAL_RATE_LIMIT_PER_MINUTE. When 0
+    # (default) this is a no-op with zero overhead. Probe endpoints are exempt.
+    _rate_limit_exempt = {"/health", "/livez", "/readyz", "/metrics"}
+
+    @app.middleware("http")
+    async def global_rate_limit(request: Request, call_next: RequestResponseEndpoint):
+        limit = resolved_settings.global_rate_limit_per_minute
+        if limit > 0 and request.url.path not in _rate_limit_exempt:
+            cache = getattr(request.app.state, "cache", None)
+            if cache is not None:
+                client_ip = request.client.host if request.client else "unknown"
+                allowed = await cache.rate_limit_allow(f"global:{client_ip}", limit, 60)
+                if not allowed:
+                    return JSONResponse(
+                        status_code=429,
+                        content={"error": "Rate limit exceeded"},
+                        headers={"Retry-After": "60"},
+                    )
+        return await call_next(request)
 
     async def _gauge(db, kind: str, query: str, setter) -> None:
         try:
@@ -147,8 +217,15 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
     @app.get("/metrics")
     async def prometheus_metrics(request: Request):
         # Refresh freshness/corpus gauges so staleness alerts have live data.
+        # These are COUNT(*)/MAX() aggregates, so they're throttled to at most
+        # once per METRICS_GAUGE_TTL_SECONDS to avoid hammering the DB when
+        # Prometheus scrapes frequently. Request counters/histograms always
+        # reflect live data (they update per-request, not here).
         db = getattr(request.app.state, "db", None)
-        if db is not None and metrics.AVAILABLE:
+        now = time.monotonic()
+        last_refresh = getattr(request.app.state, "_metrics_gauges_at", 0.0)
+        if db is not None and metrics.AVAILABLE and (now - last_refresh) >= METRICS_GAUGE_TTL_SECONDS:
+            request.app.state._metrics_gauges_at = now
             await _gauge(db, "bill_update", "SELECT extract(epoch FROM MAX(update_date)) FROM bills", metrics.set_freshness)
             await _gauge(db, "vote", "SELECT extract(epoch FROM MAX(votedate)) FROM votes", metrics.set_freshness)
             await _gauge(db, "nlp_run", "SELECT extract(epoch FROM MAX(finished_at)) FROM nlp.ingest_runs WHERE status = 'success'", metrics.set_freshness)
@@ -176,21 +253,37 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
             extra={
                 "route": request.url.path,
                 "clientIp": request.client.host if request.client else None,
+                "requestId": getattr(request.state, "request_id", None),
             },
         )
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
-    app.include_router(root_router)
-    # Semantic routes use literal paths under /search/semantic/* and must be
-    # registered before the bills catch-all GET /search/{table}/{filter}, which
-    # would otherwise shadow GET /search/semantic/coverage.
-    app.include_router(semantic_router)
-    app.include_router(bills_router)
-    app.include_router(votes_router)
-    app.include_router(explore_router)
-    app.include_router(members_router)
-    app.include_router(committees_router)
-    app.include_router(representatives_router)
+    # Meta / probe endpoints stay unversioned (k8s probes, monitoring).
+    app.include_router(root_router, tags=["meta"], responses=ERROR_RESPONSES)
+
+    # Data routers. Order matters: semantic uses literal paths under
+    # /search/semantic/* and must register before the bills catch-all
+    # GET /search/{table}/{filter}, which would otherwise shadow
+    # GET /search/semantic/coverage.
+    data_routers = [
+        (semantic_router, "semantic"),
+        (bills_router, "bills"),
+        (votes_router, "votes"),
+        (explore_router, "explore"),
+        (members_router, "members"),
+        (committees_router, "committees"),
+        (representatives_router, "representatives"),
+    ]
+
+    # Versioned surface (documented): /v1/...
+    for data_router, tag in data_routers:
+        app.include_router(data_router, prefix="/v1", tags=[tag], responses=ERROR_RESPONSES)
+
+    # Unversioned aliases kept for backward compatibility (existing clients use
+    # these), hidden from the OpenAPI schema so /v1 is the documented contract.
+    for data_router, tag in data_routers:
+        app.include_router(data_router, tags=[tag], responses=ERROR_RESPONSES, include_in_schema=False)
+
     return app
 
 
