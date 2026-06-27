@@ -10,6 +10,7 @@ const {
   data: committee,
   pending: loading,
   error: fetchError,
+  refresh,
 } = await useAsyncData<CommitteeDetail>(
   `committee-${committeeCode}`,
   () => getCommittee(committeeCode),
@@ -22,89 +23,80 @@ const errorMessage = computed(() =>
     : '',
 )
 
-const { formatDate, summarizeText } = useFormatters()
+const { formatDate, summarizeText, formatNumber } = useFormatters()
+
+usePageSeo({
+  title: () => committee.value?.committee_name || 'Committee',
+  description: () => (committee.value
+    ? `Recent bills referred to the ${committee.value.committee_name || committee.value.committee_code}.`
+    : 'Congressional committee detail.'),
+})
 </script>
 
 <template>
-  <main class="page page--wide">
-    <section v-if="loading" class="surface">
-      Loading committee...
-    </section>
+  <UContainer class="space-y-8">
+    <SkeletonCard v-if="loading" :rows="2" />
 
-    <section v-else-if="errorMessage" class="surface surface--error">
-      {{ errorMessage }}
-    </section>
+    <div v-else-if="errorMessage" class="space-y-3">
+      <UAlert color="error" variant="subtle" icon="i-lucide-circle-alert" :description="errorMessage" />
+      <UButton color="neutral" variant="outline" icon="i-lucide-refresh-cw" @click="refresh()">Try again</UButton>
+    </div>
 
     <template v-else-if="committee">
-      <section class="surface">
-        <div class="toolbar">
+      <UCard>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p class="eyebrow">Committee · {{ committee.committee_code }}</p>
-            <h1>{{ committee.committee_name || 'Unnamed Committee' }}</h1>
-            <p class="lede" style="text-transform: capitalize;">{{ committee.chamber || 'Joint' }} Committee</p>
+            <p class="text-xs uppercase tracking-[0.15em] text-muted">Committee · {{ committee.committee_code }}</p>
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">{{ committee.committee_name || 'Unnamed Committee' }}</h1>
+            <p class="mt-1 capitalize text-muted">{{ committee.chamber || 'Joint' }} committee</p>
           </div>
-          <NuxtLink to="/committees" class="button">
-            All Committees →
-          </NuxtLink>
+          <UButton to="/committees" color="neutral" variant="outline" trailing-icon="i-lucide-arrow-right">
+            All committees
+          </UButton>
         </div>
-      </section>
+      </UCard>
 
-      <section class="surface">
-        <div class="section-title">
-          <h2>Recent Bills Referred</h2>
-          <p>Latest legislation referred to {{ committee.committee_name || committee.committee_code }}</p>
-        </div>
+      <UCard>
+        <template #header>
+          <div>
+            <h2 class="text-lg font-medium text-highlighted">Recent bills referred</h2>
+            <p class="mt-0.5 text-sm text-muted">Latest legislation referred to {{ committee.committee_name || committee.committee_code }}</p>
+          </div>
+        </template>
 
-        <div v-if="!committee.bills?.length" class="empty-note">
-          No recently referred bills found.
-        </div>
-        
-        <div v-else class="result-grid">
-          <article v-for="bill in committee.bills" :key="bill.billid" class="result-card">
-            <div class="result-card__header">
-              <div>
-                <p class="result-card__meta">
-                  {{ bill.billtype.toUpperCase() }} {{ bill.billnumber }} · Congress {{ bill.congress }}
-                </p>
-                <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="link-plain">
-                  <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
-                </NuxtLink>
-              </div>
-            </div>
+        <p v-if="!committee.bills?.length" class="text-muted">No recently referred bills found.</p>
 
-            <p class="result-card__summary">
-              {{ summarizeText(bill.summary_text || bill.officialtitle || bill.shorttitle) }}
+        <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div v-for="bill in committee.bills" :key="bill.billid" class="border border-default p-5">
+            <p class="text-xs uppercase tracking-[0.15em] text-primary">
+              {{ bill.billtype.toUpperCase() }} {{ bill.billnumber }} · Congress {{ bill.congress }}
             </p>
+            <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="mt-2 block text-lg font-medium text-highlighted transition-colors hover:text-primary">
+              {{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}
+            </NuxtLink>
+            <p class="mt-3 text-sm text-muted">{{ summarizeText(bill.summary_text || bill.officialtitle || bill.shorttitle) }}</p>
 
-            <dl class="detail-grid">
+            <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div>
-                <dt>Introduced</dt>
-                <dd>{{ formatDate(bill.introducedat) }}</dd>
+                <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Introduced</dt>
+                <dd class="mt-0.5">{{ formatDate(bill.introducedat) }}</dd>
               </div>
               <div>
-                <dt>Status</dt>
-                <dd>{{ formatDate(bill.statusat) }}</dd>
+                <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Status</dt>
+                <dd class="mt-0.5">{{ formatDate(bill.statusat) }}</dd>
               </div>
               <div>
-                <dt>Policy Area</dt>
-                <dd>{{ bill.policy_area || '—' }}</dd>
+                <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Policy area</dt>
+                <dd class="mt-0.5">{{ bill.policy_area || '—' }}</dd>
               </div>
               <div>
-                <dt>Cosponsors</dt>
-                <dd>{{ bill.cosponsor_count || 0 }}</dd>
+                <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Cosponsors</dt>
+                <dd class="mt-0.5">{{ formatNumber(bill.cosponsor_count || 0) }}</dd>
               </div>
             </dl>
-          </article>
+          </div>
         </div>
-      </section>
+      </UCard>
     </template>
-  </main>
+  </UContainer>
 </template>
-
-<style scoped>
-.result-card__summary {
-  margin-top: 1rem;
-  margin-bottom: 1.25rem;
-  line-height: 1.5;
-}
-</style>

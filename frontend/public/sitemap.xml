@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://csearch.org/bills/hr/</loc><priority>1.0</priority></url>
+  <url><loc>https://csearch.org/bills/s/</loc><priority>0.8</priority></url>
+  <url><loc>https://csearch.org/bills/hres/</loc><priority>0.6</priority></url>
+  <url><loc>https://csearch.org/bills/sres/</loc><priority>0.6</priority></url>
+  <url><loc>https://csearch.org/bills/hjres/</loc><priority>0.6</priority></url>
+  <url><loc>https://csearch.org/bills/sjres/</loc><priority>0.6</priority></url>
+  <url><loc>https://csearch.org/bills/hconres/</loc><priority>0.6</priority></url>
+  <url><loc>https://csearch.org/bills/sconres/</loc><priority>0.6</priority></url>
+  <url><loc>https://csearch.org/votes/</loc><priority>0.8</priority></url>
+  <url><loc>https://csearch.org/committees/</loc><priority>0.7</priority></url>
+  <url><loc>https://csearch.org/explore/</loc><priority>0.7</priority></url>
+  <url><loc>https://csearch.org/representatives/</loc><priority>0.7</priority></url>
+</urlset>

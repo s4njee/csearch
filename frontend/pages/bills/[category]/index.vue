@@ -5,7 +5,7 @@ import type { BillRecord, CommitteeRecord } from '~/types/congress'
 const route = useRoute()
 const router = useRouter()
 const { latestBills, semanticSearch, getCommittees } = useCongressApi()
-const { formatDate, summarizeText } = useFormatters()
+const { formatDate, summarizeText, formatNumber } = useFormatters()
 const { data: loadedCommittees } = await useAsyncData(
   'bill-committee-options',
   () => getCommittees(),
@@ -43,14 +43,6 @@ function formatSemanticScore(score: number | null | undefined) {
   return score.toFixed(2)
 }
 
-function semanticScoreLabel(score: number | null | undefined) {
-  if (score == null || Number.isNaN(score)) {
-    return ''
-  }
-
-  return 'loose semantic signal'
-}
-
 // Cosine similarity percentile thresholds chosen empirically:
 // top 20% of results (percentile <= 0.2) are treated as strong relevance,
 // top 50% (percentile <= 0.5) as moderate, and the rest as weak/loose.
@@ -63,17 +55,6 @@ function semanticRankLabel(index: number, total: number) {
   if (percentile <= 0.2) return 'strong semantic signal'
   if (percentile <= 0.5) return 'moderate semantic signal'
   return 'loose semantic signal'
-}
-
-function semanticRankTone(index: number, total: number) {
-  if (total <= 0) {
-    return ''
-  }
-
-  const percentile = (index + 1) / total
-  if (percentile <= 0.2) return 'similarity-badge--strong'
-  if (percentile <= 0.5) return 'similarity-badge--moderate'
-  return 'similarity-badge--loose'
 }
 
 function getQueryStringParam(value: unknown) {
@@ -257,9 +238,10 @@ const filteredBills = computed(() => {
   })
 })
 
+// Chamber is intentionally excluded: it always has a value (house/senate), so
+// counting it would make the facet count read "1 active" before any real filter.
 const activeFacetCount = computed(() => [
   selectedCongress.value !== '',
-  selectedChamber.value !== '',
   selectedStatus.value !== '',
   filterPolicyArea.value !== '',
   selectedSponsorParty.value !== '',
@@ -328,13 +310,6 @@ const headline = computed(() => {
     ? 'Bill search'
     : `Latest ${categoryLabel.value.toLowerCase()}`
 })
-
-const totalCosponsors = computed(() => {
-  return filteredBills.value.reduce((sum, bill) => sum + (bill.cosponsor_count || 0), 0)
-})
-
-const withSummaries = computed(() => filteredBills.value.filter(bill => bill.summary_text).length)
-const withPolicyArea = computed(() => filteredBills.value.filter(bill => bill.policy_area).length)
 
 function getBillRoute(code: string, query?: string, sort?: string) {
   return {
@@ -500,276 +475,300 @@ watch(
     })
   },
 )
+
+// ── Presentational helpers for Nuxt UI components ──
+// Nuxt UI's Select forbids an empty-string item value, so an "Any" sentinel
+// stands in for the no-filter state ('') used by the page logic.
+const ANY = '__any__'
+
+function anyModel(target: Ref<string>) {
+  return computed<string>({
+    get: () => (target.value === '' ? ANY : target.value),
+    set: (value) => { target.value = value === ANY ? '' : value },
+  })
+}
+
+const congressModel = anyModel(selectedCongress)
+const policyAreaModel = anyModel(filterPolicyArea)
+const statusModel = anyModel(selectedStatus)
+const partyModel = anyModel(selectedSponsorParty)
+const committeeModel = anyModel(selectedCommittee)
+const monthModel = anyModel(filterMonth)
+
+const congressItems = computed(() => [
+  { label: 'Any congress', value: ANY },
+  ...availableCongresses.value.map(c => ({ label: c, value: c })),
+])
+const chamberItems = [
+  { label: 'Any', value: ANY },
+  { label: 'House', value: 'house' },
+  { label: 'Senate', value: 'senate' },
+]
+const billTypeItems = computed(() =>
+  availableBillTypeGroups.value.flatMap(group =>
+    group.options.map(option => ({ label: option.shortLabel, value: option.code })),
+  ),
+)
+const policyAreaItems = computed(() => [
+  { label: 'All topics', value: ANY },
+  ...availablePolicyAreas.value.map(area => ({ label: area, value: area })),
+])
+const statusItems = computed(() => [
+  { label: 'Any status', value: ANY },
+  ...availableStatuses.value.map(status => ({ label: formatStatusLabel(status), value: status })),
+])
+const partyItems = computed(() => [
+  { label: 'Any party', value: ANY },
+  ...availableParties.value.map(party => ({ label: party, value: party })),
+])
+const committeeItems = computed(() => [
+  { label: 'Any committee', value: ANY },
+  ...availableCommittees.value.map(committee => ({
+    label: committee.committee_name || committee.committee_code,
+    value: committee.committee_code,
+  })),
+])
+const monthItems = computed(() => [
+  { label: 'Any month', value: ANY },
+  ...availableMonths.value.map(month => ({ label: formatMonthLabel(month), value: month })),
+])
+const sortItems = BILL_FILTER_OPTIONS.map(option => ({ label: option.label, value: option.value }))
+
+function onSortChange(value: string) {
+  router.replace(getBillRoute(selectedCategory.value, searchQuery.value || undefined, value))
+}
+
+// Reset every optional facet (chamber/bill type/sort are navigation, left alone).
+function clearFilters() {
+  selectedCongress.value = ''
+  filterPolicyArea.value = ''
+  selectedStatus.value = ''
+  selectedSponsorParty.value = ''
+  selectedCommittee.value = ''
+  filterMonth.value = ''
+  filterMinCosponsors.value = ''
+}
+
+// Map the semantic relevance tone to a Nuxt UI badge color.
+function semanticBadgeColor(index: number, total: number): 'success' | 'info' | 'error' | 'neutral' {
+  if (total <= 0) return 'neutral'
+  const percentile = (index + 1) / total
+  if (percentile <= 0.2) return 'success'
+  if (percentile <= 0.5) return 'info'
+  return 'error'
+}
+
+usePageSeo({
+  title: () => headline.value,
+  description: () => (searchQuery.value
+    ? `Semantic search results for "${searchQuery.value}" across U.S. Congress legislation.`
+    : `Browse the latest ${categoryLabel.value.toLowerCase()} in the U.S. Congress.`),
+})
 </script>
 
 <template>
-  <main class="page page--wide">
-    <section class="surface">
-      <div class="toolbar">
+  <UContainer class="space-y-8">
+    <UCard>
+      <div class="space-y-6">
         <div>
-          <p class="eyebrow">Bill routes</p>
-          <h1>{{ headline }}</h1>
-          <p class="lede">{{ searchQuery ? 'Ranked by semantic similarity across all congresses.' : 'Browse or search legislation by type.' }}</p>
+          <p class="text-xs font-medium uppercase tracking-[0.2em] text-primary">Bill routes</p>
+          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">{{ headline }}</h1>
+          <p class="mt-1 text-muted">{{ searchQuery ? 'Ranked by semantic similarity across all congresses.' : 'Browse or search legislation by type.' }}</p>
         </div>
+
+        <form class="flex flex-col gap-3 sm:flex-row sm:items-end" @submit.prevent="submitSearch">
+          <UFormField :label="`Search within ${categoryMeta.longLabel.toLowerCase()}`" class="flex-1">
+            <UInput
+              v-model="draftQuery"
+              type="search"
+              icon="i-lucide-search"
+              placeholder="Search titles, summaries, or legislative phrases"
+              class="w-full"
+            />
+          </UFormField>
+          <UButton type="submit" color="primary" variant="subtle" size="lg" class="justify-center">
+            {{ draftQuery.trim() ? 'Run bill search' : 'Load latest bills' }}
+          </UButton>
+        </form>
+
+        <UCollapsible>
+          <UButton
+            color="neutral"
+            variant="outline"
+            block
+            trailing-icon="i-lucide-chevron-down"
+            class="justify-between"
+          >
+            <span>Refine results</span>
+            <span class="text-muted">{{ activeFacetCount ? `(${activeFacetCount} active)` : 'Optional filters' }}</span>
+          </UButton>
+
+          <template #content>
+            <div class="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+              <UFormField label="Congress">
+                <USelect v-model="congressModel" :items="congressItems" class="w-full" />
+              </UFormField>
+
+              <UFormField label="Chamber">
+                <USelect
+                  :model-value="searchQuery ? ANY : selectedChamber"
+                  :items="chamberItems"
+                  :disabled="Boolean(searchQuery)"
+                  class="w-full"
+                  @update:model-value="navigateBillChamber(($event === ANY ? '' : $event) as 'house' | 'senate')"
+                />
+              </UFormField>
+
+              <UFormField label="Bill type">
+                <USelect
+                  :model-value="selectedCategory"
+                  :items="billTypeItems"
+                  class="w-full"
+                  @update:model-value="navigateBillType($event as string)"
+                />
+              </UFormField>
+
+              <UFormField label="Policy area">
+                <USelect v-model="policyAreaModel" :items="policyAreaItems" class="w-full" />
+              </UFormField>
+
+              <UFormField label="Status">
+                <USelect v-model="statusModel" :items="statusItems" class="w-full" />
+              </UFormField>
+
+              <UFormField label="Sponsor party">
+                <USelect v-model="partyModel" :items="partyItems" class="w-full" />
+              </UFormField>
+
+              <UFormField label="Committee" class="sm:col-span-2">
+                <USelectMenu
+                  v-model="committeeModel"
+                  :items="committeeItems"
+                  value-key="value"
+                  class="w-full"
+                />
+              </UFormField>
+
+              <UFormField label="Sort mode">
+                <USelect
+                  :model-value="selectedSort"
+                  :items="sortItems"
+                  class="w-full"
+                  @update:model-value="onSortChange($event as string)"
+                />
+              </UFormField>
+
+              <UFormField label="Introduced month">
+                <USelect v-model="monthModel" :items="monthItems" class="w-full" />
+              </UFormField>
+
+              <UFormField label="Min cosponsors">
+                <UInput v-model.number="filterMinCosponsors" type="number" :min="0" placeholder="e.g. 5" class="w-full" />
+              </UFormField>
+            </div>
+
+            <div v-if="activeFacetCount" class="flex justify-end pt-4">
+              <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-x" @click="clearFilters">
+                Clear filters
+              </UButton>
+            </div>
+          </template>
+        </UCollapsible>
       </div>
+    </UCard>
 
-      <div class="control-grid control-grid--selectors">
-        <label class="field field--compact">
-          <span>Congress</span>
-          <select v-model="selectedCongress" class="field-input">
-            <option value="">Any congress</option>
-            <option v-for="congress in availableCongresses" :key="congress" :value="congress">
-              {{ congress }}
-            </option>
-          </select>
-        </label>
+    <UAlert v-if="errorMessage" color="error" variant="subtle" icon="i-lucide-circle-alert" :description="errorMessage" />
 
-        <label class="field field--compact">
-          <span>Chamber</span>
-          <select
-            :value="searchQuery ? '' : selectedChamber"
-            class="field-input"
-            :disabled="Boolean(searchQuery)"
-            @change="navigateBillChamber(($event.target as HTMLSelectElement).value as 'house' | 'senate')"
-          >
-            <option value="">Any</option>
-            <option value="house">House</option>
-            <option value="senate">Senate</option>
-          </select>
-        </label>
-
-        <label class="field field--compact">
-          <span>Bill type</span>
-          <select
-            :value="selectedCategory"
-            class="field-input"
-            @change="navigateBillType(($event.target as HTMLSelectElement).value)"
-          >
-            <optgroup
-              v-for="group in availableBillTypeGroups"
-              :key="group.label"
-              :label="group.label"
-            >
-              <option v-for="option in group.options" :key="option.code" :value="option.code">
-                {{ option.shortLabel }}
-              </option>
-            </optgroup>
-          </select>
-        </label>
-
-        <label class="field field--compact">
-          <span>Policy area</span>
-          <select v-model="filterPolicyArea" class="field-input">
-            <option value="">All topics</option>
-            <option v-for="area in availablePolicyAreas" :key="area" :value="area">{{ area }}</option>
-          </select>
-        </label>
-
-        <label class="field field--compact">
-          <span>Status</span>
-          <select v-model="selectedStatus" class="field-input">
-            <option value="">Any status</option>
-            <option v-for="status in availableStatuses" :key="status" :value="status">
-              {{ formatStatusLabel(status) }}
-            </option>
-          </select>
-        </label>
-
-        <label class="field field--compact">
-          <span>Sponsor party</span>
-          <select v-model="selectedSponsorParty" class="field-input">
-            <option value="">Any party</option>
-            <option v-for="party in availableParties" :key="party" :value="party">{{ party }}</option>
-          </select>
-        </label>
-
-        <label class="field field--compact">
-          <span>Committee</span>
-          <select v-model="selectedCommittee" class="field-input">
-            <option value="">Any committee</option>
-            <option v-for="committee in availableCommittees" :key="committee.committee_code" :value="committee.committee_code">
-              {{ committee.committee_name || committee.committee_code }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <form class="control-grid control-grid--search" @submit.prevent="submitSearch">
-        <label class="field field--full">
-          <span>Search within {{ categoryMeta.longLabel.toLowerCase() }}</span>
-          <input
-            v-model="draftQuery"
-            class="field-input"
-            type="search"
-            placeholder="Search titles, summaries, or legislative phrases"
-          >
-        </label>
-        <button class="button button--primary" type="submit">
-          {{ draftQuery.trim() ? 'Run bill search' : 'Load latest bills' }}
-        </button>
-      </form>
-
-      <details class="facet-panel">
-        <summary class="facet-panel__summary">
-          <span>Refine results</span>
-          <span class="facet-panel__meta">
-            <span v-if="activeFacetCount">({{ activeFacetCount }} active)</span>
-            <span v-else>Optional filters</span>
-          </span>
-        </summary>
-
-        <div class="facet-panel__body">
-        <label class="field">
-          <span>Sort mode</span>
-            <select
-              :value="selectedSort"
-              class="field-input"
-              @change="router.replace(getBillRoute(selectedCategory, searchQuery || undefined, ($event.target as HTMLSelectElement).value))"
-            >
-              <option v-for="option in BILL_FILTER_OPTIONS" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span>Introduced month</span>
-            <select v-model="filterMonth" class="field-input">
-              <option value="">Any month</option>
-              <option v-for="month in availableMonths" :key="month" :value="month">{{ formatMonthLabel(month) }}</option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span>Min cosponsors</span>
-            <input v-model.number="filterMinCosponsors" class="field-input" type="number" placeholder="e.g. 5" min="0">
-          </label>
-        </div>
-      </details>
-
-    </section>
-
-    <section class="summary-strip">
-      <article class="summary-tile">
-        <span>Rows</span>
-        <strong>{{ filteredBills.length }}</strong>
-      </article>
-      <article class="summary-tile">
-        <span>Showing</span>
-        <strong>{{ (currentPage - 1) * PAGE_SIZE + 1 }}–{{ Math.min(currentPage * PAGE_SIZE, sortedBills.length) }}</strong>
-      </article>
-      <article class="summary-tile summary-tile--action" @click="sortDesc = !sortDesc">
-        <span>Order</span>
-        <strong>{{ sortDesc ? '↓ Newest first' : '↑ Oldest first' }}</strong>
-      </article>
-      <article class="summary-tile">
-        <span>With summaries</span>
-        <strong>{{ withSummaries }}</strong>
-      </article>
-      <article class="summary-tile">
-        <span>Total cosponsors</span>
-        <strong>{{ totalCosponsors }}</strong>
-      </article>
-      <article class="summary-tile">
-        <span>With policy area</span>
-        <strong>{{ withPolicyArea }}</strong>
-      </article>
-    </section>
-
-    <section v-if="errorMessage" class="surface surface--error">
-      {{ errorMessage }}
-    </section>
-
-    <section v-else-if="loading" class="surface">
-      <div class="load-status">
-        <div class="load-status__row">
+    <UCard v-else-if="loading">
+      <div class="space-y-3">
+        <div class="flex items-center justify-between text-sm">
           <span>Loading bills</span>
-          <span>{{ loadProgress }}%</span>
+          <span class="text-muted">{{ loadProgress }}%</span>
         </div>
-        <div class="load-status__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="loadProgress">
-          <div class="load-status__bar-fill" :style="{ width: `${loadProgress}%` }" />
-        </div>
-        <p class="load-status__meta">
-          Downloaded {{ formatByteCount(loadBytes) }}
-        </p>
+        <UProgress v-model="loadProgress" :max="100" />
+        <p class="text-sm text-muted">Downloaded {{ formatByteCount(loadBytes) }}</p>
       </div>
-    </section>
+    </UCard>
 
-    <section v-else-if="!bills.length" class="surface">
-      No bills matched this route and parameter set.
-    </section>
+    <UCard v-else-if="!bills.length">
+      <p class="text-muted">No bills matched this route and parameter set.</p>
+    </UCard>
 
-    <section v-else class="result-grid">
-      <article v-for="(bill, index) in pagedBills" :key="bill.billid" class="result-card">
-        <div class="result-card__header">
+    <div v-else class="space-y-4">
+      <p class="text-sm text-muted">
+        {{ formatNumber(filteredBills.length) }} {{ filteredBills.length === 1 ? 'result' : 'results' }}
+      </p>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <UCard v-for="(bill, index) in pagedBills" :key="bill.billid">
+        <div class="space-y-4">
           <div>
-            <p class="result-card__meta">
-              {{ bill.billtype.toUpperCase() }} {{ bill.billnumber || '—' }} · Congress {{ bill.congress || '—' }}
-              <span
+            <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.15em] text-primary">
+              <span>{{ bill.billtype.toUpperCase() }} {{ bill.billnumber || '—' }} · Congress {{ bill.congress || '—' }}</span>
+              <UBadge
                 v-if="bill.similarity != null"
-                class="similarity-badge"
-                :class="semanticRankTone((currentPage - 1) * PAGE_SIZE + index, sortedBills.length)"
+                :color="semanticBadgeColor((currentPage - 1) * PAGE_SIZE + index, sortedBills.length)"
+                variant="subtle"
+                size="sm"
               >
-                semantic score {{ formatSemanticScore(bill.similarity) }}
-                <span class="similarity-badge__hint">
-                  · {{ semanticRankLabel((currentPage - 1) * PAGE_SIZE + index, sortedBills.length) }}
-                </span>
-              </span>
-            </p>
-            <NuxtLink :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`" class="link-plain">
-              <h2>{{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}</h2>
+                {{ formatSemanticScore(bill.similarity) }} · {{ semanticRankLabel((currentPage - 1) * PAGE_SIZE + index, sortedBills.length) }}
+              </UBadge>
+            </div>
+            <NuxtLink
+              :to="`/bills/${bill.billtype}/${bill.congress}/${bill.billnumber}`"
+              class="mt-2 block text-lg font-medium text-highlighted transition-colors hover:text-primary"
+            >
+              {{ bill.shorttitle || bill.officialtitle || 'Untitled bill' }}
             </NuxtLink>
           </div>
+
+          <p class="text-sm text-muted">
+            {{ summarizeText(bill.summary_text || bill.officialtitle || bill.shorttitle, 260) }}
+          </p>
+
+          <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Introduced</dt>
+              <dd class="mt-0.5">{{ formatDate(bill.introducedat) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Status</dt>
+              <dd class="mt-0.5">{{ formatDate(bill.statusat) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Sponsor</dt>
+              <dd class="mt-0.5">
+                {{ bill.sponsor_name || '—' }}
+                <span v-if="bill.sponsor_party" class="text-muted">({{ bill.sponsor_party }})</span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">State</dt>
+              <dd class="mt-0.5">{{ bill.sponsor_state || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Cosponsors</dt>
+              <dd class="mt-0.5">{{ formatNumber(bill.cosponsor_count || 0) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Last action</dt>
+              <dd class="mt-0.5">{{ formatDate(bill.latest_action_date) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Policy area</dt>
+              <dd class="mt-0.5">{{ bill.policy_area || '—' }}</dd>
+            </div>
+          </dl>
         </div>
+      </UCard>
+      </div>
+    </div>
 
-        <p class="result-card__summary">
-          {{ summarizeText(bill.summary_text || bill.officialtitle || bill.shorttitle, 260) }}
-        </p>
-
-        <dl class="detail-grid">
-          <div>
-            <dt>Introduced</dt>
-            <dd>{{ formatDate(bill.introducedat) }}</dd>
-          </div>
-          <div>
-            <dt>Status</dt>
-            <dd>{{ formatDate(bill.statusat) }}</dd>
-          </div>
-          <div>
-            <dt>Sponsor</dt>
-            <dd>
-              {{ bill.sponsor_name || '—' }}
-              <span v-if="bill.sponsor_party">({{ bill.sponsor_party }})</span>
-            </dd>
-          </div>
-          <div>
-            <dt>State</dt>
-            <dd>{{ bill.sponsor_state || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Cosponsors</dt>
-            <dd>{{ bill.cosponsor_count || 0 }}</dd>
-          </div>
-          <div>
-            <dt>Last action</dt>
-            <dd>{{ formatDate(bill.latest_action_date) }}</dd>
-          </div>
-          <div>
-            <dt>Policy area</dt>
-            <dd>{{ bill.policy_area || '—' }}</dd>
-          </div>
-        </dl>
-      </article>
-    </section>
-
-    <nav v-if="totalPages > 1" class="pagination">
-      <button class="pagination__btn" :disabled="currentPage === 1" @click="currentPage--">
-        ← Prev
-      </button>
-      <span class="pagination__info">Page {{ currentPage }} of {{ totalPages }}</span>
-      <button class="pagination__btn" :disabled="currentPage === totalPages" @click="currentPage++">
-        Next →
-      </button>
-    </nav>
-  </main>
+    <div v-if="totalPages > 1" class="flex justify-center">
+      <UPagination
+        v-model:page="currentPage"
+        :total="sortedBills.length"
+        :items-per-page="PAGE_SIZE"
+      />
+    </div>
+  </UContainer>
 </template>

@@ -26,168 +26,94 @@ const houseMembers = computed<RepresentativeRecord[]>(() => {
 
 const notFound = computed(() => !pending.value && zip.value && !senators.value.length && !houseMembers.value.length)
 
-function partyLabel(party: string | null | undefined) {
-  if (!party) return ''
-  if (party === 'D') return 'Democrat'
-  if (party === 'R') return 'Republican'
-  if (party === 'I') return 'Independent'
-  return party
-}
+const { partyLabel, partyColor } = useFormatters()
 
-function partyClass(party: string | null | undefined) {
-  if (party === 'D') return 'party--dem'
-  if (party === 'R') return 'party--rep'
-  return 'party--ind'
-}
+usePageSeo({
+  title: () => (zip.value ? `Representatives for ${zip.value}` : 'Representatives'),
+  description: 'Find your U.S. senators and House representative by ZIP code.',
+})
 </script>
 
 <template>
-  <main class="page">
-    <section class="surface">
-      <div class="section-title">
-        <h1>Who represents you?</h1>
-        <p>{{ zip ? `Showing results for ZIP ${zip}` : 'Enter a ZIP code to find your congressional representatives.' }}</p>
-      </div>
-
-      <form class="lookup-form representatives-lookup" action="/representatives" method="get">
-        <input
-          class="field-input"
-          type="text"
-          name="zip"
-          inputmode="numeric"
-          autocomplete="postal-code"
-          pattern="[0-9]{5}"
-          maxlength="5"
-          placeholder="90210"
-          :value="zip"
-          aria-label="ZIP code"
-        >
-        <button class="button button--primary" type="submit">
-          Find reps
-        </button>
-      </form>
-
-      <div v-if="pending" class="empty-note representatives-note">
-        Looking up representatives…
-      </div>
-
-      <div v-else-if="error" class="empty-note representatives-note">
-        {{ (error as any)?.data?.error ?? 'Something went wrong. Please try again.' }}
-      </div>
-
-      <div v-else-if="notFound" class="empty-note representatives-note">
-        No representatives found for ZIP {{ zip }}. Try a different ZIP code.
-      </div>
-
-      <div v-else-if="zip && data" class="reps-results">
-        <div class="reps-col">
-          <h2 class="reps-col-title">Senators</h2>
-          <p v-if="!senators.length" class="empty-note">No senators found.</p>
-          <ul v-else class="reps-list">
-            <li v-for="rep in senators" :key="rep.bioguide_id" class="rep-card">
-              <NuxtLink :to="`/members/${rep.bioguide_id}`" class="rep-name">{{ rep.name }}</NuxtLink>
-              <div class="rep-meta">
-                <span :class="['rep-party', partyClass(rep.party)]">{{ partyLabel(rep.party) }}</span>
-                <span class="rep-state">{{ rep.state }}</span>
-              </div>
-            </li>
-          </ul>
+  <UContainer class="space-y-8">
+    <UCard>
+      <div class="space-y-5">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-[0.2em] text-primary">Representatives</p>
+          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">Who represents you?</h1>
+          <p class="mt-1 text-muted">{{ zip ? `Showing results for ZIP ${zip}` : 'Enter a ZIP code to find your congressional representatives.' }}</p>
         </div>
 
-        <div class="reps-col">
-          <h2 class="reps-col-title">House Members</h2>
-          <p v-if="!houseMembers.length" class="empty-note">No house members found.</p>
-          <ul v-else class="reps-list">
-            <li v-for="rep in houseMembers" :key="rep.bioguide_id" class="rep-card">
-              <NuxtLink :to="`/members/${rep.bioguide_id}`" class="rep-name">{{ rep.name }}</NuxtLink>
-              <div class="rep-meta">
-                <span :class="['rep-party', partyClass(rep.party)]">{{ partyLabel(rep.party) }}</span>
-                <span class="rep-state">{{ rep.state }}</span>
-              </div>
-            </li>
-          </ul>
-        </div>
+        <form class="flex max-w-md flex-col gap-3 sm:flex-row sm:items-end" action="/representatives" method="get">
+          <UFormField label="ZIP code" class="flex-1">
+            <UInput
+              name="zip"
+              inputmode="numeric"
+              autocomplete="postal-code"
+              pattern="[0-9]{5}"
+              maxlength="5"
+              placeholder="90210"
+              :default-value="zip"
+              class="w-full"
+            />
+          </UFormField>
+          <UButton type="submit" color="primary" variant="subtle" size="lg" class="justify-center">Find reps</UButton>
+        </form>
       </div>
+    </UCard>
 
-      <p v-else class="empty-note representatives-note">
-        District matches will appear here.
-      </p>
-    </section>
-  </main>
+    <div v-if="pending" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <SkeletonCard v-for="n in 2" :key="n" :rows="2" />
+    </div>
+
+    <UAlert
+      v-else-if="error"
+      color="error"
+      variant="subtle"
+      icon="i-lucide-circle-alert"
+      :description="(error as any)?.data?.error ?? 'Something went wrong. Please try again.'"
+    />
+
+    <UCard v-else-if="notFound">
+      <p class="text-muted">No representatives found for ZIP {{ zip }}. Try a different ZIP code.</p>
+    </UCard>
+
+    <div v-else-if="zip && data" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <UCard>
+        <template #header>
+          <h2 class="text-lg font-medium text-highlighted">Senators</h2>
+        </template>
+        <p v-if="!senators.length" class="text-muted">No senators found.</p>
+        <ul v-else class="flex flex-col gap-3">
+          <li v-for="rep in senators" :key="rep.bioguide_id" class="border border-default p-4">
+            <NuxtLink :to="`/members/${rep.bioguide_id}`" class="font-medium text-highlighted transition-colors hover:text-primary">{{ rep.name }}</NuxtLink>
+            <div class="mt-1 flex items-center gap-3 text-sm">
+              <span class="font-medium" :style="{ color: partyColor(rep.party) }">{{ partyLabel(rep.party) }}</span>
+              <span class="text-muted">{{ rep.state }}</span>
+            </div>
+          </li>
+        </ul>
+      </UCard>
+
+      <UCard>
+        <template #header>
+          <h2 class="text-lg font-medium text-highlighted">House Members</h2>
+        </template>
+        <p v-if="!houseMembers.length" class="text-muted">No house members found.</p>
+        <ul v-else class="flex flex-col gap-3">
+          <li v-for="rep in houseMembers" :key="rep.bioguide_id" class="border border-default p-4">
+            <NuxtLink :to="`/members/${rep.bioguide_id}`" class="font-medium text-highlighted transition-colors hover:text-primary">{{ rep.name }}</NuxtLink>
+            <div class="mt-1 flex items-center gap-3 text-sm">
+              <span class="font-medium" :style="{ color: partyColor(rep.party) }">{{ partyLabel(rep.party) }}</span>
+              <span class="text-muted">{{ rep.state }}</span>
+            </div>
+          </li>
+        </ul>
+      </UCard>
+    </div>
+
+    <UCard v-else>
+      <p class="text-muted">District matches will appear here.</p>
+    </UCard>
+  </UContainer>
 </template>
-
-<style scoped>
-.representatives-lookup {
-  margin-top: 1.25rem;
-  max-width: 36rem;
-}
-
-.representatives-note {
-  margin-top: 1.25rem;
-}
-
-.reps-results {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-@media (max-width: 640px) {
-  .reps-results {
-    grid-template-columns: 1fr;
-  }
-}
-
-.reps-col-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.6;
-}
-
-.reps-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.rep-card {
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.rep-name {
-  font-weight: 600;
-  text-decoration: none;
-  color: inherit;
-}
-
-.rep-name:hover {
-  text-decoration: underline;
-}
-
-.rep-meta {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  opacity: 0.75;
-}
-
-.rep-party {
-  font-weight: 500;
-}
-
-.party--dem { color: #3b82f6; }
-.party--rep { color: #ef4444; }
-.party--ind { color: #8b5cf6; }
-</style>

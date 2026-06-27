@@ -3,6 +3,13 @@ export default defineNuxtConfig({
     compatibilityDate: '2024-11-01',
     srcDir: '.',
     devtools: {enabled: true},
+    modules: ['@nuxt/ui'],
+    // The UI is designed dark-first; lock the color mode so the green/square
+    // theme renders consistently regardless of OS preference.
+    colorMode: {
+        preference: 'dark',
+        fallback: 'dark',
+    },
     // app: {
     //     cdnURL: 'https://csearch.org/'
     // },
@@ -32,19 +39,26 @@ export default defineNuxtConfig({
             ],
         },
     },
+    // Dev-only: allow access via any hostname (LAN name, tunnels, etc.) without
+    // the dev server rejecting it. Reaching the server by IP (127.0.0.1, LAN IP)
+    // additionally requires the `--host` flag on the `dev` script, which binds
+    // all interfaces. No effect on the production build / SSG output.
+    vite: {
+        server: {
+            allowedHosts: true,
+        },
+    },
     runtimeConfig: {
         public: {
             // This provides a server-side/default API origin for local dev and static generation.
             API_SERVER: process.env.NUXT_API_SERVER || 'https://api.csearch.org',
         }
     },
-    postcss: {
-        plugins: {
-            tailwindcss: {},
-            autoprefixer: {},
-        },
-    },
     routeRules: {
+        // No landing page — send the root straight to the default bills list.
+        '/': {
+            redirect: '/bills/hr'
+        },
         '/api/**': {
             proxy: process.env.PROXY_API || 'http://localhost:3000/**'
         }
@@ -76,8 +90,10 @@ export default defineNuxtConfig({
             // ──────────────────────────────────────────────────────────────────────
             crawlLinks: false,
             routes: [
-                // Public landing + top-level lists (SSG — crawlable)
+                // Root: prerendered so the `/` → `/bills/hr` redirect (routeRules)
+                // is emitted as a static stub for any host.
                 '/',
+                // Top-level lists (SSG — crawlable).
                 '/votes',
                 '/explore',
                 '/representatives',

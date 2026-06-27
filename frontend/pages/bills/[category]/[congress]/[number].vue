@@ -15,6 +15,7 @@ const {
   data: bill,
   pending: loading,
   error: fetchError,
+  refresh,
 } = await useAsyncData<BillDetail>(
   `bill-${billtype}-${congress}-${billnumber}`,
   () => getBill(billtype, congress, billnumber),
@@ -27,305 +28,217 @@ const errorMessage = computed(() =>
     : '',
 )
 
-const { formatDate, formatChamber, partyLabel, voteResultClass } = useFormatters()
+const { formatDate, formatChamber, partyLabel, voteResultColor } = useFormatters()
 
 function hasBioguideId(value?: string | null) {
   return typeof value === 'string' && /^[A-Z0-9]+$/i.test(value)
 }
+
+const billCode = computed(() => `${(categoryMeta.value?.shortLabel ?? billtype).toUpperCase()} ${billnumber}`)
+
+usePageSeo({
+  title: () => (bill.value
+    ? (bill.value.shorttitle || bill.value.officialtitle || billCode.value)
+    : billCode.value),
+  description: () => (bill.value?.summary_text
+    ? bill.value.summary_text.slice(0, 200)
+    : `Sponsors, action history, cosponsors, and floor votes for ${billCode.value}, Congress ${congress}.`),
+})
 </script>
 
 <template>
-  <main class="page page--wide">
-    <section v-if="loading" class="surface">
-      Loading bill...
-    </section>
+  <UContainer class="space-y-8">
+    <SkeletonCard v-if="loading" :rows="6" />
 
-    <section v-else-if="errorMessage" class="surface surface--error">
-      {{ errorMessage }}
-    </section>
+    <div v-else-if="errorMessage" class="space-y-3">
+      <UAlert color="error" variant="subtle" icon="i-lucide-circle-alert" :description="errorMessage" />
+      <UButton color="neutral" variant="outline" icon="i-lucide-refresh-cw" @click="refresh()">Try again</UButton>
+    </div>
 
     <template v-else-if="bill">
       <!-- HEADER -->
-      <section class="surface">
-        <div class="toolbar">
+      <UCard>
+        <div class="space-y-5">
           <div>
-            <p class="eyebrow">
-              <NuxtLink :to="`/bills/${billtype}`">
+            <p class="text-xs uppercase tracking-[0.15em] text-muted">
+              <NuxtLink :to="`/bills/${billtype}`" class="text-primary transition-colors hover:text-primary/80">
                 ← {{ categoryMeta?.longLabel ?? billtype.toUpperCase() }}
               </NuxtLink>
               · Congress {{ congress }}
             </p>
-            <h1>{{ bill.shorttitle || bill.officialtitle || `${(categoryMeta?.shortLabel ?? billtype).toUpperCase()} ${billnumber}` }}</h1>
-            <p v-if="bill.officialtitle && bill.shorttitle" class="lede">
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">
+              {{ bill.shorttitle || bill.officialtitle || `${(categoryMeta?.shortLabel ?? billtype).toUpperCase()} ${billnumber}` }}
+            </h1>
+            <p v-if="bill.officialtitle && bill.shorttitle" class="mt-2 text-muted">
               {{ bill.officialtitle }}
             </p>
           </div>
 
+          <dl class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Bill</dt>
+              <dd class="mt-0.5">{{ categoryMeta?.shortLabel ?? billtype }} {{ billnumber }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Congress</dt>
+              <dd class="mt-0.5">{{ congress }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Introduced</dt>
+              <dd class="mt-0.5">{{ formatDate(bill.introducedat) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Status date</dt>
+              <dd class="mt-0.5">{{ formatDate(bill.statusat) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Last action</dt>
+              <dd class="mt-0.5">{{ formatDate(bill.latest_action_date) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Origin chamber</dt>
+              <dd class="mt-0.5">{{ bill.origin_chamber || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Policy area</dt>
+              <dd class="mt-0.5">{{ bill.policy_area || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Sponsor</dt>
+              <dd class="mt-0.5">
+                <NuxtLink v-if="bill.sponsor_bioguide_id" :to="`/members/${bill.sponsor_bioguide_id}`" class="transition-colors hover:text-primary">
+                  {{ bill.sponsor_name }}
+                </NuxtLink>
+                <template v-else>{{ bill.sponsor_name || '—' }}</template>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Party</dt>
+              <dd class="mt-0.5">{{ partyLabel(bill.sponsor_party) || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">State</dt>
+              <dd class="mt-0.5">{{ bill.sponsor_state || '—' }}</dd>
+            </div>
+            <div v-if="bill.committees && bill.committees.length" class="col-span-2">
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Committees</dt>
+              <dd class="mt-0.5 flex flex-col gap-1">
+                <NuxtLink v-for="committee in bill.committees" :key="committee.committee_code" :to="`/committees/${committee.committee_code}`" class="transition-colors hover:text-primary">
+                  {{ committee.committee_name || committee.committee_code }}
+                </NuxtLink>
+              </dd>
+            </div>
+          </dl>
         </div>
-
-        <dl class="detail-grid detail-grid--wide">
-          <div>
-            <dt>Bill</dt>
-            <dd>{{ categoryMeta?.shortLabel ?? billtype }} {{ billnumber }}</dd>
-          </div>
-          <div>
-            <dt>Congress</dt>
-            <dd>{{ congress }}</dd>
-          </div>
-          <div>
-            <dt>Introduced</dt>
-            <dd>{{ formatDate(bill.introducedat) }}</dd>
-          </div>
-          <div>
-            <dt>Status date</dt>
-            <dd>{{ formatDate(bill.statusat) }}</dd>
-          </div>
-          <div>
-            <dt>Last action</dt>
-            <dd>{{ formatDate(bill.latest_action_date) }}</dd>
-          </div>
-          <div>
-            <dt>Origin chamber</dt>
-            <dd>{{ bill.origin_chamber || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Policy area</dt>
-            <dd>{{ bill.policy_area || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Sponsor</dt>
-            <dd>
-              <NuxtLink v-if="bill.sponsor_bioguide_id" :to="`/members/${bill.sponsor_bioguide_id}`" class="link-plain">
-                {{ bill.sponsor_name }}
-              </NuxtLink>
-              <template v-else>
-                {{ bill.sponsor_name || '—' }}
-              </template>
-            </dd>
-          </div>
-          <div>
-            <dt>Party</dt>
-            <dd>{{ partyLabel(bill.sponsor_party) || '—' }}</dd>
-          </div>
-          <div>
-            <dt>State</dt>
-            <dd>{{ bill.sponsor_state || '—' }}</dd>
-          </div>
-          <div v-if="bill.committees && bill.committees.length">
-            <dt>Committees</dt>
-            <dd style="display: flex; flex-direction: column; gap: 0.25rem;">
-              <NuxtLink v-for="committee in bill.committees" :key="committee.committee_code" :to="`/committees/${committee.committee_code}`" class="link-plain">
-                {{ committee.committee_name || committee.committee_code }}
-              </NuxtLink>
-            </dd>
-          </div>
-        </dl>
-      </section>
+      </UCard>
 
       <!-- SUMMARY -->
-      <section v-if="bill.summary_text" class="surface">
-        <div class="section-title">
-          <h2>Summary</h2>
-          <p v-if="bill.summary_date">As of {{ formatDate(bill.summary_date) }}</p>
-        </div>
-        <p class="bill-summary">
-          {{ bill.summary_text }}
-        </p>
-      </section>
+      <UCard v-if="bill.summary_text">
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">Summary</h2>
+            <p v-if="bill.summary_date" class="text-sm text-muted">As of {{ formatDate(bill.summary_date) }}</p>
+          </div>
+        </template>
+        <p class="whitespace-pre-wrap leading-relaxed">{{ bill.summary_text }}</p>
+      </UCard>
 
       <!-- ACTION HISTORY -->
-      <section class="surface">
-        <div class="section-title">
-          <h2>Action history</h2>
-          <p>{{ bill.actions.length }} recorded {{ bill.actions.length === 1 ? 'action' : 'actions' }}</p>
-        </div>
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">Action history</h2>
+            <p class="text-sm text-muted">{{ bill.actions.length }} recorded {{ bill.actions.length === 1 ? 'action' : 'actions' }}</p>
+          </div>
+        </template>
 
-        <div v-if="!bill.actions.length" class="empty-note">
-          No actions on record.
-        </div>
+        <p v-if="!bill.actions.length" class="text-muted">No actions on record.</p>
 
-        <ol v-else class="action-list">
-          <li v-for="(action, index) in bill.actions" :key="index" class="action-item">
-            <span class="action-item__date">{{ formatDate(action.acted_at) }}</span>
-            <div class="action-item__body">
-              <span class="action-item__text">{{ action.action_text || '—' }}</span>
-              <span v-if="action.action_type" class="action-item__type">{{ action.action_type }}</span>
+        <ol v-else class="flex flex-col">
+          <li
+            v-for="(action, index) in bill.actions"
+            :key="index"
+            class="grid grid-cols-[8rem_1fr] gap-4 border-b border-default py-3 text-sm last:border-b-0"
+          >
+            <span class="whitespace-nowrap text-muted">{{ formatDate(action.acted_at) }}</span>
+            <div class="flex flex-col gap-1">
+              <span>{{ action.action_text || '—' }}</span>
+              <span v-if="action.action_type" class="text-xs uppercase tracking-[0.06em] text-dimmed">{{ action.action_type }}</span>
             </div>
           </li>
         </ol>
-      </section>
+      </UCard>
 
       <!-- COSPONSORS -->
-      <section class="surface">
-        <div class="section-title">
-          <h2>Cosponsors</h2>
-          <p>{{ bill.cosponsors.length }} {{ bill.cosponsors.length === 1 ? 'cosponsor' : 'cosponsors' }}</p>
-        </div>
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">Cosponsors</h2>
+            <p class="text-sm text-muted">{{ bill.cosponsors.length }} {{ bill.cosponsors.length === 1 ? 'cosponsor' : 'cosponsors' }}</p>
+          </div>
+        </template>
 
-        <div v-if="!bill.cosponsors.length" class="empty-note">
-          No cosponsors on record.
-        </div>
+        <p v-if="!bill.cosponsors.length" class="text-muted">No cosponsors on record.</p>
 
-        <div v-else class="cosponsor-grid">
-          <article
+        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div
             v-for="cosponsor in bill.cosponsors"
             :key="cosponsor.bioguide_id || `${cosponsor.full_name || 'cosponsor'}-${cosponsor.sponsorship_date || 'unknown'}`"
-            class="cosponsor-card"
+            class="border border-default p-3 text-sm"
           >
             <NuxtLink
               v-if="hasBioguideId(cosponsor.bioguide_id)"
               :to="`/members/${cosponsor.bioguide_id}`"
-              class="cosponsor-card__name link-plain"
-              style="display: block;"
+              class="block font-medium transition-colors hover:text-primary"
             >
               {{ cosponsor.full_name || cosponsor.bioguide_id }}
             </NuxtLink>
-            <span v-else class="cosponsor-card__name" style="display: block;">
-              {{ cosponsor.full_name || 'Unknown cosponsor' }}
-            </span>
-            <div class="cosponsor-card__meta">
+            <span v-else class="block font-medium">{{ cosponsor.full_name || 'Unknown cosponsor' }}</span>
+            <div class="mt-1 flex items-center gap-2 text-xs text-muted">
               <span>{{ cosponsor.party || '?' }}</span>
               <span>{{ cosponsor.state || '?' }}</span>
-              <span v-if="cosponsor.is_original_cosponsor" class="badge">Original</span>
+              <UBadge v-if="cosponsor.is_original_cosponsor" color="primary" variant="outline" size="sm">Original</UBadge>
             </div>
-            <div class="cosponsor-card__date">
-              {{ formatDate(cosponsor.sponsorship_date) }}
-            </div>
-          </article>
+            <div class="mt-1 text-xs text-dimmed">{{ formatDate(cosponsor.sponsorship_date) }}</div>
+          </div>
         </div>
-      </section>
+      </UCard>
 
       <!-- FLOOR VOTES -->
-      <section class="surface">
-        <div class="section-title">
-          <h2>Floor votes</h2>
-          <p>{{ bill.votes.length }} recorded {{ bill.votes.length === 1 ? 'vote' : 'votes' }}</p>
-        </div>
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">Floor votes</h2>
+            <p class="text-sm text-muted">{{ bill.votes.length }} recorded {{ bill.votes.length === 1 ? 'vote' : 'votes' }}</p>
+          </div>
+        </template>
 
-        <div v-if="!bill.votes.length" class="empty-note">
-          No floor votes linked to this bill.
-        </div>
+        <p v-if="!bill.votes.length" class="text-muted">No floor votes linked to this bill.</p>
 
-        <div v-else class="result-grid">
-          <article v-for="vote in bill.votes" :key="vote.voteid" class="result-card">
-            <div class="result-card__header">
+        <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div v-for="vote in bill.votes" :key="vote.voteid" class="border border-default p-4">
+            <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="result-card__meta">
-                  {{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}
-                </p>
-                <h3>
-                  <NuxtLink :to="`/votes/${vote.voteid}`" class="link-plain">
-                    {{ vote.question || 'Vote' }}
-                  </NuxtLink>
-                </h3>
+                <p class="text-xs uppercase tracking-[0.1em] text-muted">{{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}</p>
+                <NuxtLink :to="`/votes/${vote.voteid}`" class="mt-1 block font-medium text-highlighted transition-colors hover:text-primary">
+                  {{ vote.question || 'Vote' }}
+                </NuxtLink>
               </div>
-              <span :class="voteResultClass(vote.result)">{{ vote.result || 'Unknown' }}</span>
+              <UBadge :color="voteResultColor(vote.result)" variant="subtle">{{ vote.result || 'Unknown' }}</UBadge>
             </div>
-            <dl class="detail-grid">
+            <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div>
-                <dt>Date</dt>
-                <dd>{{ formatDate(vote.votedate) }}</dd>
+                <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Date</dt>
+                <dd class="mt-0.5">{{ formatDate(vote.votedate) }}</dd>
               </div>
               <div>
-                <dt>Type</dt>
-                <dd>{{ vote.votetype || '—' }}</dd>
+                <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Type</dt>
+                <dd class="mt-0.5">{{ vote.votetype || '—' }}</dd>
               </div>
             </dl>
-          </article>
+          </div>
         </div>
-      </section>
+      </UCard>
     </template>
-  </main>
+  </UContainer>
 </template>
-
-<style scoped>
-.bill-summary {
-  line-height: 1.7;
-  white-space: pre-wrap;
-}
-
-.action-list {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.action-item {
-  display: grid;
-  grid-template-columns: 9rem 1fr;
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border-soft, #e5e7eb);
-}
-
-.action-item:last-child {
-  border-bottom: none;
-}
-
-.action-item__date {
-  color: var(--text-muted, #6b7280);
-  white-space: nowrap;
-  padding-top: 0.1rem;
-}
-
-.action-item__body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.action-item__type {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--accent-dim, #9ca3af);
-}
-
-.cosponsor-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
-}
-
-.cosponsor-card {
-  padding: 0.75rem;
-  border: 1px solid var(--border-soft, #e5e7eb);
-  border-radius: 4px;
-  font-size: 0.85rem;
-}
-
-.cosponsor-card__name {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.cosponsor-card__meta {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  color: var(--text-muted, #6b7280);
-  font-size: 0.78rem;
-}
-
-.cosponsor-card__date {
-  margin-top: 0.25rem;
-  color: var(--text-muted, #6b7280);
-  font-size: 0.75rem;
-}
-
-.badge {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.1rem 0.35rem;
-  border: 1px solid currentColor;
-  border-radius: 2px;
-}
-
-.detail-grid--wide {
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-}
-</style>
