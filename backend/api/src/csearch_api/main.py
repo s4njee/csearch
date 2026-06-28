@@ -37,8 +37,12 @@ logger = logging.getLogger("csearch-api")
 METRICS_GAUGE_TTL_SECONDS = 60
 
 API_DESCRIPTION = (
-    "Read API for CSearch — U.S. Congress bills, votes, members, committees, "
-    "representatives, prebuilt explore queries, and pgvector-backed semantic search."
+    "Public read API for CSearch — U.S. Congress bills, votes, members, committees, "
+    "representatives, prebuilt explore queries, and pgvector-backed hybrid semantic "
+    "search.\n\n"
+    "Open and CORS-enabled; no API key required. Endpoints are versioned under `/v1`. "
+    "Semantic search is rate-limited per client IP. An MCP server that wraps this API "
+    "for LLM agents lives in `backend/mcp`."
 )
 
 # Documented error shape, applied to every router so 4xx/5xx responses carry a
@@ -117,6 +121,8 @@ def create_app(settings: Settings | None = None, db: Database | None = None, cac
         title="CSearch API",
         version="0.1.0",
         description=API_DESCRIPTION,
+        servers=[{"url": "https://api.csearch.org", "description": "Production"}],
+        contact={"name": "CSearch", "url": "https://csearch.org"},
         lifespan=lifespan,
         openapi_tags=[
             {"name": "meta", "description": "Root, health, and data-freshness checks."},
