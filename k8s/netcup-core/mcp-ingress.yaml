@@ -1,0 +1,42 @@
+# Routes https://api.csearch.org/mcp -> csearch-mcp, reusing the existing
+# api.csearch.org TLS cert (no new DNS / cert needed). A Traefik rate-limit
+# middleware caps requests per source IP at the edge, since all in-cluster MCP
+# calls to the API share one source IP and the API's per-IP limit can't isolate
+# external MCP users.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: csearch-mcp-ratelimit
+  namespace: default
+spec:
+  rateLimit:
+    average: 50
+    burst: 100
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: csearch-mcp
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: default-csearch-mcp-ratelimit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - api.csearch.org
+      secretName: csearch-api-tls
+  rules:
+    - host: api.csearch.org
+      http:
+        paths:
+          # More specific than the API's "/" rule, so Traefik routes /mcp here.
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: csearch-mcp
+                port:
+                  number: 80
