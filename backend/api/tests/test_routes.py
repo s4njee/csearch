@@ -379,7 +379,8 @@ def test_semantic_search_returns_bill_metadata():
         "cosponsor_count": 12,
         "similarity": 0.98,
     }])
-    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    # Pin vector-only mode so the assertions below target the vector SQL path.
+    app = create_app(settings=Settings(openai_api_key="test-key", semantic_hybrid_enabled=False), db=db, cache=FakeCache())
     app.state.openai_client = FakeOpenAI(api_key="test-key")
     client = TestClient(app)
 
@@ -395,6 +396,76 @@ def test_semantic_search_returns_bill_metadata():
     assert db.last_args[4] == 50
     assert db.last_kwargs["timeout"] == 10.0
     assert db.last_kwargs["hnsw_ef_search"] == 500
+
+
+def test_semantic_search_hybrid_fuses_keyword_and_vector():
+    semantic._cb_failure_count = 0
+    semantic._cb_open_until = 0.0
+
+    class FakeEmbeddings:
+        async def create(self, model, input, dimensions):
+            return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = FakeEmbeddings()
+
+    # Vector arm returns hr1-119; keyword arm returns hr1-119 (overlap) + s2-119
+    # (keyword-only). s2-119 is then hydrated. RRF should rank hr1-119 first.
+    db = SequencedDB(
+        fetch_results=[
+            [{"bill_id": "hr1-119", "billtype": "hr", "billnumber": "1", "congress": "119",
+              "sponsor_name": "Alice", "similarity": 0.9}],
+            [{"billtype": "hr", "billnumber": "1", "congress": "119"},
+             {"billtype": "s", "billnumber": "2", "congress": "119"}],
+            [{"bill_id": "s2-119", "billtype": "s", "billnumber": "2", "congress": "119",
+              "sponsor_name": "Bob", "similarity": None}],
+        ],
+    )
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+
+    response = client.post("/search/semantic", json={"query": "clean drinking water"})
+    assert response.status_code == 200
+    body = response.json()
+    assert [b["bill_id"] for b in body] == ["hr1-119", "s2-119"]
+    assert body[0]["similarity"] == 0.9
+    assert body[0]["sponsor_name"] == "Alice"
+    assert body[1]["sponsor_name"] == "Bob"  # keyword-only bill was hydrated
+    assert body[1]["similarity"] is None
+
+
+def test_semantic_hybrid_degrades_to_keyword_when_embedding_fails():
+    semantic._cb_failure_count = 0
+    semantic._cb_open_until = 0.0
+
+    class ExplodingEmbeddings:
+        async def create(self, *args, **kwargs):
+            raise RuntimeError("openai down")
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = ExplodingEmbeddings()
+
+    # Embedding fails → no vector arm. Keyword arm returns hr1-119, then hydrate.
+    db = SequencedDB(
+        fetch_results=[
+            [{"billtype": "hr", "billnumber": "1", "congress": "119"}],
+            [{"bill_id": "hr1-119", "billtype": "hr", "billnumber": "1", "congress": "119",
+              "sponsor_name": "Alice", "similarity": None}],
+        ],
+    )
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+
+    response = client.post("/search/semantic", json={"query": "clean drinking water"})
+    assert response.status_code == 200
+    body = response.json()
+    # A list of keyword results, not the {degraded: true} object.
+    assert isinstance(body, list)
+    assert [b["bill_id"] for b in body] == ["hr1-119"]
 
 
 def test_semantic_warmup_reuses_cached_embedding():
