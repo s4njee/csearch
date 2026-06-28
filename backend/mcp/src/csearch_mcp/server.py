@@ -19,6 +19,7 @@ from typing import Any
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 API_BASE = os.environ.get("CSEARCH_API_BASE", "https://api.csearch.org").rstrip("/")
 SITE_BASE = os.environ.get("CSEARCH_SITE_BASE", "https://csearch.org").rstrip("/")
@@ -32,6 +33,13 @@ mcp = FastMCP(
         "about what Congress has done on a topic; use `get_bill` / `get_vote` to read "
         "a specific item in full. All results include csearch.org links for citation."
     ),
+    # This server is meant to run behind a reverse proxy (e.g. Traefik at
+    # api.csearch.org), which forwards a public Host header. FastMCP otherwise
+    # locks the streamable-HTTP transport to localhost Hosts (because it is
+    # constructed with the default host 127.0.0.1) and returns 421 Misdirected
+    # Request for any other Host. Disable that Host allowlisting; routing/exposure
+    # is controlled at the ingress.
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
 )
 
 _client: httpx.AsyncClient | None = None
