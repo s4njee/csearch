@@ -29,15 +29,12 @@ claude mcp add --transport http csearch https://api.csearch.org/mcp
 ```
 
 **Claude Desktop** — Settings → Connectors → **Add custom connector**, then paste
-`https://api.csearch.org/mcp`. (On plans without remote connectors, use the `mcp-remote`
-bridge shown for Codex below.)
+`https://api.csearch.org/mcp`.
 
-**Codex CLI** — add to `~/.codex/config.toml`:
+**Codex CLI**
 
-```toml
-[mcp_servers.csearch]
-command = "npx"
-args = ["-y", "mcp-remote", "https://api.csearch.org/mcp"]
+```bash
+codex mcp add csearch --url https://api.csearch.org/mcp
 ```
 
 Then just ask, e.g. *"Use csearch to find recent bills about offshore wind permitting and
