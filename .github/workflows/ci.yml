@@ -70,8 +70,12 @@ jobs:
       - name: Retrieval eval smoke (fixtures, no OpenAI)
         run: |
           pip install psycopg2-binary
+          # Vector-only and hybrid (RRF of keyword + vector) must both run clean
+          # against the fixtures so a regression in either retrieval path is caught.
           python backend/nlp/eval/run_eval.py --provider fake --only-fixtures \
             --mode vector --dsn "$PG_SMOKE_DSN"
+          python backend/nlp/eval/run_eval.py --provider fake --only-fixtures \
+            --mode hybrid --dsn "$PG_SMOKE_DSN"
 
   scraper:
     name: Scraper (Rust)

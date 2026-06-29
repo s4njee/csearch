@@ -16,9 +16,9 @@
 
 BEGIN;
 
-INSERT INTO schema_migrations (version, description)
-VALUES ('0007', 'embedding_model_index')
-ON CONFLICT (version) DO NOTHING;
+-- Version tracking is owned by db/migrate.py (it records each applied version
+-- in public.schema_migrations). Migrations must not self-record — that table
+-- has no "description" column, so the prior INSERT failed the whole migration.
 
 -- Index so WHERE model = $1 on nlp.bill_embeddings can filter before ANN.
 CREATE INDEX IF NOT EXISTS bill_embeddings_model_idx

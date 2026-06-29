@@ -23,8 +23,11 @@ flowchart LR
     redis[("Redis\ncsearch:* route cache")]
     api["FastAPI\napi.csearch.org"]
     worker["Cloudflare Worker\noptional GET API cache"]
+    aisummary["AI Summary Worker\nWorkers AI + KV cache"]
     frontend["Nuxt static frontend\ncsearch.org"]
     browser["Browser"]
+    mcp["MCP server\napi.csearch.org/mcp"]
+    agents["LLM agents (Claude, etc.)"]
 
     sources --> scraper
     scraper --> pg
@@ -37,6 +40,10 @@ flowchart LR
     frontend --> worker
     worker --> api
     frontend --> api
+    frontend --> aisummary
+    aisummary --> api
+    agents --> mcp
+    mcp --> api
 ```
 
 ## Repository Map
@@ -46,6 +53,8 @@ flowchart LR
 | `backend/scraper/` | Rust ingest pipeline. Calls vendored Python scraper, parses source files, upserts normalized rows, and clears API cache keys after writes. |
 | `backend/scraper/congress/` | Vendored `@unitedstates/congress` Python scraper code used to fetch raw bill and vote files. |
 | `backend/api/` | FastAPI read API. Owns REST routes, async PostgreSQL access, Redis cache access, and semantic search. |
+| `backend/mcp/` | MCP server (`csearch-mcp`) wrapping the public API; exposes legislation as MCP tools for LLM agents over stdio or streamable HTTP. |
+| `backend/ai-summary/` | Cloudflare Worker (`csearch-ai-summary`) that generates plain-English bill summaries via the Workers AI binding and caches them in Workers KV. |
 | `backend/nlp/project-tarp/` | Bill text fetch/chunk/embed/upsert pipeline for the semantic index. |
 | `frontend/` | Nuxt 4 static frontend. Generated site deployed publicly; nginx image used for cluster test/frontend environments. |
 | `workers/api-cache/` | Cloudflare Worker that can sit in front of the API and cache GET requests in KV. |
@@ -208,6 +217,46 @@ and publicly on netcup through the `api.csearch.org` ingress.
 Redis keys are prefixed with `csearch:`. Redis outages produce cache misses,
 not request failures.
 
+## MCP Server
+
+`backend/mcp/` (`csearch-mcp`) is a Model Context Protocol server that exposes
+CSearch as tools for LLM agents (Claude Desktop, Claude Code, the Anthropic API
+MCP connector, or any MCP client). It is a **thin client over the public HTTP
+API** — it makes `httpx` calls and does not touch PostgreSQL directly — so it
+inherits the API's retrieval, caching, and rate limiting and can run anywhere.
+
+Built with FastMCP; one codebase serves two transports:
+
+- **stdio** — the client spawns the server as a subprocess (local use).
+- **streamable HTTP** (`--http`) — a long-lived service for hosting / remote agents.
+
+Tools, each returning a `csearch.org` citation URL: `semantic_search`,
+`keyword_search_bills`, `latest_bills`, `get_bill`, `search_votes`,
+`latest_votes`, `get_vote`, `data_freshness`. Results are projected and
+truncated, so the server is a *retrieval* interface (top-N compact rows), never a
+data dump — corpus size does not affect client context. Configuration:
+`CSEARCH_API_BASE` (default `https://api.csearch.org`), `CSEARCH_SITE_BASE`,
+`CSEARCH_API_TIMEOUT`.
+
+### Public deployment
+
+Live at **`https://api.csearch.org/mcp`** (open, edge rate-limited), deployed as
+part of the `csearch-netcup-core` Argo CD app:
+
+- `k8s/netcup-core/mcp.yaml` — Deployment + ClusterIP Service; in-cluster it calls
+  the API via `CSEARCH_API_BASE=http://csearch-api` (no public round-trip).
+- `k8s/netcup-core/mcp-ingress.yaml` — a Traefik ingress routing the `/mcp` path on
+  the existing `api.csearch.org` host to the MCP service, **reusing the
+  `csearch-api-tls` certificate** (no new DNS or cert), plus a `RateLimit`
+  Middleware capping requests per source IP at the edge (in-cluster calls to the
+  API share one source IP, so the API's per-IP limit cannot isolate MCP users).
+
+> **Hosted-HTTP host check (gotcha):** FastMCP constructed with the default host
+> `127.0.0.1` enables streamable-HTTP DNS-rebinding protection that allows only
+> localhost `Host` headers, returning **421 Misdirected Request** for any other
+> Host. Behind a proxy that forwards `api.csearch.org`, the server must be built
+> with `TransportSecuritySettings(enable_dns_rebinding_protection=False)`.
+
 ## Semantic Search and RAG Vector Database
 
 The semantic search path is the production RAG retrieval layer. It retrieves
@@ -369,6 +418,30 @@ Behavior:
 This Worker is a frontend/API freshness backstop; it does not replace Redis.
 Redis remains the in-cluster application cache used by FastAPI.
 
+## AI Summary Worker
+
+`backend/ai-summary/` (`csearch-ai-summary`) is a Cloudflare Worker that produces
+on-demand plain-English explanations of bills. Like the MCP server it is a **thin
+client over the public API** — it does not touch PostgreSQL — and it runs entirely
+on Cloudflare's platform (Workers AI for inference, Workers KV for caching).
+
+Request flow for `GET /summarize/:billtype/:congress/:billnumber`:
+
+1. Check Workers KV (`BILL_SUMMARIES`, key `summary:<type>:<congress>:<number>`). On a
+   hit, return the cached summary immediately (`cached: true`).
+2. On a miss, fetch the bill from `https://api.csearch.org/bills/...` and build a prompt
+   from its title, summary, sponsor, policy area, actions, votes, and cosponsors.
+3. Run the prompt through the Workers AI binding
+   (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`).
+4. Write the result to KV with a 7-day TTL, then return it (`cached: false`). AI/API
+   errors are returned but never cached.
+
+CORS is restricted to the known frontends (`csearch.org`, local dev, and the freya
+LAN origin). The frontend reads the Worker URL from the `NUXT_AI_SUMMARY_URL` runtime
+config value, baked in at `nuxt generate` time. Because every result is cached at the
+edge, repeat views of a bill cost no inference and stay within the Workers AI free
+allocation for typical traffic.
+
 ## Data Freshness Contract
 
 Freshness is spread across several layers (scraper → Postgres → Redis invalidation
@@ -413,6 +486,9 @@ target. See [§ Observability](#observability).
 | `csearch-freya-scraper` | `freya` | `k8s/freya-scraper` |
 | `csearch-freya-frontend` | `freya` | `k8s/freya-frontend` |
 
+The `csearch-netcup-core` application also deploys the MCP server (`mcp.yaml`,
+`mcp-ingress.yaml`), exposed at `api.csearch.org/mcp` — see [MCP Server](#mcp-server).
+
 ### Image Builds
 
 `.github/workflows/build-images.yml` builds and pushes:
@@ -424,6 +500,11 @@ target. See [§ Observability](#observability).
 | `registry.s8njee.com/csearch-frontend:latest` | `frontend/Dockerfile.nginx` |
 | `registry.s8njee.com/csearch-upserter:latest` | `backend/nlp/project-tarp/Dockerfile.upserter` |
 | `registry.s8njee.com/csearch-tarp-updater:latest` | `backend/nlp/project-tarp/Dockerfile.nightly-updater` |
+
+The MCP image `registry.s8njee.com/csearch-mcp:latest` (`backend/mcp/Dockerfile`)
+is currently built and pushed manually
+(`docker buildx --platform linux/amd64 -f backend/mcp/Dockerfile --push backend/mcp`)
+and is not yet part of this workflow.
 
 Image builds are gated on `.github/workflows/ci.yml` (the `gate` job): API and
 Rust tests, frontend build, worker typecheck, migration apply + pgvector smoke,

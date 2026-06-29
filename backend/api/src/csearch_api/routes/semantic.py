@@ -14,6 +14,7 @@ from csearch_api.embedding import (
     EMBEDDING_MODEL,
     embedding_cache_key,
 )
+from csearch_api.hybrid import reciprocal_rank_fusion
 from csearch_api.models import CoverageResponse, SemanticResult
 from csearch_api.routing import parse_bill_reference
 
@@ -158,6 +159,57 @@ _EXACT_BILL_SQL = f"""
 """
 
 
+# Keyword arm for hybrid retrieval: the shared FTS function (also used by the
+# eval harness and explore), ordered by rank. Row order IS the keyword ranking;
+# the fusion key is the nlp bill_id form '<type><number>-<congress>'.
+# $1 = query text, $2 = result limit.
+KEYWORD_SEARCH_SQL = """
+    SELECT billtype, billnumber, congress
+    FROM search_bills($1, NULL, NULL, $2)
+"""
+
+# Hydrate full bill rows (same columns as the vector/exact rows) for bills that
+# came only from the keyword arm, so every hybrid result carries consistent
+# metadata. similarity is NULL — there is no cosine score for a keyword-only hit.
+# $1 = array of bill ids in the '<type><number>-<congress>' form.
+_HYDRATE_BILLS_SQL = f"""
+    SELECT
+        (b.billtype || b.billnumber::text || '-' || b.congress::text) AS bill_id,
+        b.billtype AS bill_type,
+        b.billnumber::text AS bill_number,
+        NULL::text AS title,
+        b.bill_status AS status,
+        NULL::text AS body,
+        NULL::text AS chunk_type,
+        NULL::text AS section_header,
+        b.billid,
+        b.shorttitle,
+        b.officialtitle,
+        b.introducedat,
+        b.summary_text,
+        b.billtype,
+        b.congress::text AS congress,
+        b.billnumber::text AS billnumber,
+        b.sponsor_name,
+        b.sponsor_party,
+        b.sponsor_state,
+        b.sponsor_bioguide_id,
+        b.bill_status,
+        b.statusat,
+        b.policy_area,
+        b.latest_action_date,
+        b.origin_chamber,
+        {queries.BILL_COMMITTEE_CODES_SQL},
+        {queries.COSPONSOR_COUNT_SQL},
+        NULL::float8 AS similarity
+    FROM public.bills b
+    WHERE (b.billtype || b.billnumber::text || '-' || b.congress::text) = ANY($1)
+"""
+
+HYBRID_FUSION_MIN_DEPTH = 50
+HYBRID_FUSION_MAX_DEPTH = 200
+
+
 class SemanticSearchRequest(BaseModel):
     query: str
     congress_min: int | None = None
@@ -280,6 +332,88 @@ async def _semantic_rows(
     )
 
 
+# ---------------------------------------------------------------------------
+# Hybrid retrieval (keyword + vector via Reciprocal Rank Fusion)
+# ---------------------------------------------------------------------------
+
+def _fusion_depth(result_limit: int) -> int:
+    """How many candidates to pull from each arm before fusing."""
+    return min(max(result_limit * 5, HYBRID_FUSION_MIN_DEPTH), HYBRID_FUSION_MAX_DEPTH)
+
+
+def _bill_uid(billtype, billnumber, congress) -> str:
+    return f"{billtype}{billnumber}-{congress}"
+
+
+async def _keyword_bill_ids(
+    request: Request, query: str, limit: int, congress_min: int, congress_max: int
+) -> list[str]:
+    """Ranked bill ids from the shared FTS function (keyword arm)."""
+    rows = await request.app.state.db.read_fetch(
+        KEYWORD_SEARCH_SQL, query, limit, timeout=SEMANTIC_DB_TIMEOUT_SECONDS
+    )
+    ids: list[str] = []
+    for row in rows:
+        try:
+            congress = int(row["congress"])
+        except (TypeError, ValueError):
+            congress = None
+        if congress is not None and not (congress_min <= congress <= congress_max):
+            continue
+        ids.append(_bill_uid(row["billtype"], row["billnumber"], row["congress"]))
+    return ids
+
+
+async def _hydrate_bills(request: Request, bill_ids: list[str]) -> dict[str, dict]:
+    """Fetch full bill rows for keyword-only ids, keyed by bill_id."""
+    if not bill_ids:
+        return {}
+    rows = await request.app.state.db.read_fetch(
+        _HYDRATE_BILLS_SQL, bill_ids, timeout=SEMANTIC_DB_TIMEOUT_SECONDS
+    )
+    return {row["bill_id"]: row for row in rows}
+
+
+async def _hybrid_rows(
+    request: Request,
+    vector_str: str,
+    query: str,
+    congress_min: int,
+    congress_max: int,
+    result_limit: int,
+) -> list[dict]:
+    """Fuse vector + keyword rankings with RRF and return ordered bill rows."""
+    depth = _fusion_depth(result_limit)
+    vec_rows, keyword_ids = await asyncio.gather(
+        _semantic_rows(request, vector_str, congress_min, congress_max, depth),
+        _keyword_bill_ids(request, query, depth, congress_min, congress_max),
+    )
+    vec_by_id = {row["bill_id"]: row for row in vec_rows}
+    vec_order = list(vec_by_id.keys())
+
+    fused = reciprocal_rank_fusion([vec_order, keyword_ids])
+    fused_ids = [bill_id for bill_id, _ in fused][:result_limit]
+
+    keyword_only = [bid for bid in fused_ids if bid not in vec_by_id]
+    hydrated = await _hydrate_bills(request, keyword_only)
+
+    results: list[dict] = []
+    for bid in fused_ids:
+        row = vec_by_id.get(bid) or hydrated.get(bid)
+        if row is not None:
+            results.append(row)
+    return results
+
+
+async def _keyword_only_rows(
+    request: Request, query: str, congress_min: int, congress_max: int, result_limit: int
+) -> list[dict]:
+    """Keyword-only results (used to degrade gracefully when embedding fails)."""
+    ids = (await _keyword_bill_ids(request, query, result_limit, congress_min, congress_max))[:result_limit]
+    hydrated = await _hydrate_bills(request, ids)
+    return [hydrated[bid] for bid in ids if bid in hydrated]
+
+
 def _require_semantic_configured(request: Request) -> None:
     settings = request.app.state.settings
     if not settings.openai_api_key:
@@ -322,14 +456,16 @@ async def _exact_bill_rows(request: Request, ref, congress_min: int, congress_ma
 # documented via `responses` so OpenAPI is accurate without runtime coupling.
 @router.post("/search/semantic", responses={200: {"model": list[SemanticResult]}})
 async def semantic_search(request: Request, body: SemanticSearchRequest):
-    """Embed the query via OpenAI and return the most semantically similar bills.
+    """Return the most relevant bills for a natural-language query.
 
-    Exact bill citations are short-circuited to a direct lookup so they never
-    spend an OpenAI call. The endpoint is length-capped and rate-limited per
-    client IP to bound denial-of-wallet exposure. When the OpenAI circuit
-    breaker is open, the route returns an empty result set with
-    ``degraded: true`` instead of a 5xx, so the frontend can fall back to
-    keyword search without a visible error (§4 CRITICISMS2.md).
+    When SEMANTIC_HYBRID_ENABLED (default), fuses keyword (full-text) and vector
+    rankings with Reciprocal Rank Fusion; otherwise vector-only. Exact bill
+    citations short-circuit to a direct lookup (no OpenAI call). The endpoint is
+    length-capped and rate-limited per client IP to bound denial-of-wallet
+    exposure. If embedding fails (OpenAI circuit breaker open / timeout): in
+    hybrid mode it degrades to keyword-only results; in vector-only mode it
+    returns ``{degraded: true, results: []}`` so the frontend falls back to
+    keyword search (§4 CRITICISMS2.md).
     """
     _require_semantic_configured(request)
 
@@ -357,21 +493,30 @@ async def semantic_search(request: Request, body: SemanticSearchRequest):
             route = "exact"
             rows = await _exact_bill_rows(request, ref, congress_min, congress_max, result_limit)
         else:
-            route = "semantic"
+            hybrid_enabled = getattr(request.app.state.settings, "semantic_hybrid_enabled", False)
+            route = "hybrid" if hybrid_enabled else "semantic"
             await _enforce_rate_limit(request)
             vector_str = await _embed_query(request, query)
             if vector_str is None:
-                # Circuit breaker open or timeout — degrade gracefully.
+                # Embedding failed (circuit breaker open or timeout).
                 openai_status = "degraded"
-                latency = time.perf_counter() - started
-                metrics.observe_semantic(route, openai_status, latency)
-                logger.warning(
-                    "semantic search degraded",
-                    extra={"route": route, "queryLength": len(query), "clientIp": _client_ip(request)},
-                )
-                return {"degraded": True, "results": []}
-            openai_status = "ok"
-            rows = await _semantic_rows(request, vector_str, congress_min, congress_max, result_limit)
+                if hybrid_enabled:
+                    # Degrade to keyword-only results rather than returning nothing.
+                    rows = await _keyword_only_rows(request, query, congress_min, congress_max, result_limit)
+                else:
+                    latency = time.perf_counter() - started
+                    metrics.observe_semantic(route, openai_status, latency)
+                    logger.warning(
+                        "semantic search degraded",
+                        extra={"route": route, "queryLength": len(query), "clientIp": _client_ip(request)},
+                    )
+                    return {"degraded": True, "results": []}
+            elif hybrid_enabled:
+                openai_status = "ok"
+                rows = await _hybrid_rows(request, vector_str, query, congress_min, congress_max, result_limit)
+            else:
+                openai_status = "ok"
+                rows = await _semantic_rows(request, vector_str, congress_min, congress_max, result_limit)
     except HTTPException:
         raise
     except Exception:

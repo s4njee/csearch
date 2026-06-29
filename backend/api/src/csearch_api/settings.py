@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     # Redis is unavailable, like the semantic limiter.
     global_rate_limit_per_minute: int = 0
 
+    # Hybrid retrieval: fuse keyword (search_bills FTS) with vector search via
+    # Reciprocal Rank Fusion on the /search/semantic route. When disabled, the
+    # route is vector-only (the prior behaviour). Flip via env for instant
+    # rollback / A-B against the eval harness.
+    semantic_hybrid_enabled: bool = True
+
     # Circuit breaker for the OpenAI embedding call (§4 CRITICISMS2.md).
     # After `semantic_circuit_breaker_threshold` consecutive failures the
     # breaker opens and the endpoint returns keyword-degraded results instead

@@ -13,7 +13,9 @@ fi
 source "$ENV_FILE"
 
 echo "==> Building..."
-NUXT_API_SERVER="$NUXT_API_SERVER" npm run generate
+NUXT_API_SERVER="$NUXT_API_SERVER" \
+  NUXT_AI_SUMMARY_URL="${NUXT_AI_SUMMARY_URL:-}" \
+  npm run generate
 
 echo "==> Writing deploy timestamp..."
 echo "{\"updated_at\": \"$(TZ=America/Chicago date +%Y-%m-%dT%H:%M:%S%z)\"}" > .output/public/meta.json
