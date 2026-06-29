@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BILL_FILTER_OPTIONS, BILL_TYPE_OPTIONS } from '~/types/congress'
+import { BILL_FILTER_OPTIONS, BILL_TYPE_OPTIONS, VOTE_CHAMBER_OPTIONS } from '~/types/congress'
 import type { BillRecord, CommitteeRecord } from '~/types/congress'
 
 const route = useRoute()
@@ -292,8 +292,11 @@ const selectedCategory = computed(() => {
 })
 
 const selectedSort = computed(() => {
-  const value = typeof route.query.sort === 'string' ? route.query.sort : 'relevance'
-  return BILL_FILTER_OPTIONS.find(option => option.value === value)?.value || 'relevance'
+  // Semantic search defaults to relevance (its ranking is the point); browsing
+  // the latest bills defaults to date.
+  const fallback = searchQuery.value ? 'relevance' : 'date'
+  const value = typeof route.query.sort === 'string' ? route.query.sort : fallback
+  return BILL_FILTER_OPTIONS.find(option => option.value === value)?.value || fallback
 })
 
 const searchQuery = computed(() => typeof route.query.query === 'string' ? route.query.query.trim() : '')
@@ -499,11 +502,6 @@ const congressItems = computed(() => [
   { label: 'Any congress', value: ANY },
   ...availableCongresses.value.map(c => ({ label: c, value: c })),
 ])
-const chamberItems = [
-  { label: 'Any', value: ANY },
-  { label: 'House', value: 'house' },
-  { label: 'Senate', value: 'senate' },
-]
 const billTypeItems = computed(() =>
   availableBillTypeGroups.value.flatMap(group =>
     group.options.map(option => ({ label: option.shortLabel, value: option.code })),
@@ -570,18 +568,34 @@ usePageSeo({
   <UContainer class="space-y-8">
     <UCard>
       <div class="space-y-6">
-        <div>
-          <p class="text-xs font-medium uppercase tracking-[0.2em] text-primary">Bill routes</p>
-          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">{{ headline }}</h1>
-          <p class="mt-1 text-muted">{{ searchQuery ? 'Ranked by semantic similarity across all congresses.' : 'Browse or search legislation by type.' }}</p>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-[0.2em] text-primary">Bill routes</p>
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">{{ headline }}</h1>
+            <p class="mt-1 text-muted">{{ searchQuery ? 'Ranked by semantic similarity across all congresses.' : 'Browse or search legislation by type.' }}</p>
+          </div>
+
+          <UFieldGroup v-if="!searchQuery">
+            <UButton
+              v-for="option in VOTE_CHAMBER_OPTIONS"
+              :key="option.value"
+              :color="option.value === selectedChamber ? 'primary' : 'neutral'"
+              :variant="option.value === selectedChamber ? 'subtle' : 'outline'"
+              @click="navigateBillChamber(option.value)"
+            >
+              {{ option.label }}
+            </UButton>
+          </UFieldGroup>
         </div>
 
+        <div class="space-y-3">
         <form class="flex flex-col gap-3 sm:flex-row sm:items-end" @submit.prevent="submitSearch">
           <UFormField :label="`Search within ${categoryMeta.longLabel.toLowerCase()}`" class="flex-1">
             <UInput
               v-model="draftQuery"
               type="search"
               icon="i-lucide-search"
+              size="lg"
               placeholder="Search titles, summaries, or legislative phrases"
               class="w-full"
             />
@@ -596,6 +610,7 @@ usePageSeo({
             color="neutral"
             variant="outline"
             block
+            size="lg"
             trailing-icon="i-lucide-chevron-down"
             class="justify-between"
           >
@@ -607,16 +622,6 @@ usePageSeo({
             <div class="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-4">
               <UFormField label="Congress">
                 <USelect v-model="congressModel" :items="congressItems" class="w-full" />
-              </UFormField>
-
-              <UFormField label="Chamber">
-                <USelect
-                  :model-value="searchQuery ? ANY : selectedChamber"
-                  :items="chamberItems"
-                  :disabled="Boolean(searchQuery)"
-                  class="w-full"
-                  @update:model-value="navigateBillChamber(($event === ANY ? '' : $event) as 'house' | 'senate')"
-                />
               </UFormField>
 
               <UFormField label="Bill type">
@@ -674,6 +679,7 @@ usePageSeo({
             </div>
           </template>
         </UCollapsible>
+        </div>
       </div>
     </UCard>
 
