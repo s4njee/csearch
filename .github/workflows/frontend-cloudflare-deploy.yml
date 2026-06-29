@@ -53,6 +53,7 @@ jobs:
         run: |
           cat > .env.prod <<EOF
           NUXT_API_SERVER=${{ vars.NUXT_API_SERVER }}
+          NUXT_AI_SUMMARY_URL=${{ vars.NUXT_AI_SUMMARY_URL }}
           CF_PAGES_PROJECT=${{ vars.CF_PAGES_PROJECT }}
           EOF
 

@@ -52,7 +52,9 @@ export default defineNuxtConfig({
         public: {
             // This provides a server-side/default API origin for local dev and static generation.
             API_SERVER: process.env.NUXT_API_SERVER || 'https://api.csearch.org',
-            AI_SUMMARY_URL: process.env.NUXT_AI_SUMMARY_URL || '',
+            // Defaults to the production Worker so any build (CI Pages deploy, nginx
+            // images) ships a working "AI Explain" button without extra config.
+            AI_SUMMARY_URL: process.env.NUXT_AI_SUMMARY_URL || 'https://csearch-ai-summary.sanjee-yogeswaran.workers.dev',
         }
     },
     routeRules: {
