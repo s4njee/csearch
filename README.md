@@ -1,6 +1,50 @@
 # CSearch
 
-A monorepo for ingesting, storing, querying, and presenting U.S. congressional bill and vote data.
+**A fast, searchable home for U.S. congressional bills and votes.** CSearch ingests
+public legislative data from GovInfo and congress.gov, normalizes it, and serves it
+through a clean web app with full-text and semantic search, member and committee
+profiles, vote breakdowns, and AI-generated plain-English bill explanations.
+
+🔗 **Live:** [csearch.org](https://csearch.org)
+
+## Features
+
+- **Browse** bills, votes, members, and committees with linked, cross-referenced detail pages.
+- **Search** by keyword, by field, or by meaning — semantic search uses pgvector embeddings to find bills by what they're *about*, not just the words they contain.
+- **Explore** the data through parameterized, ready-made analytical queries.
+- **AI Explain** — one click generates a plain-English summary of any bill (what it does, who sponsors it, where it stands), powered by Cloudflare Workers AI and cached at the edge.
+- **Agent-ready** — a public [MCP](https://modelcontextprotocol.io) server at `api.csearch.org/mcp` exposes the corpus as tools for LLM agents (Claude Desktop, Claude Code, or any MCP client).
+- **Fresh** — a nightly pipeline keeps bills and votes up to date; hot routes are cached in Redis.
+
+## Connect an AI agent (MCP)
+
+CSearch runs a public [MCP](https://modelcontextprotocol.io) server at
+**`https://api.csearch.org/mcp`** (streamable HTTP) — point any MCP client at it to give
+your agent live access to bills and votes. No install, account, or API key required.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http csearch https://api.csearch.org/mcp
+```
+
+**Claude Desktop** — Settings → Connectors → **Add custom connector**, then paste
+`https://api.csearch.org/mcp`. (On plans without remote connectors, use the `mcp-remote`
+bridge shown for Codex below.)
+
+**Codex CLI** — add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.csearch]
+command = "npx"
+args = ["-y", "mcp-remote", "https://api.csearch.org/mcp"]
+```
+
+Then just ask, e.g. *"Use csearch to find recent bills about offshore wind permitting and
+summarize the top three."* Every result links back to a `csearch.org` page for citation.
+To run the server locally over stdio instead, see [`backend/mcp/README.md`](backend/mcp/README.md).
+
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -12,18 +56,22 @@ flowchart LR
     cf["Cloudflare Pages\ncsearch.org"]
     nlp["NLP Pipeline\nnightly CronJob · freya\nOpenAI text-embedding-3-small"]
     nlpdata[("nlp.bill_chunks\nnlp.bill_embeddings\npgvector HNSW")]
+    ai["AI Summary Worker\nCloudflare Workers AI\n+ KV cache"]
 
     src --> scraper --> pg --> api --> cf
     pg <--> redis <--> api
     nlp --> nlpdata --> pg
+    cf --> ai --> api
 ```
 
-## What it does
+## Components
 
 - **Scraper** — Kubernetes CronJob that fetches bill and vote data from GovInfo and congress.gov, parses XML/JSON, and upserts normalized rows into Postgres. Bills from the 93rd Congress; votes from the 101st. Skips unchanged files using SHA-256 hashes.
 - **Database** — PostgreSQL is the system of record. Hosts the `public` schema (bills, votes, members, committees) and the `nlp` schema (bill chunks and pgvector embeddings).
 - **API** — FastAPI service (Python/uvicorn) serving bills, votes, search, member profiles, committee pages, parameterized explore queries, and semantic search. Hot routes cached in Redis.
 - **NLP / Semantic Search** — Nightly pipeline (freya cluster) fetches bill text, chunks it, generates embeddings via OpenAI `text-embedding-3-small`, and upserts into `nlp.bill_embeddings`. Queries use the pgvector HNSW index for cosine similarity.
+- **AI Summary Worker** — Cloudflare Worker that turns a bill into a plain-English explanation on demand. It pulls the bill from the API, prompts a Llama 3.3 model via the Workers AI binding, and caches each result in Workers KV for 7 days, so repeat views are instant and cost no inference.
+- **MCP Server** — FastMCP server (`backend/mcp/`) that wraps the public API and exposes legislation as tools for LLM agents over stdio or streamable HTTP. A thin client over the HTTP API, so it inherits the API's caching and rate limiting.
 - **Frontend** — Nuxt 4 static site deployed to Cloudflare Pages. Also runs as an nginx container on the freya cluster for internal use.
 
 ## Getting started locally
@@ -43,6 +91,11 @@ NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 
 # Scraper (tests only — run the full scraper via k8s CronJob)
 cd backend/scraper && cargo test
+
+# AI summary Worker
+cd backend/ai-summary
+npm install
+npx wrangler dev          # local; deploy with `npm run deploy`
 ```
 
 ## Repository layout
@@ -52,6 +105,8 @@ cd backend/scraper && cargo test
 | `backend/scraper/` | Rust ingest pipeline with vendored Python scraper. Owns schema bootstrap, parsing, hash-based skip logic, and Redis cache invalidation. |
 | `backend/api/` | FastAPI service (Python/uvicorn). asyncpg queries, Redis route caching, structured JSON logging. |
 | `backend/nlp/` | Git submodule (`github.com/s4njee/csearch-nlp`). pgvector embedding pipeline and NLP implementation notes. |
+| `backend/ai-summary/` | Cloudflare Worker for AI bill summaries. Workers AI inference + KV caching. Deployed with Wrangler. |
+| `backend/mcp/` | FastMCP server (`csearch-mcp`) wrapping the public API as MCP tools for LLM agents. stdio or streamable HTTP. |
 | `frontend/` | Nuxt 4 app. Deploys to Cloudflare Pages (csearch.org) and as an nginx container for cluster environments. |
 | `argo/` | Argo CD `Application` manifests — the deployment entry point. |
 | `k8s/` | Kubernetes workload manifests synced by Argo. |

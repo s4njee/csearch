@@ -1,0 +1,17 @@
+{
+  "name": "csearch-ai-summary",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-20",
+
+  "ai": {
+    "binding": "AI"
+  },
+
+  "kv_namespaces": [
+    {
+      "binding": "BILL_SUMMARIES",
+      "id": "8873dd012b1e4eaeb8d536e0f97ba4cf",
+      "preview_id": "8873dd012b1e4eaeb8d536e0f97ba4cf"
+    }
+  ]
+}

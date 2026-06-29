@@ -30,6 +30,24 @@ const errorMessage = computed(() =>
 
 const { formatDate, formatChamber, partyLabel, voteResultColor } = useFormatters()
 
+const {
+  summary: aiSummary,
+  loading: aiLoading,
+  error: aiError,
+  fetchSummary: fetchAiSummary,
+} = useAiSummary()
+
+const aiVisible = ref(false)
+
+function handleAiExplain() {
+  if (aiSummary.value) {
+    aiVisible.value = !aiVisible.value
+    return
+  }
+  aiVisible.value = true
+  fetchAiSummary(billtype, congress, billnumber)
+}
+
 function hasBioguideId(value?: string | null) {
   return typeof value === 'string' && /^[A-Z0-9]+$/i.test(value)
 }
@@ -141,6 +159,39 @@ usePageSeo({
           </div>
         </template>
         <p class="whitespace-pre-wrap leading-relaxed">{{ bill.summary_text }}</p>
+      </UCard>
+
+      <!-- AI EXPLANATION -->
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">Plain-English explanation</h2>
+            <UButton
+              icon="i-lucide-sparkles"
+              size="xs"
+              color="primary"
+              variant="soft"
+              :loading="aiLoading"
+              @click="handleAiExplain"
+            >
+              {{ aiSummary ? (aiVisible ? 'Hide' : 'Show') : 'AI Explain' }}
+            </UButton>
+          </div>
+        </template>
+
+        <UAlert
+          v-if="aiError"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-circle-alert"
+          :description="aiError"
+        />
+
+        <p v-else-if="aiVisible && aiSummary" class="whitespace-pre-wrap leading-relaxed text-muted">{{ aiSummary }}</p>
+
+        <p v-else-if="!aiLoading" class="text-muted">
+          Generate a plain-English explanation of this bill — what it does, who sponsors it, and what's happened to it so far.
+        </p>
       </UCard>
 
       <!-- ACTION HISTORY -->

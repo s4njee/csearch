@@ -52,6 +52,7 @@ export default defineNuxtConfig({
         public: {
             // This provides a server-side/default API origin for local dev and static generation.
             API_SERVER: process.env.NUXT_API_SERVER || 'https://api.csearch.org',
+            AI_SUMMARY_URL: process.env.NUXT_AI_SUMMARY_URL || '',
         }
     },
     routeRules: {
