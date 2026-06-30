@@ -15,6 +15,7 @@ source "$ENV_FILE"
 echo "==> Building..."
 NUXT_API_SERVER="$NUXT_API_SERVER" \
   NUXT_AI_SUMMARY_URL="${NUXT_AI_SUMMARY_URL:-}" \
+  NUXT_PUBLIC_CF_ANALYTICS_TOKEN="${NUXT_PUBLIC_CF_ANALYTICS_TOKEN:-}" \
   npm run generate
 
 echo "==> Writing deploy timestamp..."

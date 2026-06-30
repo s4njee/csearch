@@ -1,4 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+
+// Cloudflare Web Analytics beacon (privacy-first, cookieless). The token is a
+// public per-site value created once in the CF dashboard; when unset (e.g. the
+// freya nginx build or local dev) no beacon is injected.
+const cfAnalyticsToken = process.env.NUXT_PUBLIC_CF_ANALYTICS_TOKEN || ''
+const cfAnalyticsScript = cfAnalyticsToken
+    ? [{
+        src: 'https://static.cloudflareinsights.com/beacon.min.js',
+        defer: true,
+        'data-cf-beacon': JSON.stringify({ token: cfAnalyticsToken }),
+    }]
+    : []
+
 export default defineNuxtConfig({
     compatibilityDate: '2024-11-01',
     srcDir: '.',
@@ -36,6 +49,7 @@ export default defineNuxtConfig({
                 {
                     src: '/runtime-config.js',
                 },
+                ...cfAnalyticsScript,
             ],
         },
     },
