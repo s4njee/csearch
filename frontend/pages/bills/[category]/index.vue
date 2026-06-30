@@ -14,8 +14,10 @@ const { data: loadedCommittees } = await useAsyncData(
 const PAGE_SIZE = 100
 
 const loading = ref(false)
-const loadProgress = ref(0)
-const loadBytes = ref<number | null>(null)
+// Cache-aware loading: `loading` flips immediately, but `showLoading` (which
+// drives the skeleton) is only raised if the fetch outlasts a short delay — so
+// fast edge-cache hits render results without any loading flash.
+const showLoading = ref(false)
 const errorMessage = ref('')
 const bills = ref<BillRecord[]>([])
 const draftQuery = ref('')
@@ -355,53 +357,29 @@ function formatMonthLabel(yyyyMm: string) {
 }
 
 
-function estimatePayloadBytes(rows: BillRecord[]) {
-  return new TextEncoder().encode(JSON.stringify(rows)).length
-}
-
-function formatByteCount(bytes: number | null) {
-  if (bytes == null || Number.isNaN(bytes)) {
-    return '—'
-  }
-
-  if (bytes < 1024) {
-    return `${bytes} B`
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
+// Reveal the skeleton only if the fetch is slow enough to be a cache miss /
+// cold origin. Edge-cache hits resolve in tens of ms and never trip this timer.
+const LOADING_REVEAL_MS = 150
 
 async function loadBills() {
   loading.value = true
-  loadProgress.value = 8
-  loadBytes.value = null
   errorMessage.value = ''
 
-  const progressTimer = import.meta.client
-    ? window.setInterval(() => {
-        if (!loading.value) {
-          return
+  const revealTimer = import.meta.client
+    ? window.setTimeout(() => {
+        if (loading.value) {
+          showLoading.value = true
         }
-
-        loadProgress.value = Math.min(90, loadProgress.value + Math.max(1, Math.round((100 - loadProgress.value) / 12)))
-      }, 300)
+      }, LOADING_REVEAL_MS)
     : null
 
   try {
     if (!searchQuery.value) {
-      const rows = await latestBills(selectedCategory.value)
-      bills.value = rows
-      loadBytes.value = estimatePayloadBytes(rows)
+      bills.value = await latestBills(selectedCategory.value)
       return
     }
 
-    const rows = await semanticSearch(searchQuery.value)
-    bills.value = rows
-    loadBytes.value = estimatePayloadBytes(rows)
+    bills.value = await semanticSearch(searchQuery.value)
   }
   catch (error: any) {
     bills.value = []
@@ -409,9 +387,9 @@ async function loadBills() {
   }
   finally {
     loading.value = false
-    loadProgress.value = 100
-    if (progressTimer != null) {
-      window.clearInterval(progressTimer)
+    showLoading.value = false
+    if (revealTimer != null) {
+      window.clearTimeout(revealTimer)
     }
   }
 }
@@ -685,22 +663,15 @@ usePageSeo({
 
     <UAlert v-if="errorMessage" color="error" variant="subtle" icon="i-lucide-circle-alert" :description="errorMessage" />
 
-    <UCard v-else-if="loading">
-      <div class="space-y-3">
-        <div class="flex items-center justify-between text-sm">
-          <span>Loading bills</span>
-          <span class="text-muted">{{ loadProgress }}%</span>
-        </div>
-        <UProgress v-model="loadProgress" :max="100" />
-        <p class="text-sm text-muted">Downloaded {{ formatByteCount(loadBytes) }}</p>
-      </div>
-    </UCard>
+    <div v-else-if="showLoading" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <SkeletonCard v-for="n in 6" :key="n" :rows="4" />
+    </div>
 
-    <UCard v-else-if="!bills.length">
+    <UCard v-else-if="!loading && !bills.length">
       <p class="text-muted">No bills matched this route and parameter set.</p>
     </UCard>
 
-    <div v-else class="space-y-4">
+    <div v-else-if="bills.length" class="space-y-4">
       <p class="text-sm text-muted">
         {{ formatNumber(filteredBills.length) }} {{ filteredBills.length === 1 ? 'result' : 'results' }}
       </p>
