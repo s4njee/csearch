@@ -30,6 +30,12 @@ SEARCH_RESULT_LIMIT = 30
 # Edge can serve cached bill JSON for an hour, then revalidate in the background.
 DETAIL_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400"
 
+# The latest-bills list changes once a day (scraper cron). `no-cache` lets the
+# browser/edge store the response but forces a revalidation before every reuse,
+# so a stale day-old copy is never served. Revalidations land on the api-cache
+# Worker (edge), not the origin, so this stays cheap.
+LIST_CACHE_CONTROL = "public, no-cache"
+
 
 def _bill_list_select() -> str:
     return f"""
@@ -78,9 +84,10 @@ def _search_order_clause(search_filter: str, fuzzy: bool) -> str:
 
 
 @router.get("/latest/{billtype}", response_model=list[BillSummary])
-async def latest_bills(request: Request, billtype: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+async def latest_bills(request: Request, response: Response, billtype: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
     """Return the most recently active bills of this type (default 500)."""
     _validate_billtype(billtype)
+    response.headers["Cache-Control"] = LIST_CACHE_CONTROL
     resolved_limit, resolved_offset = _page(limit, offset, LATEST_BILLS_LIMIT, LATEST_BILLS_LIMIT)
 
     # Page params are part of the cache key so each page caches independently;
