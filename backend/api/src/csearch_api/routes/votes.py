@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from ..cache import Cache
 from ..constants import CHAMBER_ABBREV, MIN_FUZZY_QUERY_LENGTH
@@ -17,6 +17,12 @@ router = APIRouter()
 
 LATEST_VOTES_LIMIT = 60
 VOTE_SEARCH_LIMIT = 20
+
+# The latest-votes list changes once a day (scraper cron). `no-cache` lets the
+# browser/edge store the response but forces a revalidation before every reuse,
+# so a stale day-old copy is never served. Revalidations land on the api-cache
+# Worker (edge), not the origin, so this stays cheap.
+LIST_CACHE_CONTROL = "public, no-cache"
 
 
 def _normalize_chamber(chamber: str | None) -> str | None:
@@ -115,11 +121,12 @@ async def vote_detail(voteid: str, db: Database = Depends(get_db)):
 
 
 @router.get("/votes/{chamber}", response_model=list[VoteSummary])
-async def latest_votes(request: Request, chamber: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+async def latest_votes(request: Request, response: Response, chamber: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
     """Return the most recent votes for the given chamber (default 60)."""
     normalized = _normalize_chamber(chamber)
     if not normalized:
         raise HTTPException(status_code=400, detail={"error": "Invalid chamber; use 'house' or 'senate'"})
+    response.headers["Cache-Control"] = LIST_CACHE_CONTROL
 
     # Optional, additive pagination; defaults preserve the historical response.
     resolved_limit = LATEST_VOTES_LIMIT if limit is None else max(1, min(limit, LATEST_VOTES_LIMIT))
