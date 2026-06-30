@@ -40,7 +40,7 @@ pub async fn run_congress_task(cfg: &Config, args: &[&str]) -> Result<()> {
     // Build the command — equivalent to:
     //   subprocess.Popen(
     //       ["python3", "run.py", *args],
-    //       cwd=congress_dir,
+    //       cwd=cfg.congress_dir,
     //       env={**os.environ, "PYTHONPATH": ...},
     //       stdout=subprocess.PIPE,
     //       stderr=subprocess.PIPE,
@@ -48,7 +48,7 @@ pub async fn run_congress_task(cfg: &Config, args: &[&str]) -> Result<()> {
     let mut command = Command::new("python3");
     command.arg(&run_py);
     command.args(args);
-    command.current_dir(&congress_dir);
+    command.current_dir(&cfg.congress_dir);
     command.env("PYTHONPATH", python_path_for_congress_dir(&congress_dir));
     command.stdout(std::process::Stdio::piped());
     command.stderr(std::process::Stdio::piped());
