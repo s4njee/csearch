@@ -33,6 +33,12 @@ jobs:
           python-version: "3.11"
       - name: Install API
         run: pip install -e "backend/api[dev]"
+      - name: Stage explore.sql
+        # The API reads a copy of the scraper's explore.sql at backend/api/sql/
+        # (gitignored). The Docker build COPYs it; replicate that for tests.
+        run: |
+          mkdir -p backend/api/sql
+          cp backend/scraper/explore.sql backend/api/sql/explore.sql
       - name: Lint (ruff)
         run: cd backend/api && ruff check .
       - name: Type check (mypy)
