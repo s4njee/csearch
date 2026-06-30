@@ -11,7 +11,7 @@ const { data: loadedCommittees } = await useAsyncData(
   () => getCommittees(),
 )
 
-const PAGE_SIZE = 100
+const PAGE_SIZE = 50
 
 const loading = ref(false)
 // Cache-aware loading: `loading` flips immediately, but `showLoading` (which
