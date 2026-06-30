@@ -7,7 +7,6 @@ resources:
   - api-lb.yaml
   - semantic-warmup-cronjob.yaml
   - csearch-api-openai-sealedsecret.yaml
-  - csearch-cloudflare-deploy-hook-sealedsecret.yaml
 
 images:
   - name: registry.s8njee.com/csearch-fastapi
