@@ -22,7 +22,7 @@ flowchart LR
     pg[("PostgreSQL\npublic schema + nlp schema\npg_trgm + pgvector")]
     redis[("Redis\ncsearch:* route cache")]
     api["FastAPI\napi.csearch.org"]
-    worker["Cloudflare Worker\noptional GET API cache"]
+    worker["Cloudflare Worker\nedge GET API cache (live)\napi-cache.csearch.org"]
     aisummary["AI Summary Worker\nWorkers AI + KV cache"]
     frontend["Nuxt static frontend\ncsearch.org"]
     browser["Browser"]
@@ -39,7 +39,6 @@ flowchart LR
     browser --> frontend
     frontend --> worker
     worker --> api
-    frontend --> api
     frontend --> aisummary
     aisummary --> api
     agents --> mcp
@@ -57,7 +56,7 @@ flowchart LR
 | `backend/ai-summary/` | Cloudflare Worker (`csearch-ai-summary`) that generates plain-English bill summaries via the Workers AI binding and caches them in Workers KV. |
 | `backend/nlp/project-tarp/` | Bill text fetch/chunk/embed/upsert pipeline for the semantic index. |
 | `frontend/` | Nuxt 4 static frontend. Generated site deployed publicly; nginx image used for cluster test/frontend environments. |
-| `workers/api-cache/` | Cloudflare Worker that can sit in front of the API and cache GET requests in KV. |
+| `workers/api-cache/` | Cloudflare Worker (live at `api-cache.csearch.org`) that sits in front of the API and caches GET requests in KV. Production `NUXT_API_SERVER` points at it. |
 | `k8s/` | Kubernetes manifests consumed by Argo CD. |
 | `argo/applications/` | Argo CD `Application` objects for netcup and freya. |
 | `docs/archive/` and `k8s/archive/` | Historical notes and archive pointers; not deployment inputs. |
@@ -376,7 +375,9 @@ The frontend is a Nuxt 4 static site in `frontend/`.
 Key pieces:
 
 - `nuxt.config.ts` defines the static prerender routes and the default
-  `NUXT_API_SERVER`, which falls back to `https://api.csearch.org`.
+  `NUXT_API_SERVER`. The code fallback is `https://api.csearch.org`, but
+  production sets it to `https://api-cache.csearch.org` (the edge cache Worker),
+  so SSG-build, hydration, and runtime fetches all share the same SWR cache.
 - `public/runtime-config.js` and `composables/useApiBase.ts` allow the API
   origin to be injected at runtime by the nginx container entrypoint.
 - `composables/useCongressApi.ts` centralizes API calls.

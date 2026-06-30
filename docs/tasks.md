@@ -46,10 +46,11 @@ Architectural backstop — survives any future build-cadence regression.
 - [x] Worker scaffolded at `workers/api-cache/` (TypeScript, wrangler 3). Sits at `https://api-cache.csearch.org` and proxies to `https://api.csearch.org`. Caches all GETs (skips POST/PUT/...; `POST /search/semantic` therefore passes through). 5-min fresh window, 24-h SWR window, KV-backed. Response headers expose `X-Cache: HIT|STALE|MISS` + `X-Cache-Age`.
 - [x] `wrangler.toml` declares KV binding `CACHE` and custom-domain route `api-cache.csearch.org`. `npx tsc --noEmit` and `wrangler deploy --dry-run` both clean.
 - [x] Hydration model decision: **keep static HTML; client-side `useAsyncData` calls go through the Worker.** Cleanest because Nuxt SSG also runs `useAsyncData` at build time — pointing `NUXT_API_SERVER` at the Worker means SSG, hydration, and runtime fetches all share the same SWR cache. No Nuxt config rewrite needed.
-- [ ] **(user)** Provision KV: `cd workers/api-cache && npm install && npx wrangler kv namespace create CACHE && npx wrangler kv namespace create CACHE --preview`. Paste the printed `id` / `preview_id` into `wrangler.toml`.
-- [ ] **(user)** Deploy: `npx wrangler deploy`. Add `api-cache.csearch.org` as a Custom Domain on the Worker (dashboard → Workers & Pages → csearch-api-cache → Settings → Triggers → Custom Domains).
-- [ ] **(user)** Update `NUXT_API_SERVER` in `.env.prod` and the matching GH Actions repo variable to `https://api-cache.csearch.org`. Trigger a Pages rebuild.
-- [ ] **(user)** Smoke-test: post a bill update, confirm next request ≤ 6 min shows new data without a Pages rebuild (matches `FRESH_SECONDS = 300`). Surgical invalidation can be added later via a guarded `POST /_purge` if the 5-min window proves too coarse.
+- [x] Provision KV: `csearch-api-cache-CACHE` namespace created (prod + preview); real `id` / `preview_id` are in `wrangler.toml`.
+- [x] Deploy: `npx wrangler deploy` done; `api-cache.csearch.org` live as a Custom Domain (auto-provisioned via the `custom_domain` route in `wrangler.toml`).
+- [x] `NUXT_API_SERVER` set to `https://api-cache.csearch.org` (GH Actions repo variable + `.env.prod`); Pages rebuilt. Production traffic now flows browser → `api-cache.csearch.org` → `api.csearch.org`.
+- [x] Smoke-tested in prod: `X-Cache: MISS → HIT`, POST `/search/semantic` passthrough, and CORS verified. One fix shipped — the Worker re-asserts `Access-Control-Allow-Origin: *` on Origin-bearing GET responses (origin only emits CORS when an `Origin` header is present, but the Worker caches by path+query and can fill from header-less SSG requests).
+- [ ] Optional: surgical invalidation via a guarded `POST /_purge` called from the scraper success path, if the 5-min `FRESH_SECONDS` window proves too coarse.
 
 ## Phase 5 — Live push (optional, only if real-time UX is wanted)
 

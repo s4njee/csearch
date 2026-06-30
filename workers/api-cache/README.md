@@ -4,6 +4,13 @@ KV-backed stale-while-revalidate proxy in front of `api.csearch.org`. Solves the
 "frontend SSG sees stale data" half of the freshness problem (see
 `FINDINGS.md` §3, `docs/tasks.md` Phase 4).
 
+**Status: live.** Deployed at `api-cache.csearch.org`, and production
+`NUXT_API_SERVER` points at it, so all frontend traffic (SSG build, hydration,
+runtime) flows through it. The "First-time setup" and "Wire the frontend"
+sections below are kept as a runbook for re-provisioning / disaster recovery —
+the KV namespace IDs in `wrangler.toml` are already real, so a plain
+`npx wrangler deploy` redeploys code changes.
+
 ```
 client → api-cache.csearch.org (Worker) → api.csearch.org (FastAPI)
                   │
@@ -24,6 +31,12 @@ Response headers:
 - `X-Cache: STALE` — served from KV, age 5 min – 24 h, background revalidate kicked off.
 - `X-Cache: MISS` — fetched synchronously from origin.
 - `X-Cache-Age` — entry age in seconds.
+
+CORS: the origin only emits `Access-Control-Allow-Origin: *` when a request
+carries an `Origin` header, but the Worker caches by path+query and can fill the
+cache from header-less requests (e.g. the SSG build). To keep cached GET hits
+usable from the browser, the Worker re-asserts `Access-Control-Allow-Origin: *`
+on any Origin-bearing GET response (`applyCors` in `src/index.ts`).
 
 ## First-time setup
 

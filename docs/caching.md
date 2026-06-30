@@ -2,6 +2,8 @@
 
 The API uses a shared Redis cache for hot routes. This document covers the cache behavior, invalidation model, failure characteristics, and operational commands.
 
+> This covers the **origin-side Redis cache** inside the FastAPI service. There is also an **edge cache** in front of the public API: the `api-cache.csearch.org` Cloudflare Worker (KV-backed stale-while-revalidate) that production `NUXT_API_SERVER` points at. See [`workers/api-cache/README.md`](../workers/api-cache/README.md).
+
 ## Cache Characteristics
 
 - 24-hour TTL
@@ -32,9 +34,12 @@ The scraper clears all `csearch:*` keys after a run that wrote at least one chan
 
 ### Manual invalidation
 
-There is no active public cache-clear route in the FastAPI service. Manual
-clears should be done from Redis or by running a scraper/data-pipeline job that
-writes changed rows.
+`POST /admin/cache/reset` flushes all `csearch:*` keys. It is guarded by the
+`X-Admin-Token` header and is inert (returns 503) unless `ADMIN_TOKEN` is set on
+the API, so it is disabled by default. When enabled, the scraper/NLP pipeline
+can call it after an ingest to refresh cached lists without waiting for the TTL.
+Otherwise, clear from Redis directly or run a data-pipeline job that writes
+changed rows.
 
 ## Failure Model
 
@@ -65,11 +70,11 @@ Inspect cache headers:
 curl -I http://localhost:3000/latest/hr
 ```
 
-Clear cache manually:
+Clear cache manually (requires `ADMIN_TOKEN` set on the API):
 
 ```bash
-curl -X POST http://localhost:3000/admin/clear-cache \
-  -H "Authorization: <SECRET_KEY>"
+curl -X POST http://localhost:3000/admin/cache/reset \
+  -H "X-Admin-Token: <ADMIN_TOKEN>"
 ```
 
 Verify Redis connectivity from Kubernetes:
