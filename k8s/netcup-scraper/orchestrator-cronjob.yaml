@@ -117,26 +117,11 @@ spec:
                   PY
                   )"
                   bash /app/nightly_update.sh
-                  if [ -f /app/data/.deploy-pending ] && [ -n "${DEPLOY_HOOK_URL:-}" ]; then
-                    echo "Triggering Cloudflare Pages deploy..."
-                    python - <<'PY'
-                  import os, sys, time, urllib.request
-                  url = os.environ["DEPLOY_HOOK_URL"]
-                  for attempt in range(1, 4):
-                      try:
-                          req = urllib.request.Request(url, method="POST", data=b"")
-                          with urllib.request.urlopen(req, timeout=30) as r:
-                              print(f"Deploy hook attempt {attempt}: HTTP {r.status}")
-                              sys.exit(0)
-                      except Exception as e:
-                          print(f"Deploy hook attempt {attempt} failed: {e}", file=sys.stderr)
-                          time.sleep(5 * attempt)
-                  print("Deploy hook exhausted retries; not failing the job.", file=sys.stderr)
-                  PY
-                    rm -f /app/data/.deploy-pending
-                  else
-                    echo "Skipping deploy trigger (sentinel=$([ -f /app/data/.deploy-pending ] && echo present || echo missing), DEPLOY_HOOK_URL=$([ -n "${DEPLOY_HOOK_URL:-}" ] && echo set || echo unset))"
-                  fi
+                  # Cloudflare Pages deploy-hook trigger removed (Pages is
+                  # direct-upload, so a git-build hook 500s; freshness is handled
+                  # by the Redis cache clear + the api-cache Worker). Clear any
+                  # stale sentinel so it doesn't accumulate.
+                  rm -f /app/data/.deploy-pending
               securityContext:
                 allowPrivilegeEscalation: false
                 runAsNonRoot: true
@@ -177,12 +162,6 @@ spec:
                     secretKeyRef:
                       name: csearch-api-openai
                       key: OPENAI_API_KEY
-                - name: DEPLOY_HOOK_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: csearch-cloudflare-deploy-hook
-                      key: DEPLOY_HOOK_URL
-                      optional: true
               resources:
                 requests:
                   cpu: 500m
