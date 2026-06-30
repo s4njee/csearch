@@ -7,9 +7,8 @@ metadata:
     app.kubernetes.io/component: scraper
 spec:
   timeZone: "America/Chicago"
-  # Second daily scrape — catches GovInfo posts that land after the 05:00 orchestrator
-  # run. Pairs with csearch-data-pipeline (orchestrator-cronjob.yaml @ 0 5).
-  schedule: "0 10 * * *"
+  # Daily scrape at 04:00 America/Chicago (DST-aware via timeZone above).
+  schedule: "0 4 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3

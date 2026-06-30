@@ -3,7 +3,7 @@ name: Deploy Frontend To Cloudflare Pages
 on:
   push:
     branches:
-      - redesign
+      - main
     paths:
       - ".github/workflows/frontend-cloudflare-deploy.yml"
       - "frontend/**"
@@ -28,12 +28,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          # Always build the redesign branch, regardless of which event (push,
-          # daily schedule, or manual dispatch) triggered the run. NOTE: the
-          # scheduled run uses the workflow file from the default branch, so
-          # this file must also exist on the default branch for the cron to
-          # pick up the redesign ref.
-          ref: redesign
+          # Always build main, regardless of which event (push, daily schedule,
+          # or manual dispatch) triggered the run. main is the default branch, so
+          # the scheduled run (which uses the default-branch workflow file) builds
+          # the same ref as push/dispatch.
+          ref: main
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
