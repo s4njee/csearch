@@ -73,7 +73,7 @@ class Cache:
     async def ping(self) -> bool:
         """Liveness probe for the Redis backend (used by /readyz)."""
         try:
-            return bool(await self.redis.ping())  # type: ignore[misc]
+            return bool(await self.redis.ping())
         except Exception as e:
             logger.warning("cache ping failed: %s", e)
             return False
