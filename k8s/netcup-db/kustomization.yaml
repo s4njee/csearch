@@ -4,13 +4,7 @@ kind: Kustomization
 # ── Database topology note (§7 docs/CRITICISMS2.md) ─────────────────────────
 #
 # ACTIVE topology: custom postgres-statefulset.yaml (referenced in resources).
-#
-# DORMANT manifests in this directory (NOT referenced here, NOT deployed):
-#   - cnpg-cluster.yaml    — CloudNativePG HA cluster definition
-#   - cnpg-pooler.yaml     — CloudNativePG PgBouncer pooler (type: rw)
-# These are aspirational/experimental CNPG configs. They are kept here for
-# reference but must not be applied without a planned migration to CNPG.
-# TODO: either activate CNPG in both overlays or delete the dormant files.
+# (CloudNativePG was evaluated and dropped — not used in prod.)
 #
 # Schema divergence between environments (§7):
 #   netcup (this file) bootstraps: 001-schema.sql + 003-zip-districts.sql
