@@ -50,7 +50,7 @@ function buildChart(): { data: Plotly.Data[], layout: Partial<Plotly.Layout> } |
         orientation: 'h',
         x: top.map(r => Number(r.bill_count)),
         y: top.map(r => String(r.subject || '—')),
-        marker: { color: '#4f8ef7' },
+        marker: { color: '#008f11' },
         hovertemplate: '%{y}: <b>%{x}</b> bills<extra></extra>',
       }],
       layout: {
@@ -73,7 +73,7 @@ function buildChart(): { data: Plotly.Data[], layout: Partial<Plotly.Layout> } |
           const truncated = name.length > 28 ? `${name.slice(0, 28)}…` : name
           return `${truncated} [${r.committee_code}]`
         }),
-        marker: { color: '#4f8ef7' },
+        marker: { color: '#008f11' },
         hovertemplate: '%{y}: <b>%{x}</b> bills<extra></extra>',
       }],
       layout: {
@@ -141,14 +141,14 @@ function buildChart(): { data: Plotly.Data[], layout: Partial<Plotly.Layout> } |
         x: labels,
         y: top.map(r => Number(r.bill_count)),
         marker: {
-          color: top.map(r => PARTY_COLOR[String(r.sponsor_party || '')] ?? '#4f8ef7'),
+          color: top.map(r => PARTY_COLOR[String(r.sponsor_party || '')] ?? '#008f11'),
         },
         hovertemplate: '%{x}: <b>%{y}</b> bills<extra></extra>',
       }],
       layout: {
         ...baseLayout,
         margin: { t: 8, r: 16, b: 96, l: 40 },
-        xaxis: { ...BASE_XAXIS, tickangle: -40, tickfont: { size: 9, color: '#4f8ef7' } },
+        xaxis: { ...BASE_XAXIS, tickangle: -40, tickfont: { size: 9, color: '#008f11' } },
         yaxis: { ...BASE_YAXIS, title: { text: 'Bills', font: { size: 10, color: '#aab9d2' } } },
       },
     }
@@ -241,7 +241,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--ui-text-muted);
   font-size: 0.82rem;
 }
 </style>

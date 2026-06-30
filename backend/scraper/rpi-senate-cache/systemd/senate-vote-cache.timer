@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh the Senate vote cache (13:00, 17:00, 21:00 UTC, matching the GitHub Action)
+
+[Timer]
+# Same cadence as .github/workflows/senate-vote-cache.yml (cron "0 13,17,21 * * *").
+OnCalendar=*-*-* 13,17,21:00:00 UTC
+# Catch up if the RPi was asleep/offline at the scheduled time.
+Persistent=true
+# Spread load so multiple machines don't hit senate.gov at the exact same second.
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

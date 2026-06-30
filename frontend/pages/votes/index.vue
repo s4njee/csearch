@@ -117,8 +117,8 @@ const availableMonths = computed(() => {
 })
 
 const chamber = computed<'house' | 'senate'>(() => {
-  const raw = typeof route.query.chamber === 'string' ? route.query.chamber.toLowerCase() : 'senate'
-  return raw === 'house' ? 'house' : 'senate'
+  const raw = typeof route.query.chamber === 'string' ? route.query.chamber.toLowerCase() : 'house'
+  return raw === 'senate' ? 'senate' : 'house'
 })
 
 const chamberLabel = computed(() => chamber.value === 'house' ? 'House' : 'Senate')
@@ -164,16 +164,6 @@ function isPassedResult(result: string | null | undefined) {
     || normalized.includes('ratified')
 }
 
-function resultClass(result: string | null | undefined) {
-  const normalized = String(result || '').toLowerCase()
-  if (isPassedResult(normalized)) {
-    return 'vote-badge vote-badge--positive'
-  }
-  if (normalized.includes('failed') || normalized.includes('rejected') || normalized.includes('not agreed')) {
-    return 'vote-badge vote-badge--negative'
-  }
-  return 'vote-badge'
-}
 
 function formatMonthLabel(yyyyMm: string) {
   const [yyyy, mm] = yyyyMm.split('-')
@@ -256,175 +246,197 @@ watch([filterOutcome, filterVoteType, filterMonth, filterMargin], async () => {
 
   await router.replace(voteRoute(chamber.value, searchQuery.value || undefined))
 })
+
+// ── Presentational helpers for Nuxt UI components ──
+// Nuxt UI's Select forbids an empty-string item value; an "Any" sentinel stands
+// in for the no-filter state ('') the page logic uses.
+const ANY = '__any__'
+
+function anyModel(target: Ref<string>) {
+  return computed<string>({
+    get: () => (target.value === '' ? ANY : target.value),
+    set: (value) => { target.value = value === ANY ? '' : value },
+  })
+}
+
+const outcomeModel = anyModel(filterOutcome)
+const voteTypeModel = anyModel(filterVoteType)
+const monthModel = anyModel(filterMonth)
+
+const outcomeItems = [
+  { label: 'Any result', value: ANY },
+  { label: 'Passed / Agreed', value: 'passed' },
+  { label: 'Failed / Rejected', value: 'failed' },
+]
+const voteTypeItems = computed(() => [
+  { label: 'Any type', value: ANY },
+  ...availableVoteTypes.value.map(vt => ({ label: vt, value: vt })),
+])
+const monthItems = computed(() => [
+  { label: 'Any month', value: ANY },
+  ...availableMonths.value.map(month => ({ label: formatMonthLabel(month), value: month })),
+])
+
+const { voteResultColor, formatNumber } = useFormatters()
+
+function clearVoteFilters() {
+  filterOutcome.value = ''
+  filterVoteType.value = ''
+  filterMonth.value = ''
+  filterMargin.value = ''
+}
+
+usePageSeo({
+  title: () => heading.value,
+  description: () => (searchQuery.value
+    ? `Roll-call vote search results for "${searchQuery.value}" in the ${chamberLabel.value}.`
+    : `Latest ${chamberLabel.value} roll-call votes in the U.S. Congress.`),
+})
 </script>
 
 <template>
-  <main class="page page--wide">
-    <section class="surface">
-      <div class="toolbar">
-        <div>
-          <p class="eyebrow">Vote routes</p>
-          <h1>{{ heading }}</h1>
-          <p class="lede">
-            This view combines the recent `/votes/:chamber` feed with the parameterized
-            `vote-search-example` helper served through `/explore/:queryId`.
-          </p>
+  <UContainer class="space-y-8">
+    <UCard>
+      <div class="space-y-6">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-xs font-medium uppercase tracking-[0.2em] text-primary">Vote routes</p>
+            <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">{{ heading }}</h1>
+            <p class="mt-1 max-w-2xl text-muted">
+              Recent roll-call activity combined with full-text vote search.
+            </p>
+          </div>
+
+          <UFieldGroup>
+            <UButton
+              v-for="option in VOTE_CHAMBER_OPTIONS"
+              :key="option.value"
+              :to="voteRoute(option.value, searchQuery || undefined)"
+              :color="option.value === chamber ? 'primary' : 'neutral'"
+              :variant="option.value === chamber ? 'subtle' : 'outline'"
+            >
+              {{ option.label }}
+            </UButton>
+          </UFieldGroup>
         </div>
 
-        <div class="pill-row">
-          <NuxtLink
-            v-for="option in VOTE_CHAMBER_OPTIONS"
-            :key="option.value"
-            :to="voteRoute(option.value, searchQuery || undefined)"
-            class="pill"
-            :class="{ 'pill--active': option.value === chamber }"
-          >
-            {{ option.label }}
-          </NuxtLink>
-        </div>
+        <form class="flex flex-col gap-3 sm:flex-row sm:items-end" @submit.prevent="submitSearch">
+          <UFormField label="Search vote questions and procedures" class="flex-1">
+            <UInput
+              v-model="draftQuery"
+              type="search"
+              icon="i-lucide-search"
+              placeholder="cloture, confirmation, debt ceiling, impeachment…"
+              class="w-full"
+            />
+          </UFormField>
+          <UButton type="submit" color="primary" variant="subtle" size="lg" class="justify-center">
+            {{ draftQuery.trim() ? 'Run vote search' : 'Load latest votes' }}
+          </UButton>
+        </form>
+
+        <UCollapsible>
+          <UButton color="neutral" variant="outline" block trailing-icon="i-lucide-chevron-down" class="justify-between">
+            <span>Refine results</span>
+            <span class="text-muted">{{ activeFacetCount ? `(${activeFacetCount} active)` : 'Optional filters' }}</span>
+          </UButton>
+
+          <template #content>
+            <div class="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+              <UFormField label="Outcome">
+                <USelect v-model="outcomeModel" :items="outcomeItems" class="w-full" />
+              </UFormField>
+              <UFormField label="Vote type">
+                <USelect v-model="voteTypeModel" :items="voteTypeItems" class="w-full" />
+              </UFormField>
+              <UFormField label="Vote month">
+                <USelect v-model="monthModel" :items="monthItems" class="w-full" />
+              </UFormField>
+              <UFormField label="Max margin (close votes)">
+                <UInput v-model.number="filterMargin" type="number" :min="0" placeholder="e.g. 10" class="w-full" />
+              </UFormField>
+            </div>
+
+            <div v-if="activeFacetCount" class="flex justify-end pt-4">
+              <UButton color="neutral" variant="ghost" size="xs" icon="i-lucide-x" @click="clearVoteFilters">
+                Clear filters
+              </UButton>
+            </div>
+          </template>
+        </UCollapsible>
       </div>
+    </UCard>
 
-      <form class="control-grid control-grid--search" @submit.prevent="submitSearch">
-        <label class="field field--full">
-          <span>Search vote questions and procedures</span>
-          <input
-            v-model="draftQuery"
-            class="field-input"
-            type="search"
-            placeholder="cloture, confirmation, debt ceiling, impeachment..."
-          >
-        </label>
-        <button class="button button--primary" style="align-self: end" type="submit">
-          {{ draftQuery.trim() ? 'Run vote search' : 'Load latest votes' }}
-        </button>
-      </form>
+    <UAlert v-if="errorMessage" color="error" variant="subtle" icon="i-lucide-circle-alert" :description="errorMessage" />
 
-      <details class="facet-panel">
-        <summary class="facet-panel__summary">
-          <span>Refine results</span>
-          <span class="facet-panel__meta">
-            <span v-if="activeFacetCount">({{ activeFacetCount }} active)</span>
-            <span v-else>Optional filters</span>
-          </span>
-        </summary>
+    <div v-else-if="loading" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <SkeletonCard v-for="n in 6" :key="n" :rows="4" />
+    </div>
 
-        <div class="facet-panel__body">
-          <label class="field">
-            <span>Outcome</span>
-            <select v-model="filterOutcome" class="field-input">
-              <option value="">Any result</option>
-              <option value="passed">Passed / Agreed</option>
-              <option value="failed">Failed / Rejected</option>
-            </select>
-          </label>
+    <UCard v-else-if="!filteredVotes.length">
+      <p class="text-muted">No votes matched this route and parameter set.</p>
+    </UCard>
 
-          <label class="field">
-            <span>Vote type</span>
-            <select v-model="filterVoteType" class="field-input">
-              <option value="">Any type</option>
-              <option v-for="vt in availableVoteTypes" :key="vt" :value="vt">{{ vt }}</option>
-            </select>
-          </label>
+    <div v-else class="space-y-4">
+      <p class="text-sm text-muted">
+        {{ formatNumber(filteredVotes.length) }} {{ filteredVotes.length === 1 ? 'result' : 'results' }}
+      </p>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <UCard v-for="vote in filteredVotes" :key="vote.voteid">
+        <div class="space-y-4">
+          <div class="flex items-start justify-between gap-3">
+            <p class="text-xs uppercase tracking-[0.1em] text-muted">{{ chamberLabel }} · Congress {{ vote.congress || '—' }}</p>
+            <UBadge
+              :color="voteResultColor(vote.result)"
+              variant="subtle"
+              :title="vote.result || 'Unknown'"
+              class="w-56 shrink-0 justify-center truncate text-center"
+            >
+              {{ vote.result || 'Unknown' }}
+            </UBadge>
+          </div>
 
-          <label class="field">
-            <span>Vote month</span>
-            <select v-model="filterMonth" class="field-input">
-              <option value="">Any month...</option>
-              <option v-for="month in availableMonths" :key="month" :value="month">{{ formatMonthLabel(month) }}</option>
-            </select>
-          </label>
+          <NuxtLink :to="`/votes/${vote.voteid}`" class="block text-lg font-medium text-highlighted transition-colors hover:text-primary">
+            {{ vote.question || 'Untitled vote' }}
+          </NuxtLink>
 
-          <label class="field">
-            <span>Max margin (close votes)</span>
-            <input v-model.number="filterMargin" type="number" class="field-input" placeholder="e.g. 10" min="0">
-          </label>
+          <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Vote #</dt>
+              <dd class="mt-0.5">{{ vote.votenumber || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Session</dt>
+              <dd class="mt-0.5">{{ vote.votesession || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Date</dt>
+              <dd class="mt-0.5">{{ formatDate(vote.votedate) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Type</dt>
+              <dd class="mt-0.5">{{ vote.votetype || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Yea</dt>
+              <dd class="mt-0.5">{{ formatNumber(toCount(vote.yea_count ?? vote.yea)) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Nay</dt>
+              <dd class="mt-0.5">{{ formatNumber(toCount(vote.nay_count ?? vote.nay)) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Present</dt>
+              <dd class="mt-0.5">{{ formatNumber(toCount(vote.present)) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Not voting</dt>
+              <dd class="mt-0.5">{{ formatNumber(toCount(vote.notvoting)) }}</dd>
+            </div>
+          </dl>
         </div>
-      </details>
-    </section>
-
-    <section class="summary-strip">
-      <article class="summary-tile">
-        <span>Rows</span>
-        <strong>{{ filteredVotes.length }}</strong>
-      </article>
-      <article class="summary-tile">
-        <span>Passed / agreed</span>
-        <strong>{{ passedCount }}</strong>
-      </article>
-      <article class="summary-tile">
-        <span>Closest margin</span>
-        <strong>{{ closestMargin }}</strong>
-      </article>
-      <article class="summary-tile">
-        <span>Mode</span>
-        <strong>{{ searchQuery ? 'Search' : 'Latest' }}</strong>
-      </article>
-    </section>
-
-    <section v-if="errorMessage" class="surface surface--error">
-      {{ errorMessage }}
-    </section>
-
-    <section v-else-if="loading" class="surface">
-      Loading votes...
-    </section>
-
-    <section v-else-if="!filteredVotes.length" class="surface">
-      No votes matched this route and parameter set.
-    </section>
-
-    <section v-else class="result-grid">
-      <article v-for="vote in filteredVotes" :key="vote.voteid" class="result-card">
-        <div class="result-card__header">
-          <div>
-            <p class="result-card__meta">{{ chamberLabel }} · Congress {{ vote.congress || '—' }}</p>
-            <h2>
-              <NuxtLink :to="`/votes/${vote.voteid}`" class="link-plain">
-                {{ vote.question || 'Untitled vote' }}
-              </NuxtLink>
-            </h2>
-          </div>
-
-          <span :class="resultClass(vote.result)">
-            {{ vote.result || 'Unknown' }}
-          </span>
-        </div>
-
-        <dl class="detail-grid">
-          <div>
-            <dt>Vote #</dt>
-            <dd>{{ vote.votenumber || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Session</dt>
-            <dd>{{ vote.votesession || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Date</dt>
-            <dd>{{ formatDate(vote.votedate) }}</dd>
-          </div>
-          <div>
-            <dt>Type</dt>
-            <dd>{{ vote.votetype || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Yea</dt>
-            <dd>{{ toCount(vote.yea_count ?? vote.yea) }}</dd>
-          </div>
-          <div>
-            <dt>Nay</dt>
-            <dd>{{ toCount(vote.nay_count ?? vote.nay) }}</dd>
-          </div>
-          <div>
-            <dt>Present</dt>
-            <dd>{{ toCount(vote.present) }}</dd>
-          </div>
-          <div>
-            <dt>Not voting</dt>
-            <dd>{{ toCount(vote.notvoting) }}</dd>
-          </div>
-        </dl>
-      </article>
-    </section>
-  </main>
+      </UCard>
+      </div>
+    </div>
+  </UContainer>
 </template>

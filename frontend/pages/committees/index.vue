@@ -2,6 +2,7 @@
 import type { CommitteeRecord } from '~/types/congress'
 
 const { getCommittees } = useCongressApi()
+const { formatNumber } = useFormatters()
 const { data: committees, pending: loading, error: fetchError } = await useAsyncData<CommitteeRecord[]>(
   'committees-list',
   () => getCommittees()
@@ -33,104 +34,86 @@ const jointCommittees = computed(() => filteredCommittees.value.filter(c => {
   const ch = c.chamber?.toLowerCase()
   return ch !== 'house' && ch !== 'senate'
 }))
+
+// ── Presentational helpers for Nuxt UI components ──
+const ANY = '__any__'
+
+const chamberModel = computed<string>({
+  get: () => (filterChamber.value === '' ? ANY : filterChamber.value),
+  set: (value) => { filterChamber.value = value === ANY ? '' : value },
+})
+
+function chamberLabel(ch?: string | null) {
+  const c = ch?.toLowerCase()
+  return c === 'senate' ? 'Senate' : c === 'house' ? 'House' : ch || 'Unknown'
+}
+
+const chamberItems = computed(() => [
+  { label: 'Any chamber', value: ANY },
+  ...availableChambers.value.map(ch => ({ label: chamberLabel(ch), value: ch })),
+])
+
+const committeeGroups = computed(() => [
+  { title: 'House Committees', items: houseCommittees.value },
+  { title: 'Senate Committees', items: senateCommittees.value },
+  { title: 'Joint Committees', items: jointCommittees.value },
+].filter(group => group.items.length > 0))
+
+usePageSeo({
+  title: 'Committees',
+  description: 'Browse U.S. House, Senate, and Joint congressional committees and the bills referred to them.',
+})
 </script>
 
 <template>
-  <main class="page page--wide">
-    <section class="hero-panel hero-panel--primary" style="margin-bottom: 1.5rem">
-      <h1 class="hero-title">Browse Committees</h1>
-      <p class="hero-copy" style="margin-top: 0.5rem">
-        Explore legislative action grouped by standard House, Senate, and Joint congressional committees.
-      </p>
+  <UContainer class="space-y-8">
+    <UCard>
+      <div class="space-y-5">
+        <div>
+          <p class="text-xs font-medium uppercase tracking-[0.2em] text-primary">Committees</p>
+          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">Browse committees</h1>
+          <p class="mt-1 max-w-2xl text-muted">
+            Explore legislative action grouped by standard House, Senate, and Joint congressional committees.
+          </p>
+        </div>
 
-      <div class="control-grid" style="margin-top: 1.5rem">
-        <label class="field">
-          <span>Chamber</span>
-          <select v-model="filterChamber" class="field-input">
-            <option value="">Any chamber</option>
-            <option v-for="ch in availableChambers" :key="ch" :value="ch">{{ ch?.toLowerCase() === 'senate' ? 'Senate' : ch?.toLowerCase() === 'house' ? 'House' : ch || 'Unknown' }}</option>
-          </select>
-        </label>
+        <UFormField label="Chamber" class="max-w-xs">
+          <USelect v-model="chamberModel" :items="chamberItems" class="w-full" />
+        </UFormField>
       </div>
-    </section>
+    </UCard>
 
-    <section v-if="loading" class="surface">
-      Loading committees...
-    </section>
+    <div v-if="loading" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <SkeletonCard v-for="n in 4" :key="n" :rows="2" />
+    </div>
 
-    <section v-else-if="errorMessage" class="surface surface--error">
-      {{ errorMessage }}
-    </section>
+    <UAlert v-else-if="errorMessage" color="error" variant="subtle" icon="i-lucide-circle-alert" :description="errorMessage" />
 
     <template v-else-if="committees">
-      <!-- House Committees -->
-      <section v-if="houseCommittees.length" class="surface" style="margin-bottom: 1rem;">
-        <div class="section-title">
-          <h2>House Committees</h2>
-          <p>{{ houseCommittees.length }} active</p>
-        </div>
-        <div class="result-grid">
-          <NuxtLink
-            v-for="c in houseCommittees"
-            :key="c.committee_code"
-            :to="`/committees/${c.committee_code}`"
-            class="track-card"
-          >
-            <div>
-              <div class="track-card__code">{{ c.committee_code }}</div>
-              <div>{{ c.committee_name || 'Unnamed Committee' }}</div>
-              <p style="margin-top: 0.25rem; font-size: 0.75rem;">{{ c.bill_count || 0 }} bills referenced</p>
-            </div>
-            <span class="track-card__arrow">→</span>
-          </NuxtLink>
-        </div>
-      </section>
+      <UCard v-for="group in committeeGroups" :key="group.title">
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">{{ group.title }}</h2>
+            <p class="text-sm text-muted">{{ group.items.length }} active</p>
+          </div>
+        </template>
 
-      <!-- Senate Committees -->
-      <section v-if="senateCommittees.length" class="surface" style="margin-bottom: 1rem;">
-        <div class="section-title">
-          <h2>Senate Committees</h2>
-          <p>{{ senateCommittees.length }} active</p>
-        </div>
-        <div class="result-grid">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <NuxtLink
-            v-for="c in senateCommittees"
+            v-for="c in group.items"
             :key="c.committee_code"
             :to="`/committees/${c.committee_code}`"
-            class="track-card"
+            class="group flex items-center justify-between gap-3 border border-default p-4 transition-colors hover:border-primary"
           >
             <div>
-              <div class="track-card__code">{{ c.committee_code }}</div>
-              <div>{{ c.committee_name || 'Unnamed Committee' }}</div>
-              <p style="margin-top: 0.25rem; font-size: 0.75rem;">{{ c.bill_count || 0 }} bills referenced</p>
+              <div class="text-sm font-semibold text-primary">{{ c.committee_code }}</div>
+              <div class="mt-0.5 text-highlighted">{{ c.committee_name || 'Unnamed Committee' }}</div>
+              <p class="mt-1 text-xs text-muted">{{ formatNumber(c.bill_count || 0) }} bills referenced</p>
             </div>
-            <span class="track-card__arrow">→</span>
+            <span class="text-dimmed transition-colors group-hover:text-primary">→</span>
           </NuxtLink>
         </div>
-      </section>
-
-      <!-- Joint/Other Committees -->
-      <section v-if="jointCommittees.length" class="surface" style="margin-bottom: 1rem;">
-        <div class="section-title">
-          <h2>Joint Committees</h2>
-          <p>{{ jointCommittees.length }} active</p>
-        </div>
-        <div class="result-grid">
-          <NuxtLink
-            v-for="c in jointCommittees"
-            :key="c.committee_code"
-            :to="`/committees/${c.committee_code}`"
-            class="track-card"
-          >
-            <div>
-              <div class="track-card__code">{{ c.committee_code }}</div>
-              <div>{{ c.committee_name || 'Unnamed Committee' }}</div>
-              <p style="margin-top: 0.25rem; font-size: 0.75rem;">{{ c.bill_count || 0 }} bills referenced</p>
-            </div>
-            <span class="track-card__arrow">→</span>
-          </NuxtLink>
-        </div>
-      </section>
+      </UCard>
     </template>
-  </main>
+  </UContainer>
 </template>

@@ -43,16 +43,39 @@ class FakeDB:
         self.last_kwargs = kwargs
         return {"rows": self.rows}
 
+    # Read-replica variants delegate to the primary methods so call capture and
+    # behaviour are identical in tests (no replica configured).
+    async def read_fetch(self, query: str, *args, **kwargs):
+        return await self.fetch(query, *args, **kwargs)
+
+    async def read_fetchrow(self, query: str, *args, **kwargs):
+        return await self.fetchrow(query, *args, **kwargs)
+
+    async def read_fetchval(self, query: str, *args, **kwargs):
+        return await self.fetchval(query, *args, **kwargs)
+
+    async def read_raw(self, query: str, *args, **kwargs):
+        return await self.raw(query, *args, **kwargs)
+
 
 class FakeCache:
-    def __init__(self):
+    def __init__(self, allow_rate_limit: bool = True):
         self.values = {}
+        self.allow_rate_limit = allow_rate_limit
+        self.rate_limit_calls = []
 
     async def get(self, key: str):
         return self.values.get(key)
 
     async def set(self, key: str, value, ttl: int | None = None):
         self.values[key] = value
+
+    async def rate_limit_allow(self, key: str, limit: int, window_seconds: int):
+        self.rate_limit_calls.append((key, limit, window_seconds))
+        return self.allow_rate_limit
+
+    async def ping(self):
+        return True
 
     async def reset(self):
         self.values.clear()
@@ -84,6 +107,20 @@ class SequencedDB:
     async def raw(self, query: str, *args, **kwargs):
         self.calls.append(("raw", query, args))
         return self.raw_results.pop(0) if self.raw_results else {"rows": []}
+
+    # Read-replica variants delegate to the primary methods so call sequencing
+    # and result sequencing are identical in tests (no replica configured).
+    async def read_fetch(self, query: str, *args, **kwargs):
+        return await self.fetch(query, *args, **kwargs)
+
+    async def read_fetchrow(self, query: str, *args, **kwargs):
+        return await self.fetchrow(query, *args, **kwargs)
+
+    async def read_fetchval(self, query: str, *args, **kwargs):
+        return await self.fetchval(query, *args, **kwargs)
+
+    async def read_raw(self, query: str, *args, **kwargs):
+        return await self.raw(query, *args, **kwargs)
 
 
 def build_client(db: FakeDB | None = None):
@@ -342,7 +379,8 @@ def test_semantic_search_returns_bill_metadata():
         "cosponsor_count": 12,
         "similarity": 0.98,
     }])
-    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    # Pin vector-only mode so the assertions below target the vector SQL path.
+    app = create_app(settings=Settings(openai_api_key="test-key", semantic_hybrid_enabled=False), db=db, cache=FakeCache())
     app.state.openai_client = FakeOpenAI(api_key="test-key")
     client = TestClient(app)
 
@@ -358,6 +396,76 @@ def test_semantic_search_returns_bill_metadata():
     assert db.last_args[4] == 50
     assert db.last_kwargs["timeout"] == 10.0
     assert db.last_kwargs["hnsw_ef_search"] == 500
+
+
+def test_semantic_search_hybrid_fuses_keyword_and_vector():
+    semantic._cb_failure_count = 0
+    semantic._cb_open_until = 0.0
+
+    class FakeEmbeddings:
+        async def create(self, model, input, dimensions):
+            return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = FakeEmbeddings()
+
+    # Vector arm returns hr1-119; keyword arm returns hr1-119 (overlap) + s2-119
+    # (keyword-only). s2-119 is then hydrated. RRF should rank hr1-119 first.
+    db = SequencedDB(
+        fetch_results=[
+            [{"bill_id": "hr1-119", "billtype": "hr", "billnumber": "1", "congress": "119",
+              "sponsor_name": "Alice", "similarity": 0.9}],
+            [{"billtype": "hr", "billnumber": "1", "congress": "119"},
+             {"billtype": "s", "billnumber": "2", "congress": "119"}],
+            [{"bill_id": "s2-119", "billtype": "s", "billnumber": "2", "congress": "119",
+              "sponsor_name": "Bob", "similarity": None}],
+        ],
+    )
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+
+    response = client.post("/search/semantic", json={"query": "clean drinking water"})
+    assert response.status_code == 200
+    body = response.json()
+    assert [b["bill_id"] for b in body] == ["hr1-119", "s2-119"]
+    assert body[0]["similarity"] == 0.9
+    assert body[0]["sponsor_name"] == "Alice"
+    assert body[1]["sponsor_name"] == "Bob"  # keyword-only bill was hydrated
+    assert body[1]["similarity"] is None
+
+
+def test_semantic_hybrid_degrades_to_keyword_when_embedding_fails():
+    semantic._cb_failure_count = 0
+    semantic._cb_open_until = 0.0
+
+    class ExplodingEmbeddings:
+        async def create(self, *args, **kwargs):
+            raise RuntimeError("openai down")
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = ExplodingEmbeddings()
+
+    # Embedding fails → no vector arm. Keyword arm returns hr1-119, then hydrate.
+    db = SequencedDB(
+        fetch_results=[
+            [{"billtype": "hr", "billnumber": "1", "congress": "119"}],
+            [{"bill_id": "hr1-119", "billtype": "hr", "billnumber": "1", "congress": "119",
+              "sponsor_name": "Alice", "similarity": None}],
+        ],
+    )
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+
+    response = client.post("/search/semantic", json={"query": "clean drinking water"})
+    assert response.status_code == 200
+    body = response.json()
+    # A list of keyword results, not the {degraded: true} object.
+    assert isinstance(body, list)
+    assert [b["bill_id"] for b in body] == ["hr1-119"]
 
 
 def test_semantic_warmup_reuses_cached_embedding():
@@ -394,6 +502,90 @@ def test_semantic_warmup_reuses_cached_embedding():
     assert app.state.openai_client.embeddings.calls == 1
     assert db.last_args[3] == 500
     assert db.last_args[4] == 1
+
+
+def test_semantic_exact_bill_reference_skips_openai():
+    class ExplodingEmbeddings:
+        async def create(self, *args, **kwargs):
+            raise AssertionError("OpenAI must not be called for an exact bill reference")
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = ExplodingEmbeddings()
+
+    db = FakeDB(rows=[{"billid": 1001, "bill_type": "hr", "bill_number": "42", "similarity": 1.0}])
+    app = create_app(settings=Settings(openai_api_key="test-key"), db=db, cache=FakeCache())
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+
+    response = client.post("/search/semantic", json={"query": "HR 42"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["bill_number"] == "42"
+    # Direct lookup binds billtype/billnumber, not a vector string.
+    assert db.last_args[0] == "hr"
+    assert db.last_args[1] == 42
+    assert "public.bills" in db.last_query
+
+
+def test_semantic_query_too_long_is_rejected():
+    db = FakeDB(rows=[])
+    app = create_app(settings=Settings(openai_api_key="test-key", semantic_max_query_chars=20), db=db, cache=FakeCache())
+    client = TestClient(app)
+    response = client.post("/search/semantic", json={"query": "x" * 21})
+    assert response.status_code == 413
+    assert "too long" in response.json()["error"]
+
+
+def test_semantic_rate_limit_returns_429():
+    class FakeEmbeddings:
+        async def create(self, model, input, dimensions):
+            return SimpleNamespace(data=[SimpleNamespace(embedding=[0.1, 0.2, 0.3])])
+
+    class FakeOpenAI:
+        def __init__(self, api_key: str):
+            self.embeddings = FakeEmbeddings()
+
+    db = FakeDB(rows=[])
+    app = create_app(
+        settings=Settings(openai_api_key="test-key", semantic_rate_limit_per_minute=1),
+        db=db,
+        cache=FakeCache(allow_rate_limit=False),
+    )
+    app.state.openai_client = FakeOpenAI(api_key="test-key")
+    client = TestClient(app)
+    response = client.post("/search/semantic", json={"query": "a natural language policy question about climate"})
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "60"
+
+
+def test_semantic_coverage_reports_breakdowns():
+    db = SequencedDB(
+        fetchrow_results=[{"chunks_total": 100, "embeddings_total": 100, "bills_total": 40, "last_chunk_at": "2026-05-29T00:00:00+00:00"}],
+        fetch_results=[
+            [{"congress": 119, "chunks": 60}],
+            [{"bill_type": "hr", "chunks": 80}],
+            [{"model": "text-embedding-3-small", "embeddings": 100}],
+        ],
+        fetchval_results=[7],
+    )
+    client = build_client(db)
+    response = client.get("/search/semantic/coverage")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["bills_missing_chunks"] == 7
+    assert body["totals"]["chunks_total"] == 100
+    assert body["chunks_by_congress"][0]["congress"] == 119
+
+
+def test_metrics_endpoint_exposes_prometheus_text():
+    client = build_client()
+    client.get("/health")
+    response = client.get("/metrics")
+    # 200 when prometheus_client is installed, 501 when it is not.
+    assert response.status_code in (200, 501)
+    if response.status_code == 200:
+        assert "csearch_requests_total" in response.text
 
 
 def test_votes_latest_and_detail_and_explore():

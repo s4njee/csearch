@@ -17,7 +17,7 @@ class Cache:
         self.redis = redis
 
     @classmethod
-    def connect(cls, redis_url: str) -> "Cache":
+    def connect(cls, redis_url: str) -> Cache:
         return cls(
             Redis.from_url(
                 redis_url,
@@ -50,6 +50,33 @@ class Cache:
         except Exception as e:
             logger.warning("cache error: %s", e)
             return None
+
+    async def rate_limit_allow(self, key: str, limit: int, window_seconds: int) -> bool:
+        """Fixed-window per-key rate limiter shared across API pods via Redis.
+
+        Returns True if the call is within budget. Fails open: if Redis is
+        unreachable the request is allowed rather than dropped, so a cache
+        outage never takes the API down.
+        """
+        if limit <= 0:
+            return True
+        redis_key = f"{KEY_PREFIX}ratelimit:{key}"
+        try:
+            count = await self.redis.incr(redis_key)
+            if count == 1:
+                await self.redis.expire(redis_key, window_seconds)
+            return count <= limit
+        except Exception as e:
+            logger.warning("rate limit error: %s", e)
+            return True
+
+    async def ping(self) -> bool:
+        """Liveness probe for the Redis backend (used by /readyz)."""
+        try:
+            return bool(await self.redis.ping())  # type: ignore[misc]
+        except Exception as e:
+            logger.warning("cache ping failed: %s", e)
+            return False
 
     async def reset(self) -> None:
         try:

@@ -1,6 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# ── Database topology note (§7 docs/CRITICISMS2.md) ─────────────────────────
+#
+# ACTIVE topology: custom postgres-statefulset.yaml (referenced in resources).
+# (CloudNativePG was evaluated and dropped — not used in prod.)
+#
+# Schema divergence between environments (§7):
+#   netcup (this file) bootstraps: 001-schema.sql + 003-zip-districts.sql
+#   freya  bootstraps:             001-schema.sql + 002-audit-history.sql
+# Both environments should converge to the same schema by running
+# `python db/migrate.py` which applies all migrations 0000–current.
+# Prefer the migration runner over per-environment ConfigMap SQL going forward.
+# ─────────────────────────────────────────────────────────────────────────────
+
 resources:
   - postgres-config.yaml
   - postgres-service.yaml

@@ -3,6 +3,16 @@
 -- This migration is intentionally idempotent so it can be run against an
 -- existing Freya database and also embedded in fresh bootstrap SQL.
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'csearch') THEN
+        CREATE ROLE csearch;
+    END IF;
+
+    EXECUTE format('GRANT CREATE ON DATABASE %I TO csearch', current_database());
+END
+$$;
+
 SET ROLE csearch;
 
 CREATE SCHEMA IF NOT EXISTS audit;

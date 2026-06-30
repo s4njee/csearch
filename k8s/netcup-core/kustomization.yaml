@@ -9,7 +9,6 @@ resources:
   - mcp.yaml
   - mcp-ingress.yaml
   - csearch-api-openai-sealedsecret.yaml
-  - csearch-cloudflare-deploy-hook-sealedsecret.yaml
 
 images:
   - name: registry.s8njee.com/csearch-fastapi

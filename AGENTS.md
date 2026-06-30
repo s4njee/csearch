@@ -8,9 +8,9 @@ This monorepo contains three active projects that together form the CSearch cong
 |---|---|---|
 | `backend/scraper/` | Rust + Python | Data ingest pipeline — fetches, parses, and writes congress data to Postgres |
 | `backend/api/` | Python (FastAPI) | REST API — serves bill and vote data from Postgres to the frontend |
-| `frontend/` | Nuxt 4 (Vue 3) | Static frontend — deployed to S3/CloudFront at csearch.org |
+| `frontend/` | Nuxt 4 (Vue 3) | Static frontend — deployed to Cloudflare Pages at csearch.org |
 
-Supporting infrastructure lives in `argo/` (Argo CD applications), `k8s/` (Kubernetes manifests), and archived legacy material under `k8s/archive/legacy/`, plus older scripts such as `deploy.sh`.
+Supporting infrastructure lives in `argo/` (Argo CD applications) and `k8s/` (Kubernetes manifests). Legacy root deploy scripts and legacy Kubernetes manifests are not active sources of truth.
 
 ---
 
@@ -138,7 +138,7 @@ POSTGRESURI=localhost DB_USER=csearch DB_PASSWORD=... DB_NAME=csearch \
 ## Project 3: frontend
 
 ### What it does
-Nuxt 4 static site (SSG). Production builds are generated with `nuxt generate`, synced to S3, and served via CloudFront. The cluster-hosted frontend path uses an nginx container that serves the generated Nuxt output and injects its API origin at runtime.
+Nuxt 4 static site (SSG). Production builds are generated with `nuxt generate` and deployed to Cloudflare Pages. The cluster-hosted frontend path uses an nginx container that serves the generated Nuxt output and injects its API origin at runtime.
 
 ### Key files
 - `frontend/pages/bills/[category]/index.vue` — bill list with search, sort toggle, and 100-row pagination
@@ -150,20 +150,20 @@ Nuxt 4 static site (SSG). Production builds are generated with `nuxt generate`, 
 - `frontend/composables/useApiBase.ts` — resolves the browser runtime API origin from `runtime-config.js`
 - `frontend/Dockerfile.nginx` — generic nginx container image for the dev frontend deployment
 - `frontend/types/congress.ts` — shared TypeScript types and bill type constants
-- `frontend/deploy.sh` — one-command build + S3 sync + CloudFront invalidation
+- `frontend/deploy.sh` — one-command build + Cloudflare Pages publish
 
 ### Production deploy
 ```bash
-cd frontend
-bash deploy.sh
+bash frontend/deploy.sh
 ```
 
 `deploy.sh` does:
-1. Sources `../.env.prod` for `NUXT_API_SERVER`, `S3_BUCKET`, and `CF_DIST_CSEARCH`
+1. Sources `.env.prod` for `NUXT_API_SERVER` and Cloudflare Pages settings
 2. Defaults `NUXT_API_SERVER` to `https://api.csearch.org` for the generated site
-3. Runs `npx nuxt generate`
-4. Syncs `.output/public` to S3
-5. Invalidates CloudFront
+3. Writes `frontend/public/runtime-config.js`
+4. Runs `npx nuxt generate`
+5. Writes `.output/public/meta.json`
+6. Deploys `.output/public` with Wrangler
 
 ### Argo-managed cluster deploys
 
@@ -174,7 +174,7 @@ The default Kubernetes deployment path now centers on Argo CD:
 - `argo/applications/csearch-netcup-scraper.yaml` syncs `k8s/netcup-scraper/`
 - `argo/applications/csearch-netcup-test-frontend.yaml` syncs `k8s/netcup-test-frontend/`
 
-The existing workflow at `.github/workflows/mars-images.yml` still automates image builds and tag updates for the frontend-oriented path already wired in CI, but Argo itself is now the default deployment mechanism documented in this repo.
+The workflow at `.github/workflows/build-images.yml` builds and pushes container images. Argo itself is the default deployment mechanism for Kubernetes workloads.
 
 If you need to build the nginx frontend image manually:
 
@@ -193,11 +193,11 @@ NUXT_API_SERVER=http://localhost:3000 npx nuxt dev
 ```
 
 ### Notes
-- Production deploy is the S3/CloudFront path, not a Kubernetes frontend deployment
+- Production deploy is the Cloudflare Pages path, not a Kubernetes frontend deployment
 - The default production API origin is `https://api.csearch.org`
 - The default Argo-managed cluster apps are `csearch-netcup-db`, `csearch-netcup-core`, `csearch-netcup-scraper`, and `csearch-netcup-test-frontend`
 - Dynamic route segments use Nuxt bracket syntax (`[category]`, `[congress]`, `[number]`) — required by the framework
-- CloudFront distribution IDs are stored in `.env.prod` (`CF_DIST_CSEARCH`, `CF_DIST_CONGRESS`)
+- Cloudflare Pages settings are stored in `.env.prod` and GitHub Actions variables/secrets
 - Bill list fetches 500 rows from the API and paginates 100 at a time client-side
 
 ---

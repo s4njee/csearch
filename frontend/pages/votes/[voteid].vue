@@ -10,6 +10,7 @@ const {
   data: vote,
   pending: loading,
   error: fetchError,
+  refresh,
 } = await useAsyncData<VoteDetail>(
   `vote-${voteid}`,
   () => getVote(voteid),
@@ -59,171 +60,152 @@ const availablePositions = computed(() => {
   return Array.from(positions).sort()
 })
 
-const { formatDate, formatChamber, voteResultClass } = useFormatters()
+const { formatDate, formatChamber, voteResultColor } = useFormatters()
+
+// ── Presentational helpers for Nuxt UI components ──
+const ANY = '__any__'
+
+function anyModel(target: Ref<string>) {
+  return computed<string>({
+    get: () => (target.value === '' ? ANY : target.value),
+    set: (value) => { target.value = value === ANY ? '' : value },
+  })
+}
+
+const positionModel = anyModel(filterPosition)
+const partyModel = anyModel(partyFilter)
+
+const positionItems = computed(() => [
+  { label: 'All positions', value: ANY },
+  ...availablePositions.value.map(pos => ({ label: pos, value: pos })),
+])
+const partyItems = computed(() => [
+  { label: 'All parties', value: ANY },
+  ...availableParties.value.map(p => ({ label: p, value: p })),
+])
+
+function positionColor(position: string): 'success' | 'error' | 'neutral' {
+  const p = position.toLowerCase()
+  if (p === 'yea' || p === 'aye') return 'success'
+  if (p === 'nay' || p === 'no') return 'error'
+  return 'neutral'
+}
+
+usePageSeo({
+  title: () => vote.value?.question || 'Vote',
+  description: () => (vote.value
+    ? `${formatChamber(vote.value.chamber)} roll-call vote · ${vote.value.result || 'Result unavailable'} · Congress ${vote.value.congress}.`
+    : 'Roll-call vote detail.'),
+})
 </script>
 
 <template>
-  <main class="page page--wide">
-    <section v-if="loading" class="surface">
-      Loading vote...
-    </section>
+  <UContainer class="space-y-8">
+    <SkeletonCard v-if="loading" :rows="4" />
 
-    <section v-else-if="errorMessage" class="surface surface--error">
-      {{ errorMessage }}
-    </section>
+    <div v-else-if="errorMessage" class="space-y-3">
+      <UAlert color="error" variant="subtle" icon="i-lucide-circle-alert" :description="errorMessage" />
+      <UButton color="neutral" variant="outline" icon="i-lucide-refresh-cw" @click="refresh()">Try again</UButton>
+    </div>
 
     <template v-else-if="vote">
-      <section class="surface">
-        <div class="toolbar">
-          <div>
-            <p class="eyebrow">
-              <NuxtLink to="/votes">← Votes</NuxtLink>
-              · {{ formatChamber(vote.chamber) }}
-              · Congress {{ vote.congress }}
-            </p>
-            <h1>{{ vote.question || 'Untitled vote' }}</h1>
-            <p v-if="vote.bill_number && vote.bill_type" class="lede" style="margin-top: 0.5rem">
-              Related Bill: 
-              <NuxtLink :to="`/bills/${vote.bill_type.toLowerCase()}/${vote.congress}/${vote.bill_number}`" class="result-link">
-                {{ vote.bill_type.toUpperCase() }} {{ vote.bill_number }}
-              </NuxtLink>
-            </p>
+      <UCard>
+        <div class="space-y-5">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="text-xs uppercase tracking-[0.15em] text-muted">
+                <NuxtLink to="/votes" class="text-primary transition-colors hover:text-primary/80">← Votes</NuxtLink>
+                · {{ formatChamber(vote.chamber) }} · Congress {{ vote.congress }}
+              </p>
+              <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">{{ vote.question || 'Untitled vote' }}</h1>
+              <p v-if="vote.bill_number && vote.bill_type" class="mt-2 text-muted">
+                Related bill:
+                <NuxtLink :to="`/bills/${vote.bill_type.toLowerCase()}/${vote.congress}/${vote.bill_number}`" class="text-primary underline underline-offset-2 transition-colors hover:text-primary/80">
+                  {{ vote.bill_type.toUpperCase() }} {{ vote.bill_number }}
+                </NuxtLink>
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 sm:shrink-0">
+              <UBadge :color="voteResultColor(vote.result)" variant="subtle" size="lg" class="whitespace-nowrap">{{ vote.result || 'Unknown' }}</UBadge>
+              <UButton v-if="vote.source_url" :to="vote.source_url" target="_blank" color="neutral" variant="outline" trailing-icon="i-lucide-external-link">
+                Source
+              </UButton>
+            </div>
           </div>
 
-          <div style="display: flex; gap: 0.75rem; align-items: stretch">
-            <span :class="voteResultClass(vote.result)" style="display: flex; align-items: center; justify-content: center; padding: 0.8rem 1rem;">
-              {{ vote.result || 'Unknown' }}
-            </span>
-            <a v-if="vote.source_url" :href="vote.source_url" target="_blank" rel="noopener noreferrer" class="button" style="display: flex; align-items: center;">
-              Source ↗
-            </a>
-          </div>
+          <dl class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Vote #</dt>
+              <dd class="mt-0.5">{{ vote.votenumber || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Date</dt>
+              <dd class="mt-0.5">{{ formatDate(vote.votedate) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Session</dt>
+              <dd class="mt-0.5">{{ vote.votesession || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs uppercase tracking-[0.1em] text-dimmed">Type</dt>
+              <dd class="mt-0.5">{{ vote.votetype || '—' }}</dd>
+            </div>
+          </dl>
         </div>
+      </UCard>
 
-        <dl class="detail-grid detail-grid--wide">
-          <div>
-            <dt>Vote #</dt>
-            <dd>{{ vote.votenumber || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Date</dt>
-            <dd>{{ formatDate(vote.votedate) }}</dd>
-          </div>
-          <div>
-            <dt>Session</dt>
-            <dd>{{ vote.votesession || '—' }}</dd>
-          </div>
-          <div>
-            <dt>Type</dt>
-            <dd>{{ vote.votetype || '—' }}</dd>
-          </div>
-        </dl>
-      </section>
+      <div v-if="Object.keys(positionCounts).length" class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <UCard v-for="(count, pos) in positionCounts" :key="pos" :ui="{ body: 'p-4 sm:p-4' }">
+          <div class="text-[0.7rem] capitalize tracking-[0.1em] text-muted">{{ pos }}</div>
+          <div class="mt-1 text-2xl font-light text-highlighted">{{ count }}</div>
+        </UCard>
+      </div>
 
-      <section class="summary-strip" v-if="Object.keys(positionCounts).length">
-        <article class="summary-tile" v-for="(count, pos) in positionCounts" :key="pos">
-          <span style="text-transform: capitalize;">{{ pos }}</span>
-          <strong>{{ count }}</strong>
-        </article>
-      </section>
-
-      <section v-if="vote.members?.length" class="surface" style="margin-top: 1rem;">
-        <div class="section-title">
-          <h2>Breakdown</h2>
-          <p>By position and party</p>
-        </div>
+      <UCard v-if="vote.members?.length">
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">Breakdown</h2>
+            <p class="text-sm text-muted">By position and party</p>
+          </div>
+        </template>
         <VoteBreakdownChart :members="vote.members" />
-      </section>
+      </UCard>
 
-      <section class="surface" style="margin-top: 1rem;">
-        <div class="section-title">
-          <h2>Member Votes</h2>
-          <p>{{ vote.members?.length || 0 }} members cast a position</p>
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-medium text-highlighted">Member votes</h2>
+            <p class="text-sm text-muted">{{ vote.members?.length || 0 }} members cast a position</p>
+          </div>
+        </template>
+
+        <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <UFormField label="Filter position">
+            <USelect v-model="positionModel" :items="positionItems" class="w-full" />
+          </UFormField>
+          <UFormField label="Filter party">
+            <USelect v-model="partyModel" :items="partyItems" class="w-full" />
+          </UFormField>
         </div>
 
-        <div class="control-grid" style="margin-top: 1rem; margin-bottom: 1.5rem;">
-          <label class="field">
-            <span>Filter Position</span>
-            <select v-model="filterPosition" class="field-input">
-              <option value="">All positions</option>
-              <option v-for="pos in availablePositions" :key="pos" :value="pos" style="text-transform: capitalize;">{{ pos }}</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Filter Party</span>
-            <select v-model="partyFilter" class="field-input">
-              <option value="">All parties</option>
-              <option v-for="p in availableParties" :key="p" :value="p">{{ p }}</option>
-            </select>
-          </label>
-        </div>
+        <p v-if="!filteredMembers.length" class="text-muted">No members match the current filters.</p>
 
-        <div v-if="!filteredMembers.length" class="empty-note">
-          No members match the current filters.
-        </div>
-        
-        <div v-else class="cosponsor-grid">
-          <article
-            v-for="member in filteredMembers"
-            :key="member.bioguide_id"
-            class="cosponsor-card"
-          >
-            <NuxtLink :to="`/members/${member.bioguide_id}`" class="cosponsor-card__name link-plain" style="display: block;">
+        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="member in filteredMembers" :key="member.bioguide_id" class="border border-default p-3 text-sm">
+            <NuxtLink :to="`/members/${member.bioguide_id}`" class="block font-medium transition-colors hover:text-primary">
               {{ member.display_name || member.bioguide_id }}
             </NuxtLink>
-            <div class="cosponsor-card__meta">
+            <div class="mt-1 flex items-center gap-2 text-xs text-muted">
               <span>{{ member.party || '?' }}</span>
               <span>{{ member.state || '?' }}</span>
             </div>
-            <div class="cosponsor-card__date" style="margin-top: 0.5rem">
-              <span class="badge" :style="member.position.toLowerCase() === 'yea' || member.position.toLowerCase() === 'aye' ? 'color: var(--accent-success); border-color: var(--accent-success)' : member.position.toLowerCase() === 'nay' || member.position.toLowerCase() === 'no' ? 'color: rgb(248, 113, 113); border-color: rgb(248, 113, 113)' : ''">
-                Voted {{ member.position }}
-              </span>
-            </div>
-          </article>
+            <UBadge class="mt-2" :color="positionColor(member.position)" variant="outline" size="sm">
+              Voted {{ member.position }}
+            </UBadge>
+          </div>
         </div>
-      </section>
+      </UCard>
     </template>
-  </main>
+  </UContainer>
 </template>
-
-<style scoped>
-.cosponsor-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
-}
-
-.cosponsor-card {
-  padding: 0.75rem;
-  border: 1px solid var(--border-soft, #e5e7eb);
-  border-radius: 4px;
-  font-size: 0.85rem;
-}
-
-.cosponsor-card__name {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-}
-
-.cosponsor-card__meta {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  color: var(--text-muted, #6b7280);
-  font-size: 0.78rem;
-}
-
-.badge {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.1rem 0.35rem;
-  border: 1px solid currentColor;
-  border-radius: 2px;
-}
-
-.detail-grid--wide {
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-}
-</style>

@@ -29,7 +29,8 @@ Optional Grafana and Loki dashboards are also stored here, but they are not the 
 
 ### Default: tiny in-cluster collector
 
-`deploy.sh` uses this path when `ENABLE_TINY_LOG_COLLECTOR=true`.
+Use this path when `ENABLE_TINY_LOG_COLLECTOR=true` in the environment that
+renders and applies these manifests.
 
 Behavior:
 
@@ -44,7 +45,7 @@ Default output location:
 
 ### Direct S3 output
 
-`deploy.sh` prefers this path when `LOG_S3_BUCKET` is set.
+Use this path when `LOG_S3_BUCKET` is set.
 
 Behavior:
 
@@ -61,7 +62,8 @@ Important detail:
 
 ### Fallback generic HTTP shipping
 
-If `LOG_S3_BUCKET` is unset and `LOG_SHIP_HTTP_HOST` is set, `deploy.sh` renders the HTTP shipping config with those explicit destination settings.
+If `LOG_S3_BUCKET` is unset and `LOG_SHIP_HTTP_HOST` is set, render the HTTP
+shipping config with those explicit destination settings.
 
 ## What Fluent Bit Ships
 

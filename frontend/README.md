@@ -17,7 +17,7 @@ This frontend has multiple runtime shapes, and they do not all resolve the API b
 | Local `nuxt dev` | development with hot reload | `package.json`, `nuxt.config.ts` |
 | nginx container | cluster-hosted frontend deployments | `Dockerfile.nginx`, `docker-entrypoint.sh`, `k8s/netcup-test-frontend/` |
 | Cloudflare Pages | public site publishing | `deploy.sh`, `scripts/write-runtime-config.mjs` |
-| Deploy container | scheduled static publishing job | `Dockerfile.deploy`, `deploy-container.sh`, `k8s/archive/legacy/frontend/deploy-cronjob.yaml` |
+| Deploy container | legacy scheduled static publishing image | `Dockerfile.deploy`, `deploy-container.sh` |
 
 ## API Base Resolution
 
@@ -152,11 +152,11 @@ For Git-based Pages deploys, configure:
 
 ### Scheduled deploy container
 
-There is also a legacy deploy-container image for automated static publishing:
+There is also a legacy deploy-container image for automated static publishing.
+It is not wired to an active manifest in this repo:
 
 - image build file: `Dockerfile.deploy`
 - runtime script: `deploy-container.sh`
-- CronJob: `../k8s/archive/legacy/frontend/deploy-cronjob.yaml`
 
 ## How To Make Common Changes
 

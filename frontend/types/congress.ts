@@ -86,6 +86,8 @@ export interface VoteRecord {
   source_url?: string | null
   bill_type?: string | null
   bill_number?: string | null
+  // Present on a member's recent-votes feed: how that member voted.
+  position?: string | null
 }
 
 export interface VoteMember {
@@ -219,57 +221,6 @@ export const VOTE_CHAMBER_OPTIONS: VoteChamberOption[] = [
 export const BILL_FILTER_OPTIONS = [
   { value: 'relevance', label: 'Relevance' },
   { value: 'date', label: 'Date' },
-] as const
-
-export const API_FAMILIES = [
-  {
-    id: 'latest',
-    title: 'Latest bills',
-    route: '/latest/:billtype',
-    summary: 'Browse the freshest bill activity for each House and Senate bill family.',
-  },
-  {
-    id: 'search',
-    title: 'Bill search',
-    route: '/search/:table/:filter',
-    summary: 'Search bills by phrase and sort either by rank or recency.',
-  },
-  {
-    id: 'bills-bynumber',
-    title: 'Bill number search',
-    route: '/bills/bynumber/:number',
-    summary: 'Instant fuzzy matching for bills by cross-referencing only the numeric ID.',
-  },
-  {
-    id: 'bills',
-    title: 'Bill detail',
-    route: '/bills/:billtype/:congress/:billnumber',
-    summary: 'Full bill record with action history, cosponsors, and linked floor votes.',
-  },
-  {
-    id: 'votes',
-    title: 'Latest votes',
-    route: '/votes/:chamber',
-    summary: 'Review the latest House and Senate vote activity from the recent 90-day window.',
-  },
-  {
-    id: 'votes-detail',
-    title: 'Roll-call votes',
-    route: '/votes/detail/:voteid',
-    summary: 'Detailed roll-call results connecting the exact yea/nay positions to individual members.',
-  },
-  {
-    id: 'members',
-    title: 'Member profiles',
-    route: '/members/:bioguide_id',
-    summary: 'Legislator profiles with sponsored legislation and recent voting behavior.',
-  },
-  {
-    id: 'committees',
-    title: 'Committees',
-    route: '/committees and /committees/:code',
-    summary: 'Browse congressional committees and view the specific bills referred to their workflows.',
-  },
 ] as const
 
 export const EXPLORE_GROUPS = [

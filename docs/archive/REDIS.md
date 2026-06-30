@@ -1,3 +1,5 @@
+> **Archived:** not the current architecture or deployment path. Kept for historical context only — verify against the live code and `ARCHITECTURE.md` before relying on anything here.
+
 # Redis Cache Notes
 
 This file documents the current Redis-backed cache used by the API.

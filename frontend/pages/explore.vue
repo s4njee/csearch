@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  API_FAMILIES,
   EXPLORE_GROUPS,
   EXPLORE_QUERY_DESCRIPTIONS,
 } from '~/types/congress'
@@ -184,179 +183,192 @@ watch(selectedQuery, async (query) => {
     await loadQueryResult()
   }
 }, { immediate: true })
+
+usePageSeo({
+  title: 'Explore',
+  description: 'Run bundled exploratory queries and charts over U.S. Congress legislative data.',
+})
 </script>
 
 <template>
-  <main class="page page--wide">
-    <section class="surface">
-      <div class="toolbar">
+  <UContainer class="space-y-8">
+    <UCard>
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p class="eyebrow">Explore catalog</p>
-          <h1>Run every bundled exploratory query from `congress_api`.</h1>
-          <p class="lede">
-            The Nuxt app now uses `/explore` as a live catalog and `/explore/:queryId` as a dynamic execution surface,
-            so new query pack additions show up here without another frontend redesign.
+          <p class="text-xs font-medium uppercase tracking-[0.2em] text-primary">Explore catalog</p>
+          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-highlighted sm:text-3xl">Run bundled exploratory queries</h1>
+          <p class="mt-1 max-w-2xl text-muted">
+            A live catalog of every query in the API's explore pack, executed on demand against the dataset.
           </p>
         </div>
 
-        <div class="stat-grid stat-grid--compact">
-          <article class="stat-card">
-            <div class="stat-card__value">{{ queries.length }}</div>
-            <div class="stat-card__label">Queries</div>
-          </article>
-          <article class="stat-card">
-            <div class="stat-card__value">{{ API_FAMILIES.length }}</div>
-            <div class="stat-card__label">API families</div>
-          </article>
-        </div>
+        <UCard :ui="{ body: 'p-4 sm:p-4' }" class="shrink-0">
+          <div class="text-[0.7rem] uppercase tracking-[0.1em] text-muted">Queries</div>
+          <div class="mt-1 text-2xl font-light text-highlighted">{{ queries.length }}</div>
+        </UCard>
       </div>
-    </section>
+    </UCard>
 
-    <section class="surface">
-      <div class="section-title">
+    <UCard>
+      <template #header>
         <div>
-          <p class="eyebrow">Dataset snapshots</p>
-          <h2>Charts</h2>
+          <p class="text-xs uppercase tracking-[0.15em] text-primary">Dataset snapshots</p>
+          <h2 class="mt-1 text-lg font-medium text-highlighted">Charts</h2>
         </div>
-      </div>
-      <div class="chart-grid">
-        <div v-for="cq in CHART_QUERIES" :key="cq.id" class="chart-tile">
-          <p class="chart-tile__label">{{ cq.label }}</p>
+      </template>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div v-for="cq in CHART_QUERIES" :key="cq.id">
+          <p class="mb-2 text-xs uppercase tracking-[0.1em] text-muted">{{ cq.label }}</p>
           <ExploreChart :query-id="cq.id" :rows="chartData[cq.id].rows" :loading="chartData[cq.id].loading" />
         </div>
       </div>
-    </section>
+    </UCard>
 
-    <section v-if="queryListError" class="surface surface--error">
-      <p>Couldn’t load explore queries.</p>
-      <p>{{ queryListError.message }}</p>
-      <button class="button" type="button" @click="refreshQueries">Try again</button>
-    </section>
+    <UCard v-if="queryListError" class="border-error/40">
+      <p class="text-error">Couldn’t load explore queries.</p>
+      <p class="mt-1 text-sm text-muted">{{ queryListError.message }}</p>
+      <UButton class="mt-3" color="neutral" variant="outline" @click="refreshQueries">Try again</UButton>
+    </UCard>
 
-    <section v-else-if="loadingQueries" class="surface">
-      Loading available exploration views...
-    </section>
+    <UCard v-else-if="loadingQueries">
+      <p class="text-muted">Loading available exploration views…</p>
+    </UCard>
 
-    <section v-else class="explore-layout">
-      <aside class="surface">
-        <div class="section-title">
-          <h2>Query catalog</h2>
-          <p>Grouped around the current explore pack themes.</p>
-        </div>
-
-        <div class="catalog-group" v-for="group in groupedQueries" :key="group.key">
-          <div class="catalog-group__header">
-            <h3>{{ group.title }}</h3>
-            <span>{{ group.items.length }}</span>
+    <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <UCard class="self-start">
+        <template #header>
+          <div>
+            <h2 class="text-lg font-medium text-highlighted">Query catalog</h2>
+            <p class="mt-0.5 text-sm text-muted">Grouped around the current explore pack themes.</p>
           </div>
-          <p class="catalog-group__copy">{{ group.description }}</p>
+        </template>
 
-          <button
-            v-for="query in group.items"
-            :key="query.id"
-            type="button"
-            class="catalog-button"
-            :class="{ 'catalog-button--active': selectedQueryId === query.id }"
-            @click="selectedQueryId = query.id"
-          >
-            <div class="catalog-button__meta">Query {{ query.number }}</div>
-            <div class="catalog-button__title">{{ query.title }}</div>
-            <div class="catalog-button__copy">
-              {{ EXPLORE_QUERY_DESCRIPTIONS[query.id] || 'Explore a different slice of the Congress dataset.' }}
+        <div class="space-y-6">
+          <div v-for="group in groupedQueries" :key="group.key">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-sm font-semibold text-highlighted">{{ group.title }}</h3>
+              <span class="text-xs text-muted">{{ group.items.length }}</span>
             </div>
-          </button>
-        </div>
-      </aside>
+            <p class="mt-1 text-xs text-muted">{{ group.description }}</p>
 
-      <section v-if="selectedQuery" class="explore-content">
-        <article class="surface">
-          <div class="toolbar">
+            <div class="mt-3 flex flex-col gap-2">
+              <button
+                v-for="query in group.items"
+                :key="query.id"
+                type="button"
+                class="border p-3 text-left transition-colors"
+                :class="selectedQueryId === query.id ? 'border-primary bg-elevated' : 'border-default hover:border-primary/60'"
+                @click="selectedQueryId = query.id"
+              >
+                <div class="text-[0.65rem] uppercase tracking-[0.1em] text-dimmed">Query {{ query.number }}</div>
+                <div class="mt-0.5 text-sm font-medium text-highlighted">{{ query.title }}</div>
+                <div class="mt-1 text-xs text-muted">
+                  {{ EXPLORE_QUERY_DESCRIPTIONS[query.id] || 'Explore a different slice of the Congress dataset.' }}
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </UCard>
+
+      <div v-if="selectedQuery" class="space-y-6">
+        <UCard>
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p class="eyebrow">Selected query {{ selectedQuery.number }}</p>
-              <h2>{{ selectedQuery.title }}</h2>
-              <p class="lede">{{ EXPLORE_QUERY_DESCRIPTIONS[selectedQuery.id] || 'Explore a curated query from the API bundle.' }}</p>
-              <p v-if="queryHints[selectedQuery.id]" class="callout">
-                {{ queryHints[selectedQuery.id] }}
-              </p>
+              <p class="text-xs uppercase tracking-[0.15em] text-primary">Selected query {{ selectedQuery.number }}</p>
+              <h2 class="mt-1 text-xl font-medium text-highlighted">{{ selectedQuery.title }}</h2>
+              <p class="mt-1 text-muted">{{ EXPLORE_QUERY_DESCRIPTIONS[selectedQuery.id] || 'Explore a curated query from the API bundle.' }}</p>
+              <p v-if="queryHints[selectedQuery.id]" class="mt-2 text-sm text-primary">{{ queryHints[selectedQuery.id] }}</p>
             </div>
-
-            <button class="button button--primary" type="button" :disabled="loadingResults" @click="loadQueryResult">
-              {{ loadingResults ? 'Running...' : 'Run query' }}
-            </button>
+            <UButton color="primary" variant="subtle" :loading="loadingResults" :disabled="loadingResults" @click="loadQueryResult">
+              {{ loadingResults ? 'Running…' : 'Run query' }}
+            </UButton>
           </div>
-        </article>
+        </UCard>
 
-        <div class="explore-detail-grid">
-          <article class="surface">
-            <div class="section-title">
-              <h3>Parameters</h3>
-              <p>{{ selectedQuery.parameters.length ? 'Adjust the request before execution.' : 'This query does not require parameters.' }}</p>
-            </div>
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <UCard>
+            <template #header>
+              <div>
+                <h3 class="font-medium text-highlighted">Parameters</h3>
+                <p class="mt-0.5 text-sm text-muted">{{ selectedQuery.parameters.length ? 'Adjust the request before execution.' : 'This query does not require parameters.' }}</p>
+              </div>
+            </template>
 
-            <div v-if="selectedQuery.parameters.length" class="control-stack">
-              <label v-for="parameter in selectedQuery.parameters" :key="parameter.name" class="field">
-                <span>{{ parameter.name }}</span>
-                <input
+            <div v-if="selectedQuery.parameters.length" class="flex flex-col gap-4">
+              <UFormField v-for="parameter in selectedQuery.parameters" :key="parameter.name" :label="parameter.name">
+                <UInput
                   v-model="parameterValues[parameter.name]"
                   :type="parameter.type === 'integer' ? 'number' : 'text'"
                   :min="parameter.min"
                   :max="parameter.max"
-                  class="field-input"
                   :placeholder="parameter.default === null ? 'Optional' : String(parameter.default)"
-                >
-              </label>
+                  class="w-full"
+                />
+              </UFormField>
             </div>
-            <p v-else class="empty-note">No parameters needed for this query.</p>
-          </article>
+            <p v-else class="text-muted">No parameters needed for this query.</p>
+          </UCard>
 
-          <article class="surface">
-            <div class="section-title">
-              <h3>Execution</h3>
-              <p>The backend returns the SQL and bindings actually used for the request.</p>
-            </div>
+          <UCard>
+            <template #header>
+              <div>
+                <h3 class="font-medium text-highlighted">Execution</h3>
+                <p class="mt-0.5 text-sm text-muted">The backend returns the SQL and bindings actually used.</p>
+              </div>
+            </template>
 
-            <div class="code-block">
-              <strong>Bindings</strong>
-              <pre>{{ JSON.stringify(resultPayload?.bindings ?? [], null, 2) }}</pre>
+            <div class="space-y-4">
+              <div>
+                <strong class="text-xs uppercase tracking-[0.1em] text-dimmed">Bindings</strong>
+                <pre class="mt-2 overflow-auto border border-default bg-black/40 p-3 text-xs text-muted">{{ JSON.stringify(resultPayload?.bindings ?? [], null, 2) }}</pre>
+              </div>
+              <div>
+                <strong class="text-xs uppercase tracking-[0.1em] text-dimmed">SQL</strong>
+                <pre class="mt-2 overflow-auto whitespace-pre-wrap border border-default bg-black/40 p-3 text-xs text-muted">{{ resultPayload?.sql ?? 'No SQL yet.' }}</pre>
+              </div>
             </div>
-
-            <div class="code-block">
-              <strong>SQL</strong>
-              <pre>{{ resultPayload?.sql ?? 'No SQL yet.' }}</pre>
-            </div>
-          </article>
+          </UCard>
         </div>
 
-        <article class="surface">
-          <div class="toolbar">
-            <div>
-              <h3>Results</h3>
-              <p class="lede">Rows come directly from the selected explore query.</p>
+        <UCard>
+          <template #header>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <h3 class="font-medium text-highlighted">Results</h3>
+                <p class="mt-0.5 text-sm text-muted">Rows come directly from the selected explore query.</p>
+              </div>
+              <UBadge color="neutral" variant="subtle">{{ resultRows.length }} rows</UBadge>
             </div>
-            <div class="badge">{{ resultRows.length }} rows</div>
-          </div>
+          </template>
 
-          <div v-if="resultError" class="error-copy">{{ resultError }}</div>
-          <div v-else-if="loadingResults" class="empty-note">Running query and loading results...</div>
-          <div v-else-if="!resultRows.length" class="empty-note">No rows came back for this parameter set.</div>
-          <div v-else class="table-wrap">
-            <table class="results-table">
+          <p v-if="resultError" class="text-error">{{ resultError }}</p>
+          <p v-else-if="loadingResults" class="text-muted">Running query and loading results…</p>
+          <p v-else-if="!resultRows.length" class="text-muted">No rows came back for this parameter set.</p>
+          <div v-else class="overflow-auto border border-default">
+            <table class="w-full border-collapse text-sm">
               <thead>
                 <tr>
-                  <th v-for="column in resultColumns" :key="column">{{ column }}</th>
+                  <th
+                    v-for="column in resultColumns"
+                    :key="column"
+                    class="sticky top-0 border-b border-default bg-elevated px-3 py-2 text-left text-xs uppercase tracking-[0.1em] text-dimmed"
+                  >
+                    {{ column }}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(row, rowIndex) in resultRows" :key="`${selectedQuery.id}-${rowIndex}`">
-                  <td v-for="column in resultColumns" :key="`${rowIndex}-${column}`">
+                  <td v-for="column in resultColumns" :key="`${rowIndex}-${column}`" class="border-b border-default px-3 py-2 align-top">
                     {{ formatValue(row[column]) }}
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </article>
-      </section>
-    </section>
-  </main>
+        </UCard>
+      </div>
+    </div>
+  </UContainer>
 </template>

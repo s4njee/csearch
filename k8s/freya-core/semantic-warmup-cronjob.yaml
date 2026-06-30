@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: csearch-semantic-warmup
     app.kubernetes.io/component: api-warmup
 spec:
+  suspend: true
   schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
@@ -21,6 +22,8 @@ spec:
             app.kubernetes.io/component: api-warmup
         spec:
           restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: freya
           securityContext:
             seccompProfile:
               type: RuntimeDefault

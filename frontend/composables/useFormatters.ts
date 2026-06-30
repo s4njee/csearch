@@ -26,13 +26,10 @@ export function useFormatters() {
     return map[party.toUpperCase()] || party
   }
 
-  function voteResultClass(result?: string | null): string {
-    const n = String(result || '').toLowerCase()
-    if (['passed', 'agreed', 'confirmed', 'approved', 'adopted', 'ratified'].some(w => n.includes(w)))
-      return 'vote-badge vote-badge--positive'
-    if (['failed', 'rejected', 'not agreed'].some(w => n.includes(w)))
-      return 'vote-badge vote-badge--negative'
-    return 'vote-badge'
+  // Thousands-separated integer formatting (e.g. 1045 -> "1,045").
+  function formatNumber(value?: number | string | null): string {
+    const n = typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10)
+    return Number.isFinite(n) ? new Intl.NumberFormat('en-US').format(n) : '—'
   }
 
   function summarizeText(value?: string | null, limit = 160): string {
@@ -41,5 +38,24 @@ export function useFormatters() {
     return value.length > limit ? `${value.slice(0, limit).trim()}...` : value
   }
 
-  return { formatDate, formatChamber, partyLabel, voteResultClass, summarizeText }
+  // Maps a vote outcome to a Nuxt UI badge/button color.
+  function voteResultColor(result?: string | null): 'success' | 'error' | 'neutral' {
+    const n = String(result || '').toLowerCase()
+    if (['passed', 'agreed', 'confirmed', 'approved', 'adopted', 'ratified', 'accepted'].some(w => n.includes(w)))
+      return 'success'
+    if (['failed', 'rejected', 'not agreed'].some(w => n.includes(w)))
+      return 'error'
+    return 'neutral'
+  }
+
+  // Maps a party code to a CSS color variable (defined in assets/css/main.css).
+  function partyColor(party?: string | null): string {
+    const p = String(party || '').toUpperCase()
+    if (p === 'R') return 'var(--party-house)'
+    if (p === 'D') return 'var(--party-senate)'
+    if (p === 'I') return 'var(--party-independent)'
+    return 'var(--ui-text-muted)'
+  }
+
+  return { formatDate, formatChamber, partyLabel, voteResultColor, partyColor, formatNumber, summarizeText }
 }

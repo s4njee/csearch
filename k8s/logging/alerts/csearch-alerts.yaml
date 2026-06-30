@@ -1,0 +1,79 @@
+# Alerting rules as code for CSearch, driven by the FastAPI /metrics endpoint
+# (csearch_api.metrics). Apply with a Prometheus Operator, or translate the
+# `expr` fields into your alerting backend. Thresholds match the data freshness
+# contract in ARCHITECTURE.md.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: csearch-alerts
+  labels:
+    app.kubernetes.io/name: csearch
+    role: alert-rules
+spec:
+  groups:
+    - name: csearch-api
+      rules:
+        - alert: CSearchApiHighErrorRate
+          expr: |
+            sum(rate(csearch_requests_total{status="5xx"}[10m]))
+              / clamp_min(sum(rate(csearch_requests_total[10m])), 1) > 0.05
+          for: 10m
+          labels: { severity: page }
+          annotations:
+            summary: "CSearch API 5xx rate above 5% for 10m"
+
+        - alert: CSearchApiLatencyHigh
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(csearch_request_duration_seconds_bucket[10m])) by (le)) > 1
+          for: 10m
+          labels: { severity: warn }
+          annotations:
+            summary: "CSearch API p95 latency above 1s for 10m"
+
+        - alert: CSearchSemanticOpenAIErrors
+          expr: increase(csearch_semantic_total{openai_status="error"}[15m]) > 5
+          for: 0m
+          labels: { severity: warn }
+          annotations:
+            summary: "Semantic search is hitting OpenAI errors"
+
+        - alert: CSearchSemanticCostSpike
+          # Denial-of-wallet guard: sustained paid embedding calls per second.
+          expr: sum(rate(csearch_semantic_total{route="semantic",openai_status="ok"}[5m])) > 5
+          for: 10m
+          labels: { severity: page }
+          annotations:
+            summary: "Semantic embedding call rate unusually high — possible abuse"
+
+        - alert: CSearchRedisHitRateLow
+          expr: |
+            sum(rate(csearch_cache_total{result="HIT"}[30m]))
+              / clamp_min(sum(rate(csearch_cache_total{result=~"HIT|MISS"}[30m])), 1) < 0.5
+          for: 30m
+          labels: { severity: warn }
+          annotations:
+            summary: "Redis cache hit rate below 50% for 30m"
+
+    - name: csearch-freshness
+      rules:
+        - alert: CSearchScraperStale
+          expr: time() - max(csearch_freshness_timestamp_seconds{kind="scraper_run"}) > 86400
+          for: 30m
+          labels: { severity: page }
+          annotations:
+            summary: "No successful scraper run in over 24h"
+
+        - alert: CSearchNlpStale
+          expr: time() - max(csearch_freshness_timestamp_seconds{kind="nlp_run"}) > 172800
+          for: 30m
+          labels: { severity: warn }
+          annotations:
+            summary: "No successful NLP ingest run in over 48h"
+
+        - alert: CSearchBillDataStale
+          expr: time() - max(csearch_freshness_timestamp_seconds{kind="bill_update"}) > 172800
+          for: 1h
+          labels: { severity: warn }
+          annotations:
+            summary: "Latest bill update is more than 48h old"

@@ -1,0 +1,88 @@
+{
+  "title": "CSearch API & Data Freshness",
+  "uid": "csearch-api-metrics",
+  "tags": ["csearch", "prometheus"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request rate by status",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum by (status) (rate(csearch_requests_total[5m]))", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Error rate (5xx %)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [
+        { "expr": "sum(rate(csearch_requests_total{status=\"5xx\"}[10m])) / clamp_min(sum(rate(csearch_requests_total[10m])), 1)" }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Request latency p50/p95 by route",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(csearch_request_duration_seconds_bucket[5m])) by (le, route))", "legendFormat": "p50 {{route}}" },
+        { "expr": "histogram_quantile(0.95, sum(rate(csearch_request_duration_seconds_bucket[5m])) by (le, route))", "legendFormat": "p95 {{route}}" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Cache hit rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [
+        { "expr": "sum(rate(csearch_cache_total{result=\"HIT\"}[30m])) / clamp_min(sum(rate(csearch_cache_total{result=~\"HIT|MISS\"}[30m])), 1)" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Semantic search: latency p95 & call rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(csearch_semantic_latency_seconds_bucket[5m])) by (le, route))", "legendFormat": "p95 {{route}}" },
+        { "expr": "sum by (route, openai_status) (rate(csearch_semantic_total[5m]))", "legendFormat": "{{route}}/{{openai_status}}" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Data freshness (age in hours)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "h" } },
+      "targets": [
+        { "expr": "(time() - max by (kind) (csearch_freshness_timestamp_seconds)) / 3600", "legendFormat": "{{kind}}" }
+      ]
+    }
+  ]
+}

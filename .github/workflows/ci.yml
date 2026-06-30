@@ -1,0 +1,144 @@
+name: CI
+
+# Quality gates that must pass before deployable images are pushed. This
+# workflow is reusable (workflow_call) and is invoked as a gate by
+# build-images.yml, so :latest is never published on a red build.
+
+on:
+  pull_request:
+  push:
+    branches: [main, freya, cleanup]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: Repo hygiene + schema drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/check-repo-hygiene.sh
+      - run: bash scripts/check-schema-drift.sh
+
+  api-tests:
+    name: API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install API
+        run: pip install -e "backend/api[dev]"
+      - name: Lint (ruff)
+        run: cd backend/api && ruff check .
+      - name: Type check (mypy)
+        run: cd backend/api && mypy
+      - name: Run pytest
+        run: cd backend/api && pytest -q --cov=csearch_api --cov-report=term-missing
+
+  database:
+    name: Migrations + pgvector smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: csearch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d csearch"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PG_SMOKE_DSN: postgresql://postgres:postgres@localhost:5432/csearch
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive  # backend/nlp/eval lives in the csearch-nlp submodule
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Ensure psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Apply migrations + fixtures + smoke
+        run: bash scripts/db-smoke.sh
+      - name: Retrieval eval smoke (fixtures, no OpenAI)
+        run: |
+          pip install psycopg2-binary
+          # Vector-only and hybrid (RRF of keyword + vector) must both run clean
+          # against the fixtures so a regression in either retrieval path is caught.
+          python backend/nlp/eval/run_eval.py --provider fake --only-fixtures \
+            --mode vector --dsn "$PG_SMOKE_DSN"
+          python backend/nlp/eval/run_eval.py --provider fake --only-fixtures \
+            --mode hybrid --dsn "$PG_SMOKE_DSN"
+
+  scraper:
+    name: Scraper (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend/scraper
+      - name: cargo test
+        run: cd backend/scraper && cargo test
+      - name: cargo clippy
+        run: cd backend/scraper && cargo clippy --all-targets
+        continue-on-error: true
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build (typechecks + static generate)
+        run: cd frontend && npm ci && npm run generate
+        env:
+          NUXT_API_SERVER: https://api.csearch.org
+
+  worker:
+    name: Worker typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Typecheck + dry-run
+        run: |
+          cd workers/api-cache
+          npm ci
+          npm run typecheck
+          npx wrangler deploy --dry-run --outdir /tmp/worker-build
+
+  manifests:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kustomize + kubeconform
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh | bash
+          sudo mv kustomize /usr/local/bin/
+          curl -sSfL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      - name: Render and validate every overlay
+        run: |
+          set -e
+          for k in $(find k8s -name kustomization.yaml -exec dirname {} \;); do
+            echo "== kustomize build $k =="
+            kustomize build "$k" > "/tmp/rendered.yaml"
+            # CRDs (SealedSecret, cnpg Cluster) have no public schema; skip those.
+            kubeconform -ignore-missing-schemas -summary "/tmp/rendered.yaml"
+          done

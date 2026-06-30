@@ -15,15 +15,25 @@ backend/scraper/scraper
 
 # Python virtualenv and build artifacts
 **/env/
+**/.venv/
+**/venv/
 **/__pycache__/
 **/*.pyc
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/*.egg-info/
 backend/scraper/build/
 backend/scraper/cache/
 backend/scraper/*.egg-info/
 backend/scraper/congress/cache/
 backend/scraper/congress/build/
 backend/scraper/congress/env/
+backend/scraper/congress/data/
 backend/scraper/congress/*.gob
+
+# Rust build output
+**/target/
 
 # Node modules
 **/node_modules/
@@ -35,10 +45,13 @@ frontend/.output/
 # Data folders
 backend/scraper/data/
 backend/api/data/
+backend/nlp/project-tarp/data/
 backend/scraper/congress/*.tar.zst
+backend/scraper/congress/*.tar.zstd
 
 # Tooling
 .codex
+.codex-*
 .wrangler/
 
 # NYC test coverage
@@ -49,3 +62,9 @@ backend/api/sql/explore.sql
 
 # Local pg_dump output
 schema.sql
+
+# Generated from ARCHITECTURE.md
+ARCHITECTURE.html
+
+# Stray local artifact
+/date

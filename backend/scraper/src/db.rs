@@ -138,6 +138,41 @@ async fn ensure_bill_partitions(pool: &PgPool, cfg: &Config) -> Result<()> {
     Ok(())
 }
 
+/// Records a machine-readable summary of this scraper run into
+/// `ops.scraper_runs` (migration 0006). Best-effort: callers should log and
+/// continue on error so an un-migrated database never fails the ingest.
+#[allow(clippy::too_many_arguments)]
+pub async fn record_scraper_run(
+    pool: &PgPool,
+    ran_bills: bool,
+    ran_votes: bool,
+    processed: i64,
+    changed: i64,
+    skipped: i64,
+    failed: i64,
+    duration_ms: i64,
+    git_sha: Option<String>,
+) -> Result<()> {
+    sqlx::query(
+        "INSERT INTO ops.scraper_runs \
+           (finished_at, status, ran_bills, ran_votes, processed_count, \
+            changed_count, skipped_count, failed_count, duration_ms, git_sha) \
+         VALUES (now(), 'success', $1, $2, $3, $4, $5, $6, $7, $8)",
+    )
+    .bind(ran_bills)
+    .bind(ran_votes)
+    .bind(processed)
+    .bind(changed)
+    .bind(skipped)
+    .bind(failed)
+    .bind(duration_ms)
+    .bind(git_sha)
+    .execute(pool)
+    .await
+    .context("record scraper run")?;
+    Ok(())
+}
+
 // ============================================================================
 // Vote database operations
 // ============================================================================

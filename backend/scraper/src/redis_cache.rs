@@ -9,7 +9,17 @@
 // We use Redis SCAN (not KEYS) because SCAN is non-blocking — it iterates
 // through keys in batches using a cursor, so it doesn't freeze the Redis
 // server the way `KEYS *` would on large datasets.
+//
+// §5 docs/CRITICISMS2.md — Cache invalidation fan-out:
+//   After clearing csearch:* keys, we also set "cache-version" to the current
+//   Unix timestamp. The Cloudflare Worker reads this key before serving a
+//   cached GET response; if the version is newer than the response's recorded
+//   version, the Worker treats the response as stale and revalidates from the
+//   API. This ties Worker KV invalidation to scraper events rather than purely
+//   time-based TTLs, closing the three-layer freshness gap.
 // ============================================================================
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::Result;
 
@@ -23,7 +33,12 @@ use crate::config::Config;
 /// the entire program duration — it's baked into the binary, not heap-allocated.
 const REDIS_CACHE_KEY_PREFIX: &str = "csearch:";
 
-/// Deletes all Redis keys matching "csearch:*" and returns the count deleted.
+/// Key written after each successful cache clear so external layers (e.g. the
+/// Cloudflare Worker) can detect a scraper event and invalidate their own caches.
+const CACHE_VERSION_KEY: &str = "cache-version";
+
+/// Deletes all Redis keys matching "csearch:*", bumps the cache-version key,
+/// and returns the count deleted.
 ///
 /// This function is `async` because Redis I/O is non-blocking — we `.await`
 /// each Redis command, allowing Tokio to do other work while waiting for
@@ -90,6 +105,19 @@ pub async fn clear_api_cache(cfg: &Config) -> Result<usize> {
             break;
         }
     }
+
+    // §5 CRITICISMS2.md — bump cache-version so external layers (Cloudflare
+    // Worker KV) can detect this scraper event and treat their cached responses
+    // as stale without relying solely on time-based TTLs.
+    let version_ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let _: () = redis::cmd("SET")
+        .arg(CACHE_VERSION_KEY)
+        .arg(version_ts)
+        .query_async(&mut connection)
+        .await?;
 
     Ok(deleted)
 }

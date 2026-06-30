@@ -18,7 +18,14 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
+  # Gate: every build job depends on this, so deployable images are only pushed
+  # after the full test/lint/migration/manifest suite passes.
+  gate:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
   build-api:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -46,6 +53,7 @@ jobs:
             ${{ env.REGISTRY }}/csearch-fastapi:latest
 
   build-frontend:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -73,6 +81,7 @@ jobs:
             ${{ env.REGISTRY }}/csearch-frontend:latest
 
   build-tarp-updater:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -111,6 +120,7 @@ jobs:
             ${{ env.REGISTRY }}/csearch-tarp-updater:latest
 
   build-scraper:
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

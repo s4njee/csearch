@@ -1,4 +1,62 @@
-# Freya Dev Setup
+# Dev Setup
+
+_Last verified against code: 2026-05-30._
+
+This file covers two things: **local development on your laptop** (below), and
+making **freya a cluster mirror** of netcup (from "Freya cluster mirror" onward).
+
+---
+
+## Local development (laptop)
+
+One blessed path, no secrets required. Postgres comes up already migrated and
+seeded with a tiny fixture corpus, so the API and a fixture-backed semantic
+search work out of the box.
+
+```bash
+make dev          # Postgres (migrated+seeded) + Redis + API at http://localhost:3000
+make test         # API pytest + scraper cargo test
+make db-smoke     # ephemeral Postgres: migrate + seed + pgvector smoke assertions
+make eval         # retrieval eval against fixtures (no OpenAI key needed)
+make help         # list all targets
+```
+
+What `make dev` gives you:
+
+- **Postgres + pgvector** on `localhost:5433`, initialized by `db/docker-initdb.sh`
+  (applies `db/migrations/*` then `db/seed/fixtures.sql`).
+- **Redis** on `localhost:6379`.
+- **API** on `localhost:3000` (`/health`, `/freshness`, `/metrics`, `/search/semantic`).
+
+Run the optional services with compose profiles: `docker compose --profile ingest up scraper`
+or `docker compose --profile frontend up frontend`.
+
+### No-secrets semantic test mode
+
+The fixture corpus includes deterministic fake 1536-dim embeddings, so vector
+retrieval is exercised end to end without OpenAI:
+
+```bash
+make eval     # or: uv run backend/nlp/eval/run_eval.py --provider fake --only-fixtures --mode vector --dsn "$LOCAL_DSN"
+```
+
+Set `OPENAI_API_KEY` in your shell before `make dev` to enable live semantic
+search against the local API.
+
+### Migrations
+
+`db/migrations/` is the schema source of truth. Apply or inspect them directly:
+
+```bash
+make migrate                       # apply pending to the local Postgres
+python db/migrate.py --status      # show applied vs pending
+```
+
+See [`db/README.md`](db/README.md) for the full migration model.
+
+---
+
+## Freya cluster mirror
 
 How to make freya a development mirror of the netcup production deployment, so code/manifest changes can be iterated on freya without touching production.
 
@@ -195,8 +253,7 @@ git checkout freya
 # edit code or manifests
 git commit -am "…" && git push origin freya
 
-# 2. CI builds csearch-fastapi:latest on push to freya (requires workflow update
-#    — currently mars-images.yml only triggers on main). See "CI follow-up" below.
+# 2. CI builds csearch-fastapi:latest on push to freya.
 
 # 3. Roll out
 kubectl --context=freya rollout restart deploy/csearch-api
@@ -210,9 +267,10 @@ git push origin main
 
 ### CI follow-up
 
-`.github/workflows/mars-images.yml` currently builds `:latest` only on pushes to `main`. For freya-branch dev to actually ship images, either:
+`.github/workflows/build-images.yml` currently builds `:latest` on pushes to
+`main` and `freya`. For freya-branch dev to ship isolated images, either:
 
-- **(a)** Add `freya` to the workflow's `branches:` trigger — same `:latest` tag, freya pulls on restart. Risk: a freya push overwrites `:latest` that netcup also uses. **Don't do this without (b) or (c).**
+- **(a)** Keep the shared `:latest` tag and let freya pull on restart. Risk: a freya push overwrites `:latest` that netcup also uses. **Don't do this without (b) or (c).**
 - **(b)** Tag images by branch: `csearch-fastapi:freya` for freya pushes, `csearch-fastapi:latest` for main. Update `k8s/freya-core/kustomization.yaml` to pull `:freya`. Safer.
 - **(c)** Build locally on freya (the host has working Docker per `DEPLOY.md`), push manually, restart. Same tag collision risk as (a) unless you use a branch tag.
 

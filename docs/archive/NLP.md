@@ -1,3 +1,5 @@
+> **Archived:** not the current architecture or deployment path. Kept for historical context only — verify against the live code and `ARCHITECTURE.md` before relying on anything here.
+
 # CSearch NLP — Natural Language Bill Search
 
 A standalone RAG service for semantic search over U.S. Congressional legislation, deployed to the `mars` K8s context.

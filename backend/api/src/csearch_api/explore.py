@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -41,8 +42,13 @@ class ExploreQuery:
     parameters: list[dict[str, Any]]
 
 
-# Path is resolved relative to __file__ so it works both locally and inside the Docker container.
+# CSEARCH_EXPLORE_SQL overrides the path (set in the Docker image so a
+# non-editable install still finds the file); otherwise resolve relative to the
+# source tree for local dev / tests.
 def _sql_path() -> Path:
+    override = os.environ.get("CSEARCH_EXPLORE_SQL")
+    if override:
+        return Path(override)
     return Path(__file__).resolve().parents[3] / "api" / "sql" / "explore.sql"
 
 
@@ -66,6 +72,13 @@ def _normalize_optional_integer(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _normalize_chamber(value: Any) -> str | None:
+    if value in (None, ""):
+        return None
+    from .constants import CHAMBER_ABBREV
+    return CHAMBER_ABBREV.get(str(value).lower())
 
 
 def _normalize_limit(value: Any, default_value: int) -> int:
@@ -184,7 +197,7 @@ def _build_execution(query: ExploreQuery, request_query: dict[str, Any]) -> tupl
             [
                 request_query.get("q") or "cloture nomination",
                 _normalize_optional_integer(request_query.get("congress")),
-                _normalize_optional_text(request_query.get("chamber")),
+                _normalize_chamber(request_query.get("chamber")),
                 _normalize_limit(request_query.get("limit"), 20),
             ],
         )
@@ -198,7 +211,8 @@ async def execute_explore_query(db, query_id: str, request_query: dict[str, Any]
         return None
 
     sql, bindings = _build_execution(query, request_query)
-    result = await db.raw(sql, *bindings)
+    # Reads route to the replica when one is configured (§1 CRITICISMS2.md).
+    result = await db.read_raw(sql, *bindings)
     return {
         "query": {
             "id": query.id,
@@ -206,7 +220,8 @@ async def execute_explore_query(db, query_id: str, request_query: dict[str, Any]
             "title": query.title,
             "parameters": query.parameters,
         },
-        "sql": sql,
-        "bindings": bindings,
+        # NOTE: raw SQL and bindings are intentionally omitted from the response
+        # to avoid coupling the client to the internal query structure and to
+        # prevent information leakage (§10/§11 docs/CRITICISMS2.md).
         "rows": result["rows"],
     }
