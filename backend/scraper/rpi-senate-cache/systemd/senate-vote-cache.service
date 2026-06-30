@@ -1,0 +1,23 @@
+[Unit]
+Description=Fetch Senate roll-call vote XML and publish the senate-vote-cache branch
+Documentation=https://github.com/s4njee/csearch/blob/main/backend/scraper/rpi-senate-cache/README.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Run as an unprivileged user that owns WORK_DIR (see README). Adjust to taste.
+User=pi
+EnvironmentFile=/etc/senate-vote-cache.env
+ExecStart=/usr/local/bin/fetch-senate-votes.sh
+TimeoutStartSec=1800
+Nice=10
+# Hardening (loosen if your distro is older / lacks these). This assumes
+# WORK_DIR=/var/lib/senate-vote-cache (set it in the EnvironmentFile); the
+# script's home-dir default will NOT work under ProtectHome.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/senate-vote-cache
+StateDirectory=senate-vote-cache
