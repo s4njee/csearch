@@ -7,13 +7,10 @@ workers_dev = false
 [vars]
 ORIGIN = "https://api.csearch.org"
 
-# KV namespace IDs are placeholders — replace after running:
-#   wrangler kv namespace create CACHE
-#   wrangler kv namespace create CACHE --preview
 [[kv_namespaces]]
 binding = "CACHE"
-id = "REPLACE_WITH_PROD_KV_ID"
-preview_id = "REPLACE_WITH_PREVIEW_KV_ID"
+id = "aa0fd581e299423698b1b88604ca9255"
+preview_id = "35d7d196b1f54130aa4e52ca2fb27c04"
 
 # Custom domain. Requires `api-cache.csearch.org` to be added as a Custom Domain
 # on this Worker via the Cloudflare dashboard (Workers & Pages → csearch-api-cache

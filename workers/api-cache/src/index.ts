@@ -84,6 +84,19 @@ async function revalidate(env: Env, url: URL, key: string): Promise<void> {
   }
 }
 
+// The origin sets `Access-Control-Allow-Origin: *` only when a request carries an
+// Origin header. Because this Worker caches by path+query (not Origin) and may fill
+// the cache from header-less requests (e.g. the SSG build), a cached GET response can
+// lack that header — which would break browser requests on a HIT. The origin's CORS
+// policy is a static wildcard, so re-assert it here for any browser (Origin-bearing)
+// GET so cached hits stay CORS-valid.
+function applyCors(res: Response, req: Request): Response {
+  if (req.headers.get("Origin")) {
+    res.headers.set("Access-Control-Allow-Origin", "*");
+  }
+  return res;
+}
+
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
@@ -107,11 +120,11 @@ export default {
       if (entry) {
         const ageSeconds = (Date.now() - entry.fetchedAt) / 1000;
         if (ageSeconds < FRESH_SECONDS) {
-          return entryToResponse(entry, "HIT");
+          return applyCors(entryToResponse(entry, "HIT"), req);
         }
         if (ageSeconds < STALE_SECONDS) {
           ctx.waitUntil(revalidate(env, url, key));
-          return entryToResponse(entry, "STALE");
+          return applyCors(entryToResponse(entry, "STALE"), req);
         }
       }
     }
@@ -125,7 +138,7 @@ export default {
       if (raw) {
         try {
           const entry = JSON.parse(raw) as CachedEntry;
-          return entryToResponse(entry, "STALE");
+          return applyCors(entryToResponse(entry, "STALE"), req);
         } catch {
           // fall through
         }
@@ -140,6 +153,6 @@ export default {
 
     const headers = new Headers(res.headers);
     headers.set("X-Cache", "MISS");
-    return new Response(res.body, { status: res.status, headers });
+    return applyCors(new Response(res.body, { status: res.status, headers }), req);
   },
 } satisfies ExportedHandler<Env>;
