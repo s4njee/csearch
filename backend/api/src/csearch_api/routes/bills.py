@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 
-from ..cache import Cache
 from ..constants import VALID_BILL_TYPES
 from ..db import Database
-from ..deps import get_cache, get_db
+from ..deps import get_db
 from ..models import BillDetail, BillSummary
 from ..queries import (
     BILL_COMMITTEE_CODES_SQL,
@@ -84,19 +83,11 @@ def _search_order_clause(search_filter: str, fuzzy: bool) -> str:
 
 
 @router.get("/latest/{billtype}", response_model=list[BillSummary])
-async def latest_bills(request: Request, response: Response, billtype: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+async def latest_bills(response: Response, billtype: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db)):
     """Return the most recently active bills of this type (default 500)."""
     _validate_billtype(billtype)
     response.headers["Cache-Control"] = LIST_CACHE_CONTROL
     resolved_limit, resolved_offset = _page(limit, offset, LATEST_BILLS_LIMIT, LATEST_BILLS_LIMIT)
-
-    # Page params are part of the cache key so each page caches independently;
-    # the default request keeps the original key shape and hit rate.
-    cache_key = f"latest_bills_{billtype}_{resolved_limit}_{resolved_offset}"
-    cached = await cache.get(cache_key)
-    if cached is not None:
-        request.state.cache_header = "HIT"
-        return cached
 
     sql = _bill_list_select()
     args = []
@@ -105,10 +96,7 @@ async def latest_bills(request: Request, response: Response, billtype: str, limi
         args.append(billtype)
     sql += f" ORDER BY b.latest_action_date DESC NULLS LAST, b.billid DESC LIMIT {resolved_limit} OFFSET {resolved_offset}"
 
-    rows = await db.read_fetch(sql, *args)
-    await cache.set(cache_key, rows)
-    request.state.cache_header = "MISS"
-    return rows
+    return await db.read_fetch(sql, *args)
 
 
 @router.get("/search/{table}/{filter}", response_model=list[BillSummary])
@@ -190,18 +178,12 @@ async def bill_detail(response: Response, billtype: str, congress: str, billnumb
 
 
 @router.get("/bills/bynumber/{number}", response_model=list[BillSummary])
-async def bills_by_number(request: Request, number: str, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+async def bills_by_number(number: str, db: Database = Depends(get_db)):
     """Return all bills matching a given bill number across all types and congresses."""
     if not number.isdigit():
         raise HTTPException(status_code=400, detail={"error": "Invalid bill number; must be an integer"})
 
-    cache_key = f"bills_bynumber_{number}"
-    cached = await cache.get(cache_key)
-    if cached is not None:
-        request.state.cache_header = "HIT"
-        return cached
-
-    rows = await db.read_fetch(
+    return await db.read_fetch(
         """
         SELECT
             b.billid,
@@ -224,6 +206,3 @@ async def bills_by_number(request: Request, number: str, db: Database = Depends(
         """,
         int(number),
     )
-    await cache.set(cache_key, rows)
-    request.state.cache_header = "MISS"
-    return rows

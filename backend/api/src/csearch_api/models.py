@@ -294,6 +294,16 @@ class FreshnessResponse(ApiModel):
     last_nlp_run_upserted_chunks: int | None = None
 
 
+class CacheVersionResponse(ApiModel):
+    """Compact data-version contract used by the public API cache Worker."""
+
+    now: datetime
+    bills_version: Dateish = None
+    votes_version: Dateish = None
+    explore_version: Dateish = None
+    semantic_version: Dateish = None
+
+
 class HealthResponse(ApiModel):
     status: str
     db: str

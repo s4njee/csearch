@@ -618,7 +618,7 @@ def test_votes_latest_and_detail_and_explore():
 
     latest = client.get("/votes/house")
     assert latest.status_code == 200
-    assert latest.headers.get("X-Cache") == "MISS"
+    assert latest.headers.get("X-Cache") is None
 
     detail = client.get("/votes/detail/h1-119.2025")
     assert detail.status_code == 200

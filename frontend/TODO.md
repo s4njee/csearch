@@ -56,7 +56,7 @@ The prerender model is built for crawlability, so this is the highest-value area
 
 ## Content
 - [x] **P2 Footer** — site footer in `layouts/default.vue` with attribution + data-freshness stamp.
-- [x] **P2 Surface data freshness** — footer shows "Data updated …" from `meta.json` (accepts `updated_at`/`updatedAt`).
+- [x] **P2 Surface data freshness** — footer shows "Data updated …" from the API `/freshness` endpoint.
 - [ ] **P3 About / API docs page** — the old landing's endpoint catalog is gone; a small `/about` or docs page could replace it.
 - [ ] **P3 Empty-state design** — icon + helpful copy + "clear filters" action instead of plain text.
 

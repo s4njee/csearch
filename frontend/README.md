@@ -200,10 +200,15 @@ Check `nuxt.config.ts`. Static generation only includes routes that are crawled 
 
 ### Frontend data looks stale after a scraper run
 
-Remember that scraper freshness and frontend freshness are not the same thing:
+The footer reads live data freshness from the API `/freshness` endpoint. The
+static `meta.json` file is only a deploy artifact.
 
-- the public site updates only after the static publish flow runs
-- the Argo-managed frontend updates when its image or manifest changes in Git
+Check:
+
+- `https://api-cache.csearch.org/freshness`
+- `https://api-cache.csearch.org/cache-version`
+- `X-Cache`, `X-Cache-Domain`, and `X-Data-Version` on the stale API request
+- whether the visible issue is static HTML from the last Pages deploy rather than hydrated client data
 
 ### The deployed frontend uses the wrong API
 

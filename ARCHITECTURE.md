@@ -20,7 +20,7 @@ flowchart LR
     scraper["Rust scraper plus vendored Python fetcher"]
     nlp["TARP NLP updater"]
     pg[("PostgreSQL\npublic schema + nlp schema\npg_trgm + pgvector")]
-    redis[("Redis\ncsearch:* route cache")]
+    redis[("Redis\nrate limits + helper caches")]
     api["FastAPI\napi.csearch.org"]
     worker["Cloudflare Worker\nedge GET API cache (live)\napi-cache.csearch.org"]
     aisummary["AI Summary Worker\nWorkers AI + KV cache"]
@@ -200,21 +200,21 @@ and publicly on netcup through the `api.csearch.org` ingress.
 
 | Route family | Backing data | Cache behavior |
 | --- | --- | --- |
-| `/latest/{billtype}` | `public.bills` | Redis, 24 hour default TTL |
-| `/search/{table}/{filter}` | `public.bills` full-text + trigram | Not Redis cached |
-| `/bills/{billtype}/{congress}/{billnumber}` | Bill plus actions, cosponsors, votes, committees | Edge cache headers |
-| `/bills/bynumber/{number}` | Matching bills across types/congresses | Not Redis cached |
-| `/votes/{chamber}` | Recent votes and member counts | Redis, 24 hour default TTL |
-| `/votes/search` | Vote full-text + trigram | Not Redis cached |
-| `/votes/detail/{voteid}` | Vote plus member breakdown | Not Redis cached |
-| `/members/{bioguide_id}` | Member profile and related records | Not Redis cached |
-| `/committees` and `/committees/{code}` | Committee lists and details | Not Redis cached |
-| `/representatives/{zip}` | ZIP district lookup | Not Redis cached |
-| `/explore` and `/explore/{query_id}` | Predefined analytical SQL | Explore results cached for 12 hours |
-| `/search/semantic` | OpenAI embedding + pgvector similarity | Not Redis cached |
+| `/latest/{billtype}` | `public.bills` | Public GETs cached by API Worker KV |
+| `/search/{table}/{filter}` | `public.bills` full-text + trigram | Public GETs cached by API Worker KV |
+| `/bills/{billtype}/{congress}/{billnumber}` | Bill plus actions, cosponsors, votes, committees | Public GETs cached by API Worker KV + origin edge headers |
+| `/bills/bynumber/{number}` | Matching bills across types/congresses | Public GETs cached by API Worker KV |
+| `/votes/{chamber}` | Recent votes and member counts | Public GETs cached by API Worker KV |
+| `/votes/search` | Vote full-text + trigram | Public GETs cached by API Worker KV |
+| `/votes/detail/{voteid}` | Vote plus member breakdown | Public GETs cached by API Worker KV |
+| `/members/{bioguide_id}` | Member profile and related records | Public GETs cached by API Worker KV |
+| `/committees` and `/committees/{code}` | Committee lists and details | Public GETs cached by API Worker KV |
+| `/representatives/{zip}` | ZIP district lookup | Public GETs cached by API Worker KV |
+| `/explore` and `/explore/{query_id}` | Predefined analytical SQL | Public GETs cached by API Worker KV + origin edge headers |
+| `/search/semantic` | OpenAI embedding + pgvector similarity | POST passthrough; query embeddings cached in Redis |
 
-Redis keys are prefixed with `csearch:`. Redis outages produce cache misses,
-not request failures.
+Redis keys are prefixed with `csearch:`. Redis outages produce helper-cache
+misses/rate-limit fail-open behavior, not request failures.
 
 ## MCP Server
 
@@ -412,12 +412,14 @@ The nginx frontend image remains useful for cluster-hosted environments such as
 Behavior:
 
 - Caches GET requests in Workers KV.
-- Uses a 5 minute fresh window and 24 hour stale-while-revalidate window.
+- Keys cache entries by path/query plus the origin `/cache-version` data version.
+- Uses a 5 minute fresh window and 24 hour stale-while-revalidate window per data version.
 - Passes POST/PUT/etc. through, including `POST /search/semantic`.
-- Adds `X-Cache` and `X-Cache-Age` response headers.
+- Adds `X-Cache`, `X-Cache-Age`, `X-Cache-Domain`, and `X-Data-Version` response headers.
 
-This Worker is a frontend/API freshness backstop; it does not replace Redis.
-Redis remains the in-cluster application cache used by FastAPI.
+This Worker is the public GET freshness layer. Redis remains the in-cluster
+application cache used by FastAPI for origin shielding and non-route helpers
+such as rate limiting and embedding caches.
 
 ## AI Summary Worker
 
@@ -552,7 +554,9 @@ the alerts. Job history is queryable in Postgres (`ops.scraper_runs`,
   for fetch behavior or upstream format changes.
 - Bill embeddings use `text-embedding-3-small` at 1536 dimensions. Do not mix
   dimensions in `nlp.bill_embeddings`.
-- API cache keys use the `csearch:` prefix and Redis must fail open.
+- Redis API cache keys use the `csearch:` prefix and Redis must fail open.
+- Public GET cache freshness is owned by `workers/api-cache/` and the API
+  `/cache-version` contract; the Worker does not read in-cluster Redis.
 - The public semantic route retrieves grounded chunks and bill metadata; it
   does not generate answers in production.
 - Argo-managed cluster changes should go through the watched git branch.
@@ -563,7 +567,7 @@ the alerts. Job history is queryable in Postgres (`ops.scraper_runs`,
 | --- | --- | --- |
 | Semantic search returns 503 | `OPENAI_API_KEY` missing in API pod | `k8s/{netcup,freya}-core/csearch-api-openai-sealedsecret.yaml` and API pod env |
 | Semantic search is slow or empty | Missing/old `nlp.bill_embeddings`, HNSW index issue, or OpenAI latency | `backend/nlp/project-tarp/upserter.py`, `/search/semantic/warmup`, PostgreSQL `EXPLAIN` |
-| Latest bills look stale | Redis cache was not invalidated, Pages build has not run, or Worker is serving stale GET cache | scraper logs, Redis keys, Cloudflare Pages deploys, `workers/api-cache/` headers |
+| Latest bills look stale | API `/cache-version` has not advanced, Worker version cache has not refreshed yet, the scraper did not write new rows, or Pages static HTML/meta is old | `/cache-version`, `X-Data-Version`, scraper logs, Cloudflare Pages deploys |
 | Scraper run does no work | File hashes match or source data has no meaningful changes | `backend/scraper/src/hashes.rs`, scraper logs |
 | NLP pipeline exits early | `content_hasher.py` found no meaningful text changes | `backend/nlp/project-tarp/nightly_update.sh` logs |
 | Manual `kubectl` edits disappear | Argo CD `selfHeal` reverted drift | `argo/applications/*.yaml` |

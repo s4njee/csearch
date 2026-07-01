@@ -187,6 +187,25 @@ export interface ExploreQueryResponse {
   results: Array<Record<string, unknown>>
 }
 
+// ─── Operations / freshness ──────────────────────────────────────────────────
+
+export interface FreshnessResponse {
+  now: string
+  last_bill_action_at?: string | null
+  last_bill_update_at?: string | null
+  last_vote_at?: string | null
+  bills_updated_24h?: number | null
+  bills_total?: number | null
+  votes_total?: number | null
+  last_semantic_chunk_at?: string | null
+  semantic_chunks_total?: number | null
+  semantic_bills_total?: number | null
+  last_nlp_run_started_at?: string | null
+  last_nlp_run_finished_at?: string | null
+  last_nlp_run_status?: string | null
+  last_nlp_run_upserted_chunks?: number | null
+}
+
 // ─── UI constants ─────────────────────────────────────────────────────────────
 
 export interface BillTypeOption {

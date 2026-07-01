@@ -5,6 +5,7 @@ import type {
   CommitteeRecord,
   ExploreListResponse,
   ExploreQueryResponse,
+  FreshnessResponse,
   MemberDetail,
   RepresentativesResponse,
   VoteDetail,
@@ -102,6 +103,7 @@ export function useCongressApi() {
 
   return {
     apiBase,
+    getFreshness: () => apiFetch<FreshnessResponse>('/freshness'),
     listExploreQueries: () => apiFetch<ExploreListResponse>('/explore'),
     runExploreQuery: (queryId: string, query: Record<string, string | number | undefined | null> = {}) =>
       apiFetch<ExploreQueryResponse>(withQuery(`/explore/${queryId}`, query)),

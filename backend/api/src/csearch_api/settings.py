@@ -33,11 +33,9 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
 
-    cache_ttl_seconds: int = 86400
-
-    # Bearer token for POST /admin/cache/reset (cache invalidation hook). Empty
-    # disables the endpoint (returns 503). Set it and have the scraper/NLP
-    # pipeline call the endpoint after an ingest so cached lists refresh.
+    # Bearer token for POST /admin/cache/reset. Empty disables the endpoint
+    # (returns 503). Route JSON freshness is handled by the Cloudflare Worker;
+    # this remains for clearing in-cluster Redis helper caches when needed.
     admin_token: str = ""
 
     # Comma-separated allowlist of CORS origins. "*" keeps the API fully open
@@ -84,4 +82,3 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings.load()
-

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
 from csearch_api import queries
-from csearch_api.cache import Cache
 from csearch_api.db import Database
-from csearch_api.deps import get_cache, get_db
+from csearch_api.deps import get_db
 from csearch_api.models import CommitteeDetail, CommitteeSummary
 
 router = APIRouter()
@@ -14,15 +13,9 @@ COMMITTEE_BILLS_LIMIT = 100
 
 
 @router.get("/committees", response_model=list[CommitteeSummary])
-async def committees(request: Request, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+async def committees(db: Database = Depends(get_db)):
     """Return all committees with their bill counts, ordered by name."""
-    cache_key = "committees_all"
-    cached = await cache.get(cache_key)
-    if cached is not None:
-        request.state.cache_header = "HIT"
-        return cached
-
-    rows = await db.read_fetch(
+    return await db.read_fetch(
         """
         SELECT
             c.committee_code,
@@ -35,20 +28,11 @@ async def committees(request: Request, db: Database = Depends(get_db), cache: Ca
         ORDER BY c.committee_name ASC
         """
     )
-    await cache.set(cache_key, rows)
-    request.state.cache_header = "MISS"
-    return rows
 
 
 @router.get("/committees/{committee_code}", response_model=CommitteeDetail)
-async def committee_detail(request: Request, committee_code: str, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+async def committee_detail(committee_code: str, db: Database = Depends(get_db)):
     """Return a committee's metadata and its most recently active bills."""
-    cache_key = f"committee_{committee_code}"
-    cached = await cache.get(cache_key)
-    if cached is not None:
-        request.state.cache_header = "HIT"
-        return cached
-
     committee = await db.read_fetchrow(
         """
         SELECT committee_code, committee_name, chamber
@@ -91,6 +75,4 @@ async def committee_detail(request: Request, committee_code: str, db: Database =
     )
 
     committee["bills"] = bills
-    await cache.set(cache_key, committee)
-    request.state.cache_header = "MISS"
     return committee

@@ -1,35 +1,28 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
-from ..cache import Cache
 from ..db import Database
-from ..deps import get_cache, get_db
+from ..deps import get_db
 from ..models import RepresentativesResponse
 
 router = APIRouter()
 
 
 @router.get("/representatives/{zipcode}", response_model=RepresentativesResponse)
-async def representatives_by_zip(request: Request, zipcode: str, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
-    return await _representatives_by_zip(request, db, cache, zipcode)
+async def representatives_by_zip(zipcode: str, db: Database = Depends(get_db)):
+    return await _representatives_by_zip(db, zipcode)
 
 
 @router.get("/representatives", response_model=RepresentativesResponse)
-async def representatives_by_zip_query(request: Request, zip: str, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
-    return await _representatives_by_zip(request, db, cache, zip)
+async def representatives_by_zip_query(zip: str, db: Database = Depends(get_db)):
+    return await _representatives_by_zip(db, zip)
 
 
-async def _representatives_by_zip(request: Request, db: Database, cache: Cache, zipcode: str):
+async def _representatives_by_zip(db: Database, zipcode: str):
     """Return senators and house members for a given ZIP code."""
     if not zipcode.isdigit() or len(zipcode) != 5:
         raise HTTPException(status_code=400, detail={"error": "ZIP code must be exactly 5 digits"})
-
-    cache_key = f"representatives_{zipcode}"
-    cached = await cache.get(cache_key)
-    if cached is not None:
-        request.state.cache_header = "HIT"
-        return cached
 
     districts = await db.read_fetch(
         """
@@ -123,8 +116,6 @@ async def _representatives_by_zip(request: Request, db: Database, cache: Cache, 
         "housemembers": formatted_house_members,
         "representatives": formatted_house_members,
     }
-    await cache.set(cache_key, response)
-    request.state.cache_header = "MISS"
     return response
 
 

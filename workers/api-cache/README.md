@@ -14,16 +14,22 @@ the KV namespace IDs in `wrangler.toml` are already real, so a plain
 ```
 client → api-cache.csearch.org (Worker) → api.csearch.org (FastAPI)
                   │
-                  └── KV: csearch-api-cache (5 min fresh, 24 h SWR)
+                  └── KV: csearch-api-cache (versioned keys, 5 min fresh, 24 h SWR)
 ```
 
 ## Behavior
 
 | Path                | Cached? | Notes                                          |
 |---------------------|---------|------------------------------------------------|
-| Any `GET *`         | yes     | Keyed by `pathname?sortedQueryString`.         |
+| Cacheable `GET *`   | yes     | Keyed by `domain:dataVersion:pathname?sortedQueryString`. |
 | Any `POST/PUT/...`  | no      | Pass-through. Includes `POST /search/semantic`.|
+| `/freshness`, `/cache-version` | no | Pass-through operational probes. |
 | `Cache-Control: no-store` from origin | no | Pass-through.              |
+
+Before reading or writing a GET cache entry, the Worker fetches
+`/cache-version` from the origin and caches that compact version contract for
+60 seconds. New scraper-visible data versions therefore write to new KV keys;
+old entries expire naturally instead of requiring a full KV purge.
 
 Response headers:
 
@@ -31,6 +37,8 @@ Response headers:
 - `X-Cache: STALE` — served from KV, age 5 min – 24 h, background revalidate kicked off.
 - `X-Cache: MISS` — fetched synchronously from origin.
 - `X-Cache-Age` — entry age in seconds.
+- `X-Cache-Domain` — version domain selected from the path (`bills`, `votes`, `explore`, `semantic`, or `general`).
+- `X-Data-Version` — data version included in the KV key.
 
 CORS: the origin only emits `Access-Control-Allow-Origin: *` when a request
 carries an `Origin` header, but the Worker caches by path+query and can fill the
@@ -95,6 +103,8 @@ Constants live in `src/index.ts`:
 - `FRESH_SECONDS` — fresh window (default 300, matches `Cache-Control: max-age=3600`
   on the API but more conservative; tighten if you ship late-breaking data).
 - `STALE_SECONDS` — outer SWR window (default 86 400 / 24 h).
+- `VERSION_TTL_SECONDS` — how long the Worker reuses the origin
+  `/cache-version` payload before checking for a newer data version.
 - `KV_TTL_SECONDS` — KV row expiry, slightly longer than `STALE_SECONDS`.
 
 ## What this does and does not do
@@ -102,9 +112,8 @@ Constants live in `src/index.ts`:
 - ✅ Absorbs API origin slowness — clients see edge latency on cache hits.
 - ✅ Survives short FastAPI / Postgres outages via stale-fallback.
 - ✅ Reduces redundant SSG fetches during Pages builds.
-- ❌ Does not invalidate on data change. The scraper does not POST to the
-   Worker. Freshness is bounded by `FRESH_SECONDS` + background revalidate.
-   If we need surgical invalidation, add a `POST /_purge` route guarded by a
-   shared secret and call it from the scraper success path.
+- ✅ Advances to fresh KV keys when `/cache-version` changes.
+- ❌ Does not delete old KV keys immediately. Old versions expire after the
+   configured SWR/TTL window.
 - ❌ Does not cache POST `/search/semantic`. Semantic queries already hit the
    API directly via the existing pre-warm path.

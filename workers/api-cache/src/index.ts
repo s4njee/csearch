@@ -2,7 +2,9 @@
  * csearch-api-cache — KV-backed stale-while-revalidate proxy in front of api.csearch.org.
  *
  * Strategy:
- *   - GET requests are cached by path + sorted query string.
+ *   - GET requests are cached by domain + data version + path + sorted query string.
+ *   - Data versions come from the origin /cache-version endpoint and are
+ *     reused briefly to avoid checking Postgres on every edge request.
  *   - Fresh window (< 5 min): serve from KV, no origin call.
  *   - Stale window (5 min – 24 h): serve from KV, kick off background revalidate.
  *   - Beyond 24 h or KV miss: fetch synchronously, cache on success.
@@ -17,6 +19,8 @@ interface Env {
 
 const FRESH_SECONDS = 5 * 60;
 const STALE_SECONDS = 24 * 60 * 60;
+const VERSION_TTL_SECONDS = 60;
+const VERSION_CACHE_KEY = "__csearch_cache_versions__";
 // KV expiry — keeps entries reachable for the full stale window plus a small grace.
 const KV_TTL_SECONDS = STALE_SECONDS + 60 * 60;
 
@@ -27,16 +31,43 @@ interface CachedEntry {
   fetchedAt: number;
 }
 
+interface CacheVersions {
+  bills_version?: string | null;
+  votes_version?: string | null;
+  explore_version?: string | null;
+  semantic_version?: string | null;
+}
+
+interface StoredCacheVersions {
+  fetchedAt: number;
+  versions: CacheVersions;
+}
+
+type CacheDomain = "bills" | "votes" | "explore" | "semantic" | "general";
+
+let memoryVersions: StoredCacheVersions | null = null;
+
 function cacheKey(url: URL): string {
   const params = [...url.searchParams.entries()].sort(([a], [b]) => a.localeCompare(b));
   const qs = params.map(([k, v]) => `${k}=${v}`).join("&");
   return qs ? `${url.pathname}?${qs}` : url.pathname;
 }
 
+function versionedCacheKey(baseKey: string, domain: CacheDomain, version: string): string {
+  return `${domain}:${version}:${baseKey}`;
+}
+
 function originUrl(env: Env, url: URL): string {
   const target = new URL(env.ORIGIN);
   target.pathname = url.pathname;
   target.search = url.search;
+  return target.toString();
+}
+
+function originPath(env: Env, path: string): string {
+  const target = new URL(env.ORIGIN);
+  target.pathname = path;
+  target.search = "";
   return target.toString();
 }
 
@@ -50,10 +81,12 @@ function cleanHeaders(src: Headers): Record<string, string> {
   return out;
 }
 
-function entryToResponse(entry: CachedEntry, state: "HIT" | "STALE"): Response {
+function entryToResponse(entry: CachedEntry, state: "HIT" | "STALE", domain: CacheDomain, version: string): Response {
   const headers = new Headers(entry.headers);
   headers.set("X-Cache", state);
   headers.set("X-Cache-Age", String(Math.max(0, Math.floor((Date.now() - entry.fetchedAt) / 1000))));
+  headers.set("X-Cache-Domain", domain);
+  headers.set("X-Data-Version", version);
   return new Response(entry.body, { status: entry.status, headers });
 }
 
@@ -64,6 +97,82 @@ async function buildEntry(res: Response): Promise<CachedEntry> {
     body: await res.text(),
     fetchedAt: Date.now(),
   };
+}
+
+function cacheDomain(url: URL): CacheDomain {
+  const path = url.pathname;
+  if (path.startsWith("/votes")) return "votes";
+  if (path.startsWith("/search/semantic")) return "semantic";
+  if (path.startsWith("/explore")) return "explore";
+  if (
+    path.startsWith("/latest")
+    || path.startsWith("/bills")
+    || path.startsWith("/search")
+    || path.startsWith("/committees")
+    || path.startsWith("/members")
+    || path.startsWith("/representatives")
+  ) {
+    return "bills";
+  }
+  return "general";
+}
+
+function newestVersion(...values: Array<string | null | undefined>): string | null {
+  const present = values.filter((value): value is string => Boolean(value));
+  if (present.length === 0) return null;
+  return present.sort().at(-1) ?? null;
+}
+
+function versionForDomain(versions: CacheVersions | null, domain: CacheDomain): string {
+  if (!versions) return "unversioned";
+  if (domain === "bills") return versions.bills_version || "bills-unversioned";
+  if (domain === "votes") return versions.votes_version || "votes-unversioned";
+  if (domain === "explore") return versions.explore_version || newestVersion(versions.bills_version, versions.votes_version) || "explore-unversioned";
+  if (domain === "semantic") return versions.semantic_version || "semantic-unversioned";
+  return newestVersion(
+    versions.bills_version,
+    versions.votes_version,
+    versions.explore_version,
+    versions.semantic_version,
+  ) || "general-unversioned";
+}
+
+function cachedVersionsFresh(stored: StoredCacheVersions | null): stored is StoredCacheVersions {
+  return Boolean(stored && (Date.now() - stored.fetchedAt) / 1000 < VERSION_TTL_SECONDS);
+}
+
+async function fetchCacheVersions(env: Env): Promise<CacheVersions | null> {
+  if (cachedVersionsFresh(memoryVersions)) {
+    return memoryVersions.versions;
+  }
+
+  const raw = await env.CACHE.get(VERSION_CACHE_KEY);
+  if (raw) {
+    try {
+      const stored = JSON.parse(raw) as StoredCacheVersions;
+      if (cachedVersionsFresh(stored)) {
+        memoryVersions = stored;
+        return stored.versions;
+      }
+    } catch {
+      // Corrupt entry — fall through to origin.
+    }
+  }
+
+  try {
+    const res = await fetch(originPath(env, "/cache-version"), {
+      headers: { "Cache-Control": "no-store" },
+    });
+    if (!res.ok) return null;
+    const versions = await res.json() as CacheVersions;
+    const stored = { fetchedAt: Date.now(), versions };
+    memoryVersions = stored;
+    await env.CACHE.put(VERSION_CACHE_KEY, JSON.stringify(stored), { expirationTtl: VERSION_TTL_SECONDS });
+    return versions;
+  } catch (err) {
+    console.error("cache-version fetch error", { err: String(err) });
+    return null;
+  }
 }
 
 function shouldCache(res: Response): boolean {
@@ -107,7 +216,16 @@ export default {
       return fetch(originUrl(env, url), req);
     }
 
-    const key = cacheKey(url);
+    // Operational freshness probes are intentionally uncached and should not
+    // spend an extra origin request fetching the version contract.
+    if (url.pathname === "/freshness" || url.pathname === "/cache-version") {
+      return fetch(originUrl(env, url), req);
+    }
+
+    const domain = cacheDomain(url);
+    const versions = await fetchCacheVersions(env);
+    const dataVersion = versionForDomain(versions, domain);
+    const key = versionedCacheKey(cacheKey(url), domain, dataVersion);
     const raw = await env.CACHE.get(key);
 
     if (raw) {
@@ -120,11 +238,11 @@ export default {
       if (entry) {
         const ageSeconds = (Date.now() - entry.fetchedAt) / 1000;
         if (ageSeconds < FRESH_SECONDS) {
-          return applyCors(entryToResponse(entry, "HIT"), req);
+          return applyCors(entryToResponse(entry, "HIT", domain, dataVersion), req);
         }
         if (ageSeconds < STALE_SECONDS) {
           ctx.waitUntil(revalidate(env, url, key));
-          return applyCors(entryToResponse(entry, "STALE"), req);
+          return applyCors(entryToResponse(entry, "STALE", domain, dataVersion), req);
         }
       }
     }
@@ -138,7 +256,7 @@ export default {
       if (raw) {
         try {
           const entry = JSON.parse(raw) as CachedEntry;
-          return applyCors(entryToResponse(entry, "STALE"), req);
+          return applyCors(entryToResponse(entry, "STALE", domain, dataVersion), req);
         } catch {
           // fall through
         }
@@ -153,6 +271,8 @@ export default {
 
     const headers = new Headers(res.headers);
     headers.set("X-Cache", "MISS");
+    headers.set("X-Cache-Domain", domain);
+    headers.set("X-Data-Version", dataVersion);
     return applyCors(new Response(res.body, { status: res.status, headers }), req);
   },
 } satisfies ExportedHandler<Env>;

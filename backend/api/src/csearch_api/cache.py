@@ -8,7 +8,6 @@ from redis.asyncio import Redis
 logger = logging.getLogger(__name__)
 
 TTL_SECONDS = 60 * 60 * 24
-EXPLORE_TTL_SECONDS = 60 * 60 * 12
 KEY_PREFIX = "csearch:"
 
 
@@ -28,7 +27,7 @@ class Cache:
             )
         )
 
-    # Cache failures are non-fatal — the route still serves uncached data.
+    # Cache failures are non-fatal — callers degrade to uncached behavior.
 
     async def get(self, key: str):
         try:

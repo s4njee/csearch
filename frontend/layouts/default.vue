@@ -14,12 +14,28 @@ const navItems = computed<NavigationMenuItem[]>(() => [
   { label: 'Representatives', to: '/representatives', active: route.path.startsWith('/representatives') },
 ])
 
-// Data-freshness stamp written at deploy time (frontend/deploy.sh → meta.json).
 const { formatDate } = useFormatters()
-// Production (deploy.sh) writes `updated_at`; the dev/scraper stamp uses
-// `updatedAt` — accept either.
-const { data: meta } = await useFetch<{ updated_at?: string, updatedAt?: string }>('/meta.json', { server: false })
-const updatedAt = computed(() => meta.value?.updated_at ?? meta.value?.updatedAt ?? null)
+const { getFreshness } = useCongressApi()
+
+function newestDateish(...values: Array<string | null | undefined>) {
+  const parsed = values
+    .filter((value): value is string => Boolean(value))
+    .map(value => ({ value, time: Date.parse(value) }))
+    .filter(item => Number.isFinite(item.time))
+    .sort((a, b) => b.time - a.time)
+
+  return parsed[0]?.value ?? null
+}
+
+const { data: freshness } = await useAsyncData(
+  'api-freshness',
+  () => getFreshness(),
+  { server: false },
+)
+const updatedAt = computed(() => newestDateish(
+  freshness.value?.last_bill_update_at,
+  freshness.value?.last_vote_at,
+))
 </script>
 
 <template>

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from ..cache import Cache
 from ..db import Database
 from ..deps import get_app_settings, get_cache, get_db
-from ..models import FreshnessResponse, HealthResponse, RootResponse
+from ..models import CacheVersionResponse, FreshnessResponse, HealthResponse, RootResponse
 from ..settings import Settings
 
 logger = logging.getLogger("csearch-api")
@@ -28,6 +28,22 @@ async def _safe_fetchrow(db: Database, query: str):
     except Exception as e:
         logger.warning("freshness probe failed: %s", e)
         return None
+
+
+def _max_version(*values):
+    """Return the newest non-null date-ish value without assuming matching types."""
+    present = [value for value in values if value is not None]
+    if not present:
+        return None
+    return max(present, key=_version_sort_key)
+
+
+def _version_sort_key(value) -> str:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
 
 
 @router.get("/", response_model=RootResponse)
@@ -74,12 +90,12 @@ async def readyz(db: Database = Depends(get_db), cache: Cache = Depends(get_cach
 
 @router.post("/admin/cache/reset")
 async def reset_cache(request: Request, cache: Cache = Depends(get_cache), settings: Settings = Depends(get_app_settings)):
-    """Flush the Redis cache (invalidation hook for the scrape→serve pipeline).
+    """Flush Redis helper caches.
 
     Guarded by the ``X-Admin-Token`` header; returns 503 when ``ADMIN_TOKEN`` is
     unset (the default), so the endpoint is inert unless explicitly enabled.
-    Intended to be called after an ingest so cached lists reflect new data
-    without waiting for the TTL.
+    Public GET freshness is owned by the Cloudflare API cache Worker and the
+    ``/cache-version`` contract, not this Redis reset hook.
     """
     token = settings.admin_token
     if not token:
@@ -88,6 +104,45 @@ async def reset_cache(request: Request, cache: Cache = Depends(get_cache), setti
         raise HTTPException(status_code=403, detail={"error": "Forbidden"})
     await cache.reset()
     return {"reset": True}
+
+
+@router.get("/cache-version", response_model=CacheVersionResponse)
+async def cache_version(response: Response, db: Database = Depends(get_db)):
+    """Compact data versions for the Cloudflare API cache Worker.
+
+    Versions are derived from Postgres, the source of truth, so public edge
+    cache invalidation does not depend on in-cluster Redis state.
+    """
+    response.headers["Cache-Control"] = "no-store"
+
+    core = await db.fetchrow(
+        """
+        SELECT
+            MAX(update_date) AS bills_version,
+            MAX(latest_action_date) AS bill_actions_version
+        FROM bills
+        """
+    )
+    votes = await db.fetchrow("SELECT MAX(votedate) AS votes_version FROM votes")
+    semantic = await _safe_fetchrow(
+        db,
+        "SELECT MAX(created_at) AS semantic_version FROM nlp.bill_chunks",
+    )
+
+    bills_version = _max_version(
+        core["bills_version"] if core else None,
+        core["bill_actions_version"] if core else None,
+    )
+    votes_version = votes["votes_version"] if votes else None
+    explore_version = _max_version(bills_version, votes_version)
+
+    return {
+        "now": datetime.now(UTC).isoformat(),
+        "bills_version": bills_version,
+        "votes_version": votes_version,
+        "explore_version": explore_version,
+        "semantic_version": semantic["semantic_version"] if semantic else None,
+    }
 
 
 @router.get("/freshness", response_model=FreshnessResponse)
@@ -147,4 +202,3 @@ async def freshness(response: Response, db: Database = Depends(get_db)):
         "last_nlp_run_status": last_run["status"] if last_run else None,
         "last_nlp_run_upserted_chunks": last_run["upserted_chunk_count"] if last_run else None,
     }
-

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 
-from ..cache import Cache
 from ..constants import CHAMBER_ABBREV, MIN_FUZZY_QUERY_LENGTH
 from ..db import Database
-from ..deps import get_cache, get_db
+from ..deps import get_db
 from ..models import VoteDetail, VoteSummary
 
 VOTE_FUZZY_SEARCH_EXPR = (
@@ -121,7 +120,7 @@ async def vote_detail(voteid: str, db: Database = Depends(get_db)):
 
 
 @router.get("/votes/{chamber}", response_model=list[VoteSummary])
-async def latest_votes(request: Request, response: Response, chamber: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db), cache: Cache = Depends(get_cache)):
+async def latest_votes(response: Response, chamber: str, limit: int | None = None, offset: int | None = None, db: Database = Depends(get_db)):
     """Return the most recent votes for the given chamber (default 60)."""
     normalized = _normalize_chamber(chamber)
     if not normalized:
@@ -132,13 +131,7 @@ async def latest_votes(request: Request, response: Response, chamber: str, limit
     resolved_limit = LATEST_VOTES_LIMIT if limit is None else max(1, min(limit, LATEST_VOTES_LIMIT))
     resolved_offset = max(0, offset or 0)
 
-    cache_key = f"latest_votes_v2_{chamber}_{resolved_limit}_{resolved_offset}"
-    cached = await cache.get(cache_key)
-    if cached is not None:
-        request.state.cache_header = "HIT"
-        return cached
-
-    rows = await db.read_fetch(
+    return await db.read_fetch(
         f"""
         SELECT
             v.congress::text AS congress,
@@ -166,6 +159,3 @@ async def latest_votes(request: Request, response: Response, chamber: str, limit
         """,
         normalized,
     )
-    await cache.set(cache_key, rows)
-    request.state.cache_header = "MISS"
-    return rows

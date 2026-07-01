@@ -14,7 +14,7 @@ profiles, vote breakdowns, and AI-generated plain-English bill explanations.
 - **Explore** the data through parameterized, ready-made analytical queries.
 - **AI Explain** — one click generates a plain-English summary of any bill (what it does, who sponsors it, where it stands), powered by Cloudflare Workers AI and cached at the edge.
 - **Agent-ready** — a public [MCP](https://modelcontextprotocol.io) server at `api.csearch.org/mcp` exposes the corpus as tools for LLM agents (Claude Desktop, Claude Code, or any MCP client).
-- **Fresh** — a nightly pipeline keeps bills and votes up to date; hot routes are cached in Redis.
+- **Fresh** — a nightly pipeline keeps bills and votes up to date; public GETs are cached at the Cloudflare edge with Postgres-derived data versions.
 
 ## Connect an AI agent (MCP)
 
@@ -67,10 +67,10 @@ flowchart LR
 
 - **Scraper** — Kubernetes CronJob that fetches bill and vote data from GovInfo and congress.gov, parses XML/JSON, and upserts normalized rows into Postgres. Bills from the 93rd Congress; votes from the 101st. Skips unchanged files using SHA-256 hashes.
 - **Database** — PostgreSQL is the system of record. Hosts the `public` schema (bills, votes, members, committees) and the `nlp` schema (bill chunks and pgvector embeddings).
-- **API** — FastAPI service (Python/uvicorn) serving bills, votes, search, member profiles, committee pages, parameterized explore queries, and semantic search. Hot routes cached in Redis.
+- **API** — FastAPI service (Python/uvicorn) serving bills, votes, search, member profiles, committee pages, parameterized explore queries, semantic search, and data-version probes for edge cache freshness. Redis remains available for internal app caching, rate limiting, and embedding cache use.
 - **NLP / Semantic Search** — Nightly pipeline (freya cluster) fetches bill text, chunks it, generates embeddings via OpenAI `text-embedding-3-small`, and upserts into `nlp.bill_embeddings`. Queries use the pgvector HNSW index for cosine similarity.
 - **AI Summary Worker** — Cloudflare Worker that turns a bill into a plain-English explanation on demand. It pulls the bill from the API, prompts a Llama 3.3 model via the Workers AI binding, and caches each result in Workers KV for 7 days, so repeat views are instant and cost no inference.
-- **API Cache Worker** — Cloudflare Worker (`workers/api-cache/`, live at `api-cache.csearch.org`) that proxies the public API with a KV-backed stale-while-revalidate cache (5-min fresh / 24-h SWR). Production `NUXT_API_SERVER` points at it, so the site serves GET data from the edge and survives brief origin outages via stale-fallback. POST `/search/semantic` passes through uncached.
+- **API Cache Worker** — Cloudflare Worker (`workers/api-cache/`, live at `api-cache.csearch.org`) that proxies the public API with a KV-backed stale-while-revalidate cache keyed by API path plus the origin `/cache-version` contract. Production `NUXT_API_SERVER` points at it, so the site serves GET data from the edge and moves to fresh KV keys after scraper-visible data changes. POST `/search/semantic` passes through uncached.
 - **MCP Server** — FastMCP server (`backend/mcp/`) that wraps the public API and exposes legislation as tools for LLM agents over stdio or streamable HTTP. A thin client over the HTTP API, so it inherits the API's caching and rate limiting.
 - **Frontend** — Nuxt 4 static site deployed to Cloudflare Pages. Also runs as an nginx container on the freya cluster for internal use.
 
@@ -102,11 +102,11 @@ npx wrangler dev          # local; deploy with `npm run deploy`
 
 | Path | Description |
 | --- | --- |
-| `backend/scraper/` | Rust ingest pipeline with vendored Python scraper. Owns schema bootstrap, parsing, hash-based skip logic, and Redis cache invalidation. |
-| `backend/api/` | FastAPI service (Python/uvicorn). asyncpg queries, Redis route caching, structured JSON logging. |
+| `backend/scraper/` | Rust ingest pipeline with vendored Python scraper. Owns schema bootstrap, parsing, hash-based skip logic, and Redis cache invalidation for in-cluster API caches. |
+| `backend/api/` | FastAPI service (Python/uvicorn). asyncpg queries, data-version probes, Redis helpers, structured JSON logging. |
 | `backend/nlp/` | Git submodule (`github.com/s4njee/csearch-nlp`). pgvector embedding pipeline and NLP implementation notes. |
 | `backend/ai-summary/` | Cloudflare Worker for AI bill summaries. Workers AI inference + KV caching. Deployed with Wrangler. |
-| `workers/api-cache/` | Cloudflare Worker: KV-backed SWR cache in front of the public API (`api-cache.csearch.org`). Deployed with Wrangler. |
+| `workers/api-cache/` | Cloudflare Worker: version-aware KV-backed SWR cache in front of the public API (`api-cache.csearch.org`). Deployed with Wrangler. |
 | `backend/mcp/` | FastMCP server (`csearch-mcp`) wrapping the public API as MCP tools for LLM agents. stdio or streamable HTTP. |
 | `frontend/` | Nuxt 4 app. Deploys to Cloudflare Pages (csearch.org) and as an nginx container for cluster environments. |
 | `argo/` | Argo CD `Application` manifests — the deployment entry point. |
