@@ -54,6 +54,93 @@ CREATE TABLE IF NOT EXISTS committees (
 CREATE INDEX IF NOT EXISTS committees_chamber_idx
     ON committees (chamber);
 
+CREATE INDEX IF NOT EXISTS bills_update_date_idx
+    ON bills (update_date DESC NULLS LAST);
+
+CREATE SCHEMA IF NOT EXISTS ops;
+
+CREATE TABLE IF NOT EXISTS ops.data_versions (
+    domain       text PRIMARY KEY,
+    version      text,
+    refreshed_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE OR REPLACE FUNCTION ops.refresh_data_versions()
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    bill_updates_v text;
+    bill_actions_v text;
+    bills_v text;
+    votes_v text;
+    semantic_v text;
+    explore_v text;
+    general_v text;
+BEGIN
+    SELECT update_date::text
+      INTO bill_updates_v
+      FROM public.bills
+     WHERE update_date IS NOT NULL
+     ORDER BY update_date DESC NULLS LAST
+     LIMIT 1;
+
+    SELECT latest_action_date::text
+      INTO bill_actions_v
+      FROM public.bills
+     WHERE latest_action_date IS NOT NULL
+     ORDER BY latest_action_date DESC NULLS LAST
+     LIMIT 1;
+
+    SELECT max(v)
+      INTO bills_v
+      FROM (VALUES (bill_updates_v), (bill_actions_v)) AS versions(v)
+     WHERE v IS NOT NULL;
+
+    SELECT votedate::text
+      INTO votes_v
+      FROM public.votes
+     WHERE votedate IS NOT NULL
+     ORDER BY votedate DESC NULLS LAST
+     LIMIT 1;
+
+    IF to_regclass('nlp.bill_chunks') IS NOT NULL THEN
+        EXECUTE
+            'SELECT created_at::text FROM nlp.bill_chunks
+              WHERE created_at IS NOT NULL
+              ORDER BY created_at DESC NULLS LAST
+              LIMIT 1'
+            INTO semantic_v;
+    END IF;
+
+    SELECT max(v)
+      INTO explore_v
+      FROM (VALUES (bills_v), (votes_v)) AS versions(v)
+     WHERE v IS NOT NULL;
+
+    SELECT max(v)
+      INTO general_v
+      FROM (VALUES (bills_v), (votes_v), (explore_v), (semantic_v)) AS versions(v)
+     WHERE v IS NOT NULL;
+
+    INSERT INTO ops.data_versions (domain, version, refreshed_at)
+    SELECT domain, version, now()
+      FROM (VALUES
+          ('bill_updates', bill_updates_v),
+          ('bill_actions', bill_actions_v),
+          ('bills', bills_v),
+          ('votes', votes_v),
+          ('semantic', semantic_v),
+          ('explore', explore_v),
+          ('general', general_v)
+      ) AS computed(domain, version)
+     WHERE version IS NOT NULL
+    ON CONFLICT (domain) DO UPDATE SET
+        version = excluded.version,
+        refreshed_at = excluded.refreshed_at;
+END;
+$$;
+
 DO $$
 BEGIN
     IF EXISTS (
@@ -170,6 +257,18 @@ pub async fn record_scraper_run(
     .execute(pool)
     .await
     .context("record scraper run")?;
+    Ok(())
+}
+
+/// Refreshes compact data-version rows used by the API cache Worker.
+///
+/// Best-effort: older databases may not have the ops schema/function yet, and
+/// freshness must never make the ingest itself fail.
+pub async fn refresh_data_versions(pool: &PgPool) -> Result<()> {
+    sqlx::query("SELECT ops.refresh_data_versions()")
+        .execute(pool)
+        .await
+        .context("refresh data versions")?;
     Ok(())
 }
 

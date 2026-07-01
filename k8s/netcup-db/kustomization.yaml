@@ -19,17 +19,16 @@ resources:
   - postgres-service.yaml
   - postgres-statefulset.yaml
   - postgres-zip-districts-migration-job.yaml
+  - postgres-b2-backup-cronjob.yaml
 
 configMapGenerator:
   - name: postgres-schema
     files:
       - 001-schema.sql
       - 003-zip-districts.sql
+  - name: postgres-backup-scripts
+    files:
+      - scripts/prune-b2-backups.sh
 
 generatorOptions:
   disableNameSuffixHash: true
-
-images:
-  - name: registry.s8njee.com/csearch-postgres
-    newName: registry.s8njee.com/csearch-postgres
-    newTag: latest

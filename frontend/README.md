@@ -200,8 +200,10 @@ Check `nuxt.config.ts`. Static generation only includes routes that are crawled 
 
 ### Frontend data looks stale after a scraper run
 
-The footer reads live data freshness from the API `/freshness` endpoint. The
-static `meta.json` file is only a deploy artifact.
+The footer reads live data freshness from the API `/freshness` endpoint. That
+endpoint defaults to a lightweight freshness summary; use `/freshness?detail=true`
+for exact corpus counts and NLP diagnostics. The static `meta.json` file is only
+a deploy artifact.
 
 Check:
 

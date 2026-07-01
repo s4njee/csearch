@@ -28,8 +28,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          image: registry.s8njee.com/csearch-postgres:latest
-          imagePullPolicy: Always
+          image: pgvector/pgvector:pg18
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true

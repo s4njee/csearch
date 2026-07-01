@@ -13,7 +13,7 @@ resources:
 images:
   - name: registry.s8njee.com/csearch-fastapi
     newName: registry.s8njee.com/csearch-fastapi
-    newTag: latest
+    newTag: 8e74e595076d940bd3f897a03ae2f4a11d2a13e8
   - name: registry.s8njee.com/csearch-mcp
     newName: registry.s8njee.com/csearch-mcp
-    newTag: latest
+    digest: sha256:236026450ba19949009d68807c0be975be1018e4d9c3bdb473946ab9acc9d30e

@@ -27,7 +27,7 @@ spec:
       containers:
         - name: frontend
           image: registry.s8njee.com/csearch-frontend@sha256:02289d44b5667d9038d64e3a92d02bf4868694f5c5cfb762480bb6fb4498dd2e
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           env:
             - name: NUXT_API_SERVER
               value: https://api.csearch.org

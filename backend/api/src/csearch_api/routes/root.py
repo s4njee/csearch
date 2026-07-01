@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from ..cache import Cache
 from ..db import Database
@@ -16,15 +16,15 @@ logger = logging.getLogger("csearch-api")
 router = APIRouter()
 
 
-async def _safe_fetchrow(db: Database, query: str):
+async def _safe_read_fetchrow(db: Database, query: str):
     """Run an optional diagnostic query, returning None if it fails.
 
-    The semantic/ingest tables live in the ``nlp`` schema, which may be absent
-    in a bills-only or local database. Freshness must still answer for the
-    core data, so missing-schema errors degrade to nulls rather than 500s.
+    The semantic/ops tables may be absent in local or partially migrated
+    databases. Freshness must still answer for core data, so missing-schema
+    errors degrade to nulls rather than 500s.
     """
     try:
-        return await db.fetchrow(query)
+        return await db.read_fetchrow(query)
     except Exception as e:
         logger.warning("freshness probe failed: %s", e)
         return None
@@ -44,6 +44,88 @@ def _version_sort_key(value) -> str:
     if isinstance(value, date):
         return value.isoformat()
     return str(value)
+
+
+def _has_any_version(row: dict | None) -> bool:
+    return bool(row and any(value is not None for value in row.values()))
+
+
+async def _ops_versions(db: Database) -> dict | None:
+    row = await _safe_read_fetchrow(
+        db,
+        """
+        SELECT
+            MAX(version) FILTER (WHERE domain = 'bill_updates') AS bill_updates_version,
+            MAX(version) FILTER (WHERE domain = 'bill_actions') AS bill_actions_version,
+            MAX(version) FILTER (WHERE domain = 'bills') AS bills_version,
+            MAX(version) FILTER (WHERE domain = 'votes') AS votes_version,
+            MAX(version) FILTER (WHERE domain = 'explore') AS explore_version,
+            MAX(version) FILTER (WHERE domain = 'semantic') AS semantic_version
+        FROM ops.data_versions
+        WHERE domain IN ('bill_updates', 'bill_actions', 'bills', 'votes', 'explore', 'semantic')
+        """,
+    )
+    return row if _has_any_version(row) else None
+
+
+async def _indexed_versions(db: Database, include_semantic: bool = True) -> dict:
+    core = await db.read_fetchrow(
+        """
+        SELECT
+            (
+                SELECT update_date
+                FROM bills
+                WHERE update_date IS NOT NULL
+                ORDER BY update_date DESC NULLS LAST
+                LIMIT 1
+            ) AS bill_updates_version,
+            (
+                SELECT latest_action_date
+                FROM bills
+                WHERE latest_action_date IS NOT NULL
+                ORDER BY latest_action_date DESC NULLS LAST
+                LIMIT 1
+            ) AS bill_actions_version,
+            (
+                SELECT votedate
+                FROM votes
+                WHERE votedate IS NOT NULL
+                ORDER BY votedate DESC NULLS LAST
+                LIMIT 1
+            ) AS votes_version
+        """
+    )
+    semantic = None
+    if include_semantic:
+        semantic = await _safe_read_fetchrow(
+            db,
+            """
+            SELECT created_at AS semantic_version
+            FROM nlp.bill_chunks
+            WHERE created_at IS NOT NULL
+            ORDER BY created_at DESC NULLS LAST
+            LIMIT 1
+            """,
+        )
+
+    bill_updates_version = core["bill_updates_version"] if core else None
+    bill_actions_version = core["bill_actions_version"] if core else None
+    bills_version = _max_version(bill_updates_version, bill_actions_version)
+    votes_version = core["votes_version"] if core else None
+    semantic_version = semantic["semantic_version"] if semantic else None
+
+    return {
+        "bill_updates_version": bill_updates_version,
+        "bill_actions_version": bill_actions_version,
+        "bills_version": bills_version,
+        "votes_version": votes_version,
+        "explore_version": _max_version(bills_version, votes_version),
+        "semantic_version": semantic_version,
+    }
+
+
+async def _cache_versions(db: Database, include_semantic: bool = True) -> dict:
+    return await _ops_versions(db) or await _indexed_versions(db, include_semantic=include_semantic)
 
 
 @router.get("/", response_model=RootResponse)
@@ -114,69 +196,62 @@ async def cache_version(response: Response, db: Database = Depends(get_db)):
     cache invalidation does not depend on in-cluster Redis state.
     """
     response.headers["Cache-Control"] = "no-store"
-
-    core = await db.fetchrow(
-        """
-        SELECT
-            MAX(update_date) AS bills_version,
-            MAX(latest_action_date) AS bill_actions_version
-        FROM bills
-        """
-    )
-    votes = await db.fetchrow("SELECT MAX(votedate) AS votes_version FROM votes")
-    semantic = await _safe_fetchrow(
-        db,
-        "SELECT MAX(created_at) AS semantic_version FROM nlp.bill_chunks",
-    )
-
-    bills_version = _max_version(
-        core["bills_version"] if core else None,
-        core["bill_actions_version"] if core else None,
-    )
-    votes_version = votes["votes_version"] if votes else None
-    explore_version = _max_version(bills_version, votes_version)
+    versions = await _cache_versions(db)
 
     return {
         "now": datetime.now(UTC).isoformat(),
-        "bills_version": bills_version,
-        "votes_version": votes_version,
-        "explore_version": explore_version,
-        "semantic_version": semantic["semantic_version"] if semantic else None,
+        "bills_version": versions["bills_version"],
+        "votes_version": versions["votes_version"],
+        "explore_version": versions["explore_version"],
+        "semantic_version": versions["semantic_version"],
     }
 
 
 @router.get("/freshness", response_model=FreshnessResponse)
-async def freshness(response: Response, db: Database = Depends(get_db)):
-    """Drift signals for monitoring scrape → user pipeline. Always uncached."""
+async def freshness(
+    response: Response,
+    detail: bool = Query(False, description="Include expensive exact corpus counts."),
+    db: Database = Depends(get_db),
+):
+    """Drift signals for monitoring scrape → user pipeline. Always uncached.
+
+    The default response is intentionally cheap for page chrome. Use
+    ``?detail=true`` for exact counts and NLP pipeline diagnostics.
+    """
     response.headers["Cache-Control"] = "no-store"
 
-    bills = await db.fetchrow(
+    versions = await _cache_versions(db, include_semantic=detail)
+
+    if not detail:
+        return {
+            "now": datetime.now(UTC).isoformat(),
+            "last_bill_action_at": versions["bill_actions_version"],
+            "last_bill_update_at": versions["bill_updates_version"] or versions["bills_version"],
+            "last_vote_at": versions["votes_version"],
+        }
+
+    bills = await db.read_fetchrow(
         """
         SELECT
-            MAX(latest_action_date) AS last_bill_action_at,
-            MAX(update_date) AS last_bill_update_at,
             COUNT(*) FILTER (WHERE update_date >= now() - interval '24 hours') AS bills_updated_24h,
             COUNT(*) AS bills_total
         FROM bills
         """
     )
-    votes = await db.fetchrow(
-        "SELECT MAX(votedate) AS last_vote_at, COUNT(*) AS votes_total FROM votes"
-    )
+    votes = await db.read_fetchrow("SELECT COUNT(*) AS votes_total FROM votes")
 
     # Semantic/vector coverage. Optional: null when the nlp schema is absent.
-    chunks = await _safe_fetchrow(
+    chunks = await _safe_read_fetchrow(
         db,
         """
         SELECT
-            MAX(created_at) AS last_semantic_chunk_at,
             COUNT(*) AS semantic_chunks_total,
             COUNT(DISTINCT bill_id) AS semantic_bills_total
         FROM nlp.bill_chunks
         """,
     )
     # Last pipeline run from the ingest audit table (see migration 0004).
-    last_run = await _safe_fetchrow(
+    last_run = await _safe_read_fetchrow(
         db,
         """
         SELECT started_at, finished_at, status, upserted_chunk_count
@@ -188,13 +263,13 @@ async def freshness(response: Response, db: Database = Depends(get_db)):
 
     return {
         "now": datetime.now(UTC).isoformat(),
-        "last_bill_action_at": bills["last_bill_action_at"],
-        "last_bill_update_at": bills["last_bill_update_at"],
-        "last_vote_at": votes["last_vote_at"],
+        "last_bill_action_at": versions["bill_actions_version"],
+        "last_bill_update_at": versions["bill_updates_version"] or versions["bills_version"],
+        "last_vote_at": versions["votes_version"],
         "bills_updated_24h": bills["bills_updated_24h"],
         "bills_total": bills["bills_total"],
         "votes_total": votes["votes_total"],
-        "last_semantic_chunk_at": chunks["last_semantic_chunk_at"] if chunks else None,
+        "last_semantic_chunk_at": versions["semantic_version"],
         "semantic_chunks_total": chunks["semantic_chunks_total"] if chunks else None,
         "semantic_bills_total": chunks["semantic_bills_total"] if chunks else None,
         "last_nlp_run_started_at": last_run["started_at"] if last_run else None,

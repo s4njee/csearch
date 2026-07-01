@@ -19,8 +19,3 @@ configMapGenerator:
 
 generatorOptions:
   disableNameSuffixHash: true
-
-images:
-  - name: registry.s8njee.com/csearch-postgres
-    newName: registry.s8njee.com/csearch-postgres
-    newTag: latest

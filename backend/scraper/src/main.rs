@@ -238,6 +238,13 @@ async fn run() -> anyhow::Result<()> {
         warn!(error = %err, "unable to record scraper run summary");
     }
 
+    // Refresh the compact data-version table that the public API exposes to
+    // Cloudflare Workers for versioned edge-cache keys. Best-effort: the table
+    // can be absent on older databases and should not fail an ingest run.
+    if let Err(err) = db::refresh_data_versions(&pool).await {
+        warn!(error = %err, "unable to refresh data versions");
+    }
+
     // Log final statistics. `started_at.elapsed()` returns the wall-clock
     // time since `Instant::now()` was called at the start.
     info!(

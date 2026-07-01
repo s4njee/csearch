@@ -27,10 +27,10 @@ function newestDateish(...values: Array<string | null | undefined>) {
   return parsed[0]?.value ?? null
 }
 
-const { data: freshness } = await useAsyncData(
+const { data: freshness } = useAsyncData(
   'api-freshness',
   () => getFreshness(),
-  { server: false },
+  { server: false, lazy: true },
 )
 const updatedAt = computed(() => newestDateish(
   freshness.value?.last_bill_update_at,

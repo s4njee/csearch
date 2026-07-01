@@ -24,8 +24,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mcp
-          image: registry.s8njee.com/csearch-mcp:latest
-          imagePullPolicy: Always
+          image: registry.s8njee.com/csearch-mcp@sha256:236026450ba19949009d68807c0be975be1018e4d9c3bdb473946ab9acc9d30e
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

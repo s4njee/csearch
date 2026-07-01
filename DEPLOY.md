@@ -37,17 +37,22 @@ How to build and deploy each component of CSearch end to end.
 
 **CI workflow:** `.github/workflows/build-images.yml`
 
-Triggers on push to `main` touching `backend/api/**`, `backend/scraper/**`, `frontend/**`, or the workflow file itself. Also supports `workflow_dispatch`.
+Triggers on push to `main` or `freya` touching `backend/api/**`,
+`backend/mcp/**`, `backend/scraper/**`, `backend/nlp/**`, `frontend/**`, or the
+workflow file itself. Also supports `workflow_dispatch`.
 
 | Image | Dockerfile | Used by |
 | --- | --- | --- |
-| `csearch-fastapi:latest` | `backend/api/Dockerfile` | netcup API, freya API |
-| `csearch-updater:latest` | `backend/scraper/Dockerfile` | netcup scraper, freya scraper |
-| `csearch-frontend:latest` | `frontend/Dockerfile.nginx` | freya nginx frontend |
+| `csearch-fastapi:<git-sha>` | `backend/api/Dockerfile` | netcup API, freya API |
+| `csearch-mcp:<git-sha>` | `backend/mcp/Dockerfile` | netcup MCP |
+| `csearch-updater:<git-sha>` | `backend/scraper/Dockerfile` | netcup scraper, freya scraper |
+| `csearch-frontend:<git-sha>` | `frontend/Dockerfile.nginx` | freya nginx frontend |
 | `csearch-upserter:latest` | `backend/nlp/project-tarp/Dockerfile.upserter` | base image for tarp-updater |
-| `csearch-tarp-updater:latest` | `backend/nlp/project-tarp/Dockerfile.nightly-updater` | netcup data-pipeline, freya data-pipeline |
+| `csearch-tarp-updater:<git-sha>` | `backend/nlp/project-tarp/Dockerfile.nightly-updater` | netcup data-pipeline, freya data-pipeline |
 
-CI tags each image with both `:latest` and `:<git-sha>`.
+CI tags deployable app images with both `:latest` and `:<git-sha>`. Netcup
+manifests deploy the SHA tags through `k8s/netcup-*/kustomization.yaml`; `:latest`
+is only a convenience tag for manual/dev use.
 
 ### Manual build
 
@@ -59,6 +64,10 @@ docker push registry.s8njee.com/csearch-fastapi:latest
 # Scraper — build context is also repo root
 docker build -f backend/scraper/Dockerfile -t registry.s8njee.com/csearch-updater:latest .
 docker push registry.s8njee.com/csearch-updater:latest
+
+# MCP
+docker build -f backend/mcp/Dockerfile -t registry.s8njee.com/csearch-mcp:latest backend/mcp
+docker push registry.s8njee.com/csearch-mcp:latest
 
 # Frontend nginx
 docker build -f frontend/Dockerfile.nginx -t registry.s8njee.com/csearch-frontend:latest frontend/
@@ -124,15 +133,32 @@ npx wrangler pages deploy .output/public --project-name csearch --branch main
 
 ---
 
-## API — netcup (production)
+## Netcup release and rollback
 
-FastAPI backend at `https://api.csearch.org`. ArgoCD app `csearch-netcup-core` watches `k8s/netcup-core` on `main`.
-
-Image updates require a Git commit — ArgoCD syncs on every push to `main`. To also force an immediate rollout after pushing a new `:latest`:
+Netcup deploys are auditable Git changes. The active image tags live in
+`k8s/netcup-core/kustomization.yaml` and `k8s/netcup-scraper/kustomization.yaml`.
+After CI has built the target commit, release it with:
 
 ```bash
-kubectl --context=netcup rollout restart deploy/csearch-api
+scripts/release.sh <git-sha>
+git push
 ```
+
+With no argument, `scripts/release.sh` uses `HEAD`. Rollback is a normal Git
+revert of the release commit:
+
+```bash
+git revert <release-commit>
+git push
+```
+
+ArgoCD syncs the manifest change; no rollout restart is needed.
+
+## API — netcup (production)
+
+FastAPI backend at `https://api.csearch.org`. ArgoCD app `csearch-netcup-core`
+watches `k8s/netcup-core` on `main`. Image updates are release commits created
+by `scripts/release.sh`.
 
 ### Rotate OPENAI_API_KEY
 
@@ -200,6 +226,10 @@ kubectl --context freya rollout restart deploy/csearch-api
 PostgreSQL StatefulSet managed by ArgoCD app `csearch-netcup-db` watching `k8s/netcup-db` on `main`.
 
 Schema is bootstrapped by the scraper on first run from `backend/scraper/schema.sql`. The `nlp` schema is bootstrapped separately by the NLP pipeline. ArgoCD does not manage migrations — apply them manually or via the scraper.
+
+Nightly logical backups run via `postgres-b2-backup` after the
+`postgres-b2-backup` Secret exists. See `docs/RESTORE.md` for secret creation,
+manual backup, and restore-test steps.
 
 ---
 

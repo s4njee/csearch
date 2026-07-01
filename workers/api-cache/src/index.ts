@@ -3,8 +3,9 @@
  *
  * Strategy:
  *   - GET requests are cached by domain + data version + path + sorted query string.
- *   - Data versions come from the origin /cache-version endpoint and are
- *     reused briefly to avoid checking Postgres on every edge request.
+ *   - Data versions come from the origin /cache-version endpoint. Fresh
+ *     versions are reused immediately; stale versions are used without
+ *     blocking the response while a background refresh updates the contract.
  *   - Fresh window (< 5 min): serve from KV, no origin call.
  *   - Stale window (5 min – 24 h): serve from KV, kick off background revalidate.
  *   - Beyond 24 h or KV miss: fetch synchronously, cache on success.
@@ -20,9 +21,11 @@ interface Env {
 const FRESH_SECONDS = 5 * 60;
 const STALE_SECONDS = 24 * 60 * 60;
 const VERSION_TTL_SECONDS = 60;
+const VERSION_STALE_SECONDS = 24 * 60 * 60;
 const VERSION_CACHE_KEY = "__csearch_cache_versions__";
 // KV expiry — keeps entries reachable for the full stale window plus a small grace.
 const KV_TTL_SECONDS = STALE_SECONDS + 60 * 60;
+const VERSION_KV_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 interface CachedEntry {
   status: number;
@@ -141,24 +144,32 @@ function cachedVersionsFresh(stored: StoredCacheVersions | null): stored is Stor
   return Boolean(stored && (Date.now() - stored.fetchedAt) / 1000 < VERSION_TTL_SECONDS);
 }
 
-async function fetchCacheVersions(env: Env): Promise<CacheVersions | null> {
-  if (cachedVersionsFresh(memoryVersions)) {
-    return memoryVersions.versions;
+function cachedVersionsUsable(stored: StoredCacheVersions | null): stored is StoredCacheVersions {
+  return Boolean(stored && (Date.now() - stored.fetchedAt) / 1000 < VERSION_STALE_SECONDS);
+}
+
+async function readStoredVersions(env: Env): Promise<StoredCacheVersions | null> {
+  if (cachedVersionsUsable(memoryVersions)) {
+    return memoryVersions;
   }
 
   const raw = await env.CACHE.get(VERSION_CACHE_KEY);
-  if (raw) {
-    try {
-      const stored = JSON.parse(raw) as StoredCacheVersions;
-      if (cachedVersionsFresh(stored)) {
-        memoryVersions = stored;
-        return stored.versions;
-      }
-    } catch {
-      // Corrupt entry — fall through to origin.
+  if (!raw) return null;
+
+  try {
+    const stored = JSON.parse(raw) as StoredCacheVersions;
+    if (cachedVersionsUsable(stored)) {
+      memoryVersions = stored;
+      return stored;
     }
+  } catch {
+    // Corrupt entry — fall through to origin.
   }
 
+  return null;
+}
+
+async function refreshCacheVersions(env: Env): Promise<CacheVersions | null> {
   try {
     const res = await fetch(originPath(env, "/cache-version"), {
       headers: { "Cache-Control": "no-store" },
@@ -167,12 +178,26 @@ async function fetchCacheVersions(env: Env): Promise<CacheVersions | null> {
     const versions = await res.json() as CacheVersions;
     const stored = { fetchedAt: Date.now(), versions };
     memoryVersions = stored;
-    await env.CACHE.put(VERSION_CACHE_KEY, JSON.stringify(stored), { expirationTtl: VERSION_TTL_SECONDS });
+    await env.CACHE.put(VERSION_CACHE_KEY, JSON.stringify(stored), { expirationTtl: VERSION_KV_TTL_SECONDS });
     return versions;
   } catch (err) {
     console.error("cache-version fetch error", { err: String(err) });
     return null;
   }
+}
+
+async function cacheVersions(env: Env, ctx: ExecutionContext): Promise<CacheVersions | null> {
+  const stored = await readStoredVersions(env);
+  if (stored) {
+    if (!cachedVersionsFresh(stored)) {
+      ctx.waitUntil(refreshCacheVersions(env));
+    }
+    return stored.versions;
+  }
+
+  // Cold start with no version contract anywhere: block once so the first fill
+  // uses the right versioned key. Future requests can use stale metadata.
+  return await refreshCacheVersions(env);
 }
 
 function shouldCache(res: Response): boolean {
@@ -223,7 +248,7 @@ export default {
     }
 
     const domain = cacheDomain(url);
-    const versions = await fetchCacheVersions(env);
+    const versions = await cacheVersions(env, ctx);
     const dataVersion = versionForDomain(versions, domain);
     const key = versionedCacheKey(cacheKey(url), domain, dataVersion);
     const raw = await env.CACHE.get(key);

@@ -23,8 +23,6 @@ spec:
             app.kubernetes.io/part-of: csearch
         spec:
           restartPolicy: OnFailure
-          nodeSelector:
-            kubernetes.io/hostname: freya
           imagePullSecrets:
             - name: registry-s8njee-pull
           securityContext:
@@ -58,7 +56,7 @@ spec:
                   until pg_isready -h "$POSTGRES_RW_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
                     sleep 2
                   done
-                  backup_file="/backup/csearch-freya-$(date -u +%Y%m%dT%H%M%SZ).dump"
+                  backup_file="/backup/csearch-netcup-$(date -u +%Y%m%dT%H%M%SZ).dump"
                   pg_dump \
                     --host="$POSTGRES_RW_HOST" \
                     --username="$POSTGRES_USER" \
@@ -115,7 +113,7 @@ spec:
                 - name: RESTIC_KEEP_WEEKLY
                   value: "8"
                 - name: RESTIC_CLUSTER_TAG
-                  value: freya
+                  value: netcup
                 - name: RESTIC_BACKUP_TAG
                   value: logical
               command:
@@ -123,10 +121,10 @@ spec:
                 - -c
                 - |
                   set -eu
-                  backup_path="$(find /backup -mindepth 1 -maxdepth 1 -type f -name 'csearch-freya-*.dump' | sort | tail -n 1)"
+                  backup_path="$(find /backup -mindepth 1 -maxdepth 1 -type f -name 'csearch-netcup-*.dump' | sort | tail -n 1)"
                   test -n "$backup_path"
                   restic snapshots >/dev/null 2>&1 || restic init
-                  restic backup "$backup_path" --tag postgres --tag freya --tag csearch --tag logical --host csearch-freya
+                  restic backup "$backup_path" --tag postgres --tag netcup --tag csearch --tag logical --host csearch-netcup
                   /scripts/prune-b2-backups.sh
               resources:
                 requests:

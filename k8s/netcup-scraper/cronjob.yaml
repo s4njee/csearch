@@ -36,8 +36,8 @@ spec:
               type: RuntimeDefault
           containers:
             - name: updater
-              image: registry.s8njee.com/csearch-updater:latest
-              imagePullPolicy: Always
+              image: registry.s8njee.com/csearch-updater:8e74e595076d940bd3f897a03ae2f4a11d2a13e8
+              imagePullPolicy: IfNotPresent
               # Plain entrypoint. (The Cloudflare Pages deploy-hook wrapper was
               # removed: the Pages project is direct-upload — deployed by
               # frontend-cloudflare-deploy.yml via `wrangler pages deploy` — so a

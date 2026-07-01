@@ -26,10 +26,12 @@ client → api-cache.csearch.org (Worker) → api.csearch.org (FastAPI)
 | `/freshness`, `/cache-version` | no | Pass-through operational probes. |
 | `Cache-Control: no-store` from origin | no | Pass-through.              |
 
-Before reading or writing a GET cache entry, the Worker fetches
-`/cache-version` from the origin and caches that compact version contract for
-60 seconds. New scraper-visible data versions therefore write to new KV keys;
-old entries expire naturally instead of requiring a full KV purge.
+Before reading or writing a GET cache entry, the Worker reads the compact
+`/cache-version` contract. Fresh version metadata is reused immediately; stale
+metadata remains usable for a day and is refreshed in the background, so a slow
+origin version probe does not block an otherwise cached response. New
+scraper-visible data versions therefore write to new KV keys; old entries expire
+naturally instead of requiring a full KV purge.
 
 Response headers:
 
@@ -104,7 +106,11 @@ Constants live in `src/index.ts`:
   on the API but more conservative; tighten if you ship late-breaking data).
 - `STALE_SECONDS` — outer SWR window (default 86 400 / 24 h).
 - `VERSION_TTL_SECONDS` — how long the Worker reuses the origin
-  `/cache-version` payload before checking for a newer data version.
+  `/cache-version` payload before refreshing for a newer data version.
+- `VERSION_STALE_SECONDS` — how long stale version metadata can still be used
+  while the Worker refreshes it in the background.
+- `VERSION_KV_TTL_SECONDS` — how long the Worker keeps version metadata in KV,
+  so expiry does not force a synchronous origin check every minute.
 - `KV_TTL_SECONDS` — KV row expiry, slightly longer than `STALE_SECONDS`.
 
 ## What this does and does not do

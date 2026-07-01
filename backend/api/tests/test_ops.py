@@ -60,11 +60,44 @@ def test_admin_cache_reset_requires_matching_token():
     assert ok.json() == {"reset": True}
 
 
-def test_cache_version_is_uncached_and_db_derived():
+def test_cache_version_is_uncached_and_uses_ops_versions():
     db = SequencedDB(
         fetchrow_results=[
-            {"bills_version": date(2026, 7, 1), "bill_actions_version": date(2026, 6, 29)},
-            {"votes_version": date(2026, 6, 30)},
+            {
+                "bill_updates_version": "2026-07-01",
+                "bill_actions_version": "2026-06-29",
+                "bills_version": "2026-07-01",
+                "votes_version": "2026-06-30",
+                "explore_version": "2026-07-01",
+                "semantic_version": "2026-07-01T12:30:00",
+            },
+        ]
+    )
+    app = create_app(db=db, cache=FakeCache())
+    client = TestClient(app)
+
+    response = client.get("/cache-version")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    body = response.json()
+    assert body["bills_version"] == "2026-07-01"
+    assert body["votes_version"] == "2026-06-30"
+    assert body["explore_version"] == "2026-07-01"
+    assert body["semantic_version"] == "2026-07-01T12:30:00"
+    assert len(db.calls) == 1
+    assert "ops.data_versions" in db.calls[0][1]
+
+
+def test_cache_version_falls_back_to_indexed_latest_rows():
+    db = SequencedDB(
+        fetchrow_results=[
+            None,
+            {
+                "bill_updates_version": date(2026, 7, 1),
+                "bill_actions_version": date(2026, 6, 29),
+                "votes_version": date(2026, 6, 30),
+            },
             {"semantic_version": datetime(2026, 7, 1, 12, 30, 0)},
         ]
     )
@@ -80,6 +113,9 @@ def test_cache_version_is_uncached_and_db_derived():
     assert body["votes_version"] == "2026-06-30"
     assert body["explore_version"] == "2026-07-01"
     assert body["semantic_version"] == "2026-07-01T12:30:00"
+    fallback_sql = db.calls[1][1]
+    assert "ORDER BY update_date DESC" in fallback_sql
+    assert "MAX(update_date)" not in fallback_sql
 
 
 def test_cache_version_tolerates_missing_semantic_schema():
@@ -91,8 +127,8 @@ def test_cache_version_tolerates_missing_semantic_schema():
 
     db = MissingSemanticDB(
         fetchrow_results=[
-            {"bills_version": date(2026, 7, 1), "bill_actions_version": None},
-            {"votes_version": date(2026, 6, 30)},
+            None,
+            {"bill_updates_version": date(2026, 7, 1), "bill_actions_version": None, "votes_version": date(2026, 6, 30)},
         ]
     )
     app = create_app(db=db, cache=FakeCache())
@@ -102,6 +138,63 @@ def test_cache_version_tolerates_missing_semantic_schema():
 
     assert response.status_code == 200
     assert response.json()["semantic_version"] is None
+
+
+def test_freshness_default_is_fast_summary():
+    db = SequencedDB(
+        fetchrow_results=[
+            {
+                "bill_updates_version": "2026-07-01",
+                "bill_actions_version": "2026-06-29",
+                "bills_version": "2026-07-01",
+                "votes_version": "2026-06-30",
+                "explore_version": "2026-07-01",
+                "semantic_version": None,
+            },
+        ]
+    )
+    client = build_client(db)
+
+    response = client.get("/freshness")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    body = response.json()
+    assert body["last_bill_update_at"] == "2026-07-01"
+    assert body["last_vote_at"] == "2026-06-30"
+    assert body["bills_total"] is None
+    assert len(db.calls) == 1
+    assert "ops.data_versions" in db.calls[0][1]
+
+
+def test_freshness_detail_includes_exact_counts():
+    db = SequencedDB(
+        fetchrow_results=[
+            None,
+            {
+                "bill_updates_version": date(2026, 7, 1),
+                "bill_actions_version": date(2026, 6, 29),
+                "votes_version": date(2026, 6, 30),
+            },
+            {"semantic_version": datetime(2026, 7, 1, 12, 30, 0)},
+            {"bills_updated_24h": 17, "bills_total": 60123},
+            {"votes_total": 1492},
+            {"semantic_chunks_total": 99, "semantic_bills_total": 22},
+            {"started_at": None, "finished_at": None, "status": None, "upserted_chunk_count": None},
+        ]
+    )
+    client = build_client(db)
+
+    response = client.get("/freshness?detail=true")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    body = response.json()
+    assert body["last_bill_update_at"] == "2026-07-01"
+    assert body["last_vote_at"] == "2026-06-30"
+    assert body["bills_updated_24h"] == 17
+    assert body["bills_total"] == 60123
+    assert body["votes_total"] == 1492
 
 
 def test_latest_bills_pagination_applies_limit_and_offset():

@@ -57,14 +57,14 @@ guessing. CI **already pushes `:<git-sha>` tags** (`build-images.yml`) — the
 manifests just don't use them. This is a small change that makes every deploy
 and rollback a git operation, which is *less* process for a solo dev, not more.
 
-- [ ] **Story 2.1 (S):** Set `images:` `newTag: <git-sha>` in the
+- [x] **Story 2.1 (S):** Set `images:` `newTag: <git-sha>` in the
       `k8s/netcup-*/kustomization.yaml` files instead of `:latest`; flip
       `imagePullPolicy` to `IfNotPresent`. Argo CD picks up the manifest change
       on push to `main` — no `rollout restart` needed anymore.
-- [ ] **Story 2.2 (S):** Add a tiny `scripts/release.sh` (or Make target):
+- [x] **Story 2.2 (S):** Add a tiny `scripts/release.sh` (or Make target):
       takes a SHA (default `HEAD` of the last green CI run), rewrites the
       `newTag` entries, commits. That's the whole deploy process.
-- [ ] **Story 2.3 (S):** Document rollback = `git revert` of a release commit,
+- [x] **Story 2.3 (S):** Document rollback = `git revert` of a release commit,
       in `DEPLOY.md`. Delete the now-stale "rollout restart" instructions.
 
 **Done when:** `git log` on `k8s/netcup-*/kustomization.yaml` is the deploy

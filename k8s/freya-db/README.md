@@ -2,11 +2,11 @@
 
 ## Backblaze B2 backups
 
-`postgres-b2-backup` runs weekly on Sunday at 07:17 UTC. It creates a native
-Postgres physical base backup with `pg_basebackup`, stores it in a temporary
-`emptyDir`, and uploads it to Backblaze B2 with restic. After each successful
-backup, it runs `scripts/prune-b2-backups.sh` to keep the latest 8 physical
-backup snapshots and delete older snapshots.
+`postgres-b2-backup` runs nightly at 07:17 UTC. It creates a custom-format
+logical Postgres dump with `pg_dump -Fc`, stores it in a temporary `emptyDir`,
+and uploads it to Backblaze B2 with restic. After each successful backup, it
+runs `scripts/prune-b2-backups.sh` to keep 14 daily snapshots plus 8 weekly
+snapshots and delete older snapshots.
 
 Create the backup Secret before enabling or manually starting the CronJob:
 
@@ -37,11 +37,14 @@ export RESTIC_REPOSITORY='b2:<bucket-name>:csearch/freya/postgres'
 export RESTIC_PASSWORD='<restic-repository-password>'
 export B2_ACCOUNT_ID='<backblaze-key-id>'
 export B2_ACCOUNT_KEY='<backblaze-application-key>'
-export RESTIC_KEEP_LAST=8
+export RESTIC_KEEP_LAST=14
+export RESTIC_KEEP_WEEKLY=8
+export RESTIC_CLUSTER_TAG=freya
+export RESTIC_BACKUP_TAG=logical
 
 sh k8s/freya-db/scripts/prune-b2-backups.sh
 ```
 
-To restore, recover the wanted `csearch-basebackup-*` directory with restic,
-stop Postgres, replace the data directory with the restored base backup
-contents, and start Postgres against that restored data directory.
+To restore, recover the wanted `csearch-freya-*.dump` file with restic and use
+`pg_restore` against a fresh database. See `docs/RESTORE.md` for the full
+runbook.
