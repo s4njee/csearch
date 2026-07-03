@@ -94,7 +94,7 @@ spec:
                   mountPath: /srv/csearch/congress/data
           containers:
             - name: nlp-updater
-              image: registry.s8njee.com/csearch-tarp-updater:8e74e595076d940bd3f897a03ae2f4a11d2a13e8
+              image: registry.s8njee.com/csearch-tarp-updater:0d76b1ae0
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/bash
