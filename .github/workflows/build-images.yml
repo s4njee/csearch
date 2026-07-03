@@ -12,6 +12,7 @@ on:
       - "backend/scraper/**"
       - "backend/nlp/**"
       - "frontend/**"
+      - "db/**"
   workflow_dispatch:
 
 env:
@@ -52,6 +53,34 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/csearch-fastapi:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/csearch-fastapi:latest
+
+  build-db-migrate:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push migrations image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: db/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.REGISTRY }}/csearch-db-migrate:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/csearch-db-migrate:latest
 
   build-mcp:
     needs: gate

@@ -133,11 +133,14 @@ Both jobs use `concurrencyPolicy: Forbid`.
 PostgreSQL is the system of record. The schema **source of truth** is the
 versioned migration sequence in `db/migrations/` (see [`db/README.md`](db/README.md));
 `python db/migrate.py` applies it to any environment, and CI applies it to a
-clean `pgvector` Postgres on every build. The active Kubernetes database
-manifests still mount `k8s/{netcup,freya}-db/001-schema.sql` to bootstrap a
-fresh cluster on first start; `scripts/check-schema-drift.sh` keeps those
-bootstrap copies byte-identical to migration `0001`, so there is one effective
-source of truth.
+clean `pgvector` Postgres on every build. On the clusters the same runner ships
+as the `csearch-db-migrate` image and runs as the `db-migrate` Job — one
+idempotent path for both bootstrap and ongoing migration, so there is no
+per-environment bootstrap SQL and no schema-drift check to keep in sync.
+
+freya mirrors netcup's **data** via Postgres **logical replication** (netcup
+publishes, freya subscribes) while keeping its own writable schema from the same
+migrations — see [`db/replication/`](db/replication/).
 
 ### Public Schema
 

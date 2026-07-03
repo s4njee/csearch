@@ -1,18 +1,19 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# Schema comes from the db-migrate Job (db/migrate.py) — identical migration
+# chain as netcup. freya carries no zip-districts seed: prod row data arrives
+# via logical replication from netcup. See db/README.md and db/replication/.
+# freya is applied by hand: `kubectl --context freya apply -k k8s/freya-db`.
+
 resources:
   - postgres-config.yaml
   - postgres-service.yaml
   - postgres-statefulset.yaml
-  - postgres-audit-history-migration-job.yaml
+  - db-migrate-job.yaml
   - postgres-b2-backup-cronjob.yaml
 
 configMapGenerator:
-  - name: postgres-schema
-    files:
-      - 001-schema.sql
-      - 002-audit-history.sql
   - name: postgres-backup-scripts
     files:
       - scripts/prune-b2-backups.sh

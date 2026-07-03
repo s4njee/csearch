@@ -1,31 +1,23 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# ── Database topology note (§7 docs/CRITICISMS2.md) ─────────────────────────
-#
-# ACTIVE topology: custom postgres-statefulset.yaml (referenced in resources).
-# (CloudNativePG was evaluated and dropped — not used in prod.)
-#
-# Schema divergence between environments (§7):
-#   netcup (this file) bootstraps: 001-schema.sql + 003-zip-districts.sql
-#   freya  bootstraps:             001-schema.sql + 002-audit-history.sql
-# Both environments should converge to the same schema by running
-# `python db/migrate.py` which applies all migrations 0000–current.
-# Prefer the migration runner over per-environment ConfigMap SQL going forward.
+# ── Schema mechanism ────────────────────────────────────────────────────────
+# One path for every environment: the db-migrate Job runs db/migrate.py, which
+# applies the db/migrations/ chain idempotently (bootstrap on an empty DB,
+# pending-only on a live one). No more per-environment bootstrap ConfigMaps and
+# no schema-drift check — see db/README.md. netcup additionally publishes its
+# rows to freya via logical replication (db/replication/).
 # ─────────────────────────────────────────────────────────────────────────────
 
 resources:
   - postgres-config.yaml
   - postgres-service.yaml
   - postgres-statefulset.yaml
-  - postgres-zip-districts-migration-job.yaml
+  - db-migrate-job.yaml
+  - zip-districts-seed-job.yaml
   - postgres-b2-backup-cronjob.yaml
 
 configMapGenerator:
-  - name: postgres-schema
-    files:
-      - 001-schema.sql
-      - 003-zip-districts.sql
   - name: postgres-backup-scripts
     files:
       - scripts/prune-b2-backups.sh

@@ -1,20 +1,23 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: postgres-zip-districts-migration
+  name: db-migrate
   labels:
-    app.kubernetes.io/name: postgres-zip-districts-migration
+    app.kubernetes.io/name: db-migrate
     app.kubernetes.io/component: migration
     app.kubernetes.io/part-of: csearch
   annotations:
-    argocd.argoproj.io/hook: PostSync
+    # Runs on every sync, after the StatefulSet is up. migrate.py is idempotent
+    # (applies pending migrations; no-op when current), so this is the single
+    # schema mechanism for bootstrap AND ongoing change — see db/README.md.
+    argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: 3
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: postgres-zip-districts-migration
+        app.kubernetes.io/name: db-migrate
         app.kubernetes.io/component: migration
         app.kubernetes.io/part-of: csearch
     spec:
@@ -28,8 +31,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          image: pgvector/pgvector:pg18
-          imagePullPolicy: IfNotPresent
+          image: registry.s8njee.com/csearch-db-migrate:latest
+          imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -48,16 +51,14 @@ spec:
             - -c
             - |
               set -eu
+              export PGHOST="$POSTGRES_RW_HOST"
+              export PGUSER="$POSTGRES_USER"
+              export PGDATABASE="$POSTGRES_DB"
               export PGPASSWORD="$POSTGRES_PASSWORD"
-              until pg_isready -h "$POSTGRES_RW_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
-                sleep 2
+              until pg_isready -h "$PGHOST" -U "$PGUSER" -d "$PGDATABASE"; do
+                echo "waiting for postgres..."; sleep 2
               done
-              psql \
-                -v ON_ERROR_STOP=1 \
-                -h "$POSTGRES_RW_HOST" \
-                -U "$POSTGRES_USER" \
-                -d "$POSTGRES_DB" \
-                -f /migrations/003-zip-districts.sql
+              python3 /db/migrate.py
           resources:
             requests:
               cpu: 50m
@@ -65,11 +66,3 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
-          volumeMounts:
-            - mountPath: /migrations
-              name: postgres-schema
-              readOnly: true
-      volumes:
-        - name: postgres-schema
-          configMap:
-            name: postgres-schema

@@ -1,5 +1,21 @@
 # Freya Postgres
 
+## Schema + data
+
+Schema comes from the `db-migrate` Job (`db/migrate.py` applying the
+`db/migrations/` chain) — the same mechanism as netcup, no bootstrap SQL. Apply
+by hand:
+
+```bash
+kubectl --context freya apply -k k8s/freya-db
+kubectl --context freya -n default delete job db-migrate --ignore-not-found
+kubectl --context freya apply -k k8s/freya-db   # re-runs db-migrate (idempotent)
+```
+
+freya carries **no data seed**. Prod row data (bills, votes, `zip_districts`, …)
+arrives via **logical replication** from netcup — see
+[`db/replication/`](../../db/replication/) for the one-time subscription setup.
+
 ## Backblaze B2 backups
 
 `postgres-b2-backup` runs nightly at 07:17 UTC. It creates a custom-format

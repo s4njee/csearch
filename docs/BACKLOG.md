@@ -84,33 +84,42 @@ by hand (`DEPLOY.md` admits ArgoCD doesn't manage it), has no
 The fix also **deletes complexity**: the migration runner becomes the only
 schema path, and the mounted bootstrap SQL + `check-schema-drift.sh` go away.
 
-- [ ] **Story 3.1 (M):** Make `db/migrate.py` the only schema mechanism in both
-      environments — run it as a Job/initContainer on Postgres start (it's
-      idempotent against an empty DB, so it covers bootstrap too). Ensure
-      zip-districts and audit-history exist as migrations in the `db/migrations/`
-      sequence so both environments converge to the *same* schema.
-- [ ] **Story 3.2 (S):** On freya, apply the migration chain once manually and
-      confirm `public.schema_migrations` matches netcup. From then on the Job
-      keeps them aligned.
-- [ ] **Story 3.3 (S):** Delete the mounted `001-schema.sql`/`002/003` bootstrap
-      ConfigMaps from `k8s/{netcup,freya}-db/`, delete
-      `scripts/check-schema-drift.sh`, and remove its CI step. Three copies of
-      schema truth become one.
-- [ ] **Story 3.4 (M):** Put freya back under GitOps. Cheapest path: register
-      freya as a **second cluster in the existing netcup Argo CD** (no second
-      Argo install) and point the `csearch-freya-*` Applications at it, watching
-      the `freya` branch as the app manifests already claim. If cluster-to-cluster
-      networking makes that painful, the fallback is a documented
-      `kubectl apply -k` script — but then update `DEPLOY.md` and
-      `ARCHITECTURE.md` to say so plainly, and delete the fictional Argo story.
-- [ ] **Story 3.5 (S):** Reconcile the upserter's Postgres assumptions with the
-      pod's actual resources: it configures `maintenance_work_mem` for an index
-      build the 3GB-limit pod can't honor
-      (`backend/nlp/project-tarp/upserter.py` vs
-      `k8s/*/postgres-statefulset.yaml`). Set it to what the pod really has.
+- [x] **Story 3.1 (M):** `db/migrate.py` is now the only schema mechanism in
+      both environments — it ships as the `csearch-db-migrate` image
+      (`db/Dockerfile`) and runs as the `db-migrate` Job in
+      `k8s/{netcup,freya}-db/`, idempotent so one path covers bootstrap +
+      migration. zip-districts (`0003`) and audit-history (`0004`) are already in
+      the `db/migrations/` chain, so both environments converge to the same
+      schema. Verified end-to-end against an ephemeral pg18 (10 migrations apply,
+      re-run is a no-op).
+- [ ] **Story 3.2 (S):** *(cluster-side, awaiting execution)* On freya, apply
+      `k8s/freya-db` (runs `db-migrate`) and confirm `public.schema_migrations`
+      matches netcup. Runbook in `k8s/freya-db/README.md`.
+- [x] **Story 3.3 (S):** Deleted the `001/002/003` bootstrap SQL + ConfigMap
+      mounts from `k8s/{netcup,freya}-db/`, deleted
+      `scripts/check-schema-drift.sh`, and removed its CI step (`ci.yml`) and
+      Makefile target. zip-districts data moved to `db/seed/zip_districts.sql`,
+      loaded by an idempotent `zip-districts-seed` Job (netcup only). Three
+      copies of schema truth became one.
+- [~] **Story 3.4 (M):** Chose the documented-manual fallback (cluster-to-cluster
+      Argo needs LAN↔VPS networking not set up). `DEPLOY.md` already states
+      freya is manual; `ARCHITECTURE.md`, `db/README.md`, and the engineering
+      guide now match. **The mirror mechanism is Postgres logical replication**
+      (`db/replication/`), not a second scraper run. *Remaining:* the stale
+      `argo/applications/csearch-freya-*.yaml` apps (point at
+      `kubernetes.default.svc`) should be deleted or repointed — flagged for a
+      decision since it touches what netcup's Argo syncs.
+- [x] **Story 3.5 (S):** `maintenance_work_mem` default 16GB → 1GB and the
+      monthly rebuild Job 10GB → 1GB (workers 6 → 1), sized to the 3Gi Postgres
+      pod that actually runs the `CREATE INDEX`
+      (`backend/nlp/project-tarp/upserter.py`,
+      `backend/nlp/k8s/nlp-upserter-final-job.yaml`).
 
 **Done when:** both environments run the identical migration sequence, freya
 deploys from git, and no doc describes a deploy path that doesn't exist.
+**Status:** schema mechanism unified + verified; docs reconciled; the remaining
+work is cluster-side execution (3.2, the replication one-time setup + prod
+`wal_level` restart) and the freya Argo-app cleanup decision (3.4).
 
 ---
 

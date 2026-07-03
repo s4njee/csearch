@@ -16,12 +16,11 @@ permissions:
 
 jobs:
   hygiene:
-    name: Repo hygiene + schema drift
+    name: Repo hygiene
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: bash scripts/check-repo-hygiene.sh
-      - run: bash scripts/check-schema-drift.sh
 
   api-tests:
     name: API tests

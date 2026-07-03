@@ -35,7 +35,8 @@ Use this ownership model to localize bugs quickly:
 | Concern | Source of truth |
 | --- | --- |
 | Database schema | `db/migrations/` (applied by `db/migrate.py`) |
-| Public-schema cluster bootstrap | `backend/scraper/schema.sql` ≡ `k8s/{netcup,freya}-db/001-schema.sql` (kept in sync with migration `0001` by `scripts/check-schema-drift.sh`) |
+| Cluster schema bootstrap + migration | the `db-migrate` Job (`csearch-db-migrate` image runs `db/migrate.py`) — one path, both clusters; no bootstrap-SQL copies, no drift check |
+| freya data mirror | logical replication from netcup (`db/replication/`) |
 | Scraper DB write logic | `backend/scraper/src/db.rs` |
 | Explore SQL | `backend/scraper/explore.sql` |
 | API cache implementation | `backend/api/src/csearch_api/cache.py` |

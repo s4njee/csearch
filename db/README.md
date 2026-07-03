@@ -25,6 +25,9 @@ db/
 | `0004_audit_history` | `audit.row_history`, first/last-seen tracking |
 | `0005_nlp_ingest_runs` | `nlp.ingest_runs` / `ingest_run_items` pipeline audit |
 | `0006_ops_job_runs` | `ops.scraper_runs` / `nlp_runs` / `frontend_deploys` |
+| `0007_embedding_model_index` | embedding-model column + supporting index |
+| `0008_bill_uid` | stable `bill_uid` identity |
+| `0009_ops_data_versions` | `ops.data_versions` cache-invalidation counters |
 
 ## Running
 
@@ -39,6 +42,21 @@ python db/migrate.py --dry-run    # list pending without applying
 The runner records each applied file in `public.schema_migrations` and never
 re-applies it. There are no down-migrations: roll forward only.
 
+### On the clusters
+
+`migrate.py` is also the **single schema mechanism in production**. The
+`db-migrate` Job (`k8s/{netcup,freya}-db/db-migrate-job.yaml`) runs this exact
+runner from the `csearch-db-migrate` image against the cluster Postgres. Because
+it is idempotent, one code path covers both **bootstrap** (empty DB → applies
+everything) and **ongoing migration** (applies only what's pending) — there is
+no initdb bootstrap SQL and no per-environment schema ConfigMap anymore.
+
+- **netcup:** Argo syncs the Job on every deploy; the `zip-districts-seed` Job
+  loads the ZCTA→district data (`db/seed/zip_districts.sql`) when empty.
+- **freya:** applied by hand — `kubectl --context freya apply -k k8s/freya-db`.
+  freya carries no seed: its prod row data (incl. `zip_districts`) arrives via
+  **logical replication** from netcup. See [`replication/`](replication/).
+
 ## Rules
 
 1. **Never** edit a migration that has been applied in any environment. Add a
@@ -49,13 +67,14 @@ re-applies it. There are no down-migrations: roll forward only.
 3. Every environment applies the **same** sequence. dev/prod parity comes from
    running the same files in the same order.
 
-## Relationship to the legacy bootstrap files
+## No more bootstrap copies
 
-`backend/scraper/schema.sql` and `k8s/{netcup,freya}-db/001-schema.sql` still
-bootstrap the live clusters on first container start. `0001` is kept
-**byte-identical** to them (below its header). `scripts/check-schema-drift.sh`
-fails CI if they diverge, so there is one effective source of truth even while
-the cluster bootstrap path is migrated over.
+The old per-environment bootstrap SQL (`k8s/{netcup,freya}-db/001-schema.sql`,
+the `002`/`003` add-ons) and the `check-schema-drift.sh` guard that kept them in
+sync are **gone**. The `db-migrate` Job applies `db/migrations/` directly on the
+clusters, so `0001` is now the sole source of the public schema — there is
+nothing left to drift from. (`backend/scraper/schema.sql` remains only as the
+Rust scraper's own local fixture and no longer bootstraps any cluster.)
 
 ## CI
 

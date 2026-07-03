@@ -5,7 +5,7 @@ POSTGRES_PASSWORD ?= change-me-local-postgres
 LOCAL_DSN ?= postgresql://postgres:$(POSTGRES_PASSWORD)@localhost:5433/csearch
 
 .PHONY: help dev down logs migrate seed test api-test rust-test frontend-build \
-        db-smoke eval hygiene schema-drift
+        db-smoke eval hygiene
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -43,9 +43,5 @@ db-smoke: ## Ephemeral Postgres: migrate + seed + pgvector smoke assertions
 eval: ## Run the retrieval eval against fixtures (no OpenAI key needed)
 	uv run backend/nlp/eval/run_eval.py --provider fake --only-fixtures --mode vector --dsn "$(LOCAL_DSN)"
 
-hygiene: ## Run repo hygiene + schema drift checks
+hygiene: ## Run repo hygiene checks
 	bash scripts/check-repo-hygiene.sh
-	bash scripts/check-schema-drift.sh
-
-schema-drift: ## Check schema bootstrap copies have not drifted
-	bash scripts/check-schema-drift.sh

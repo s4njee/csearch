@@ -26,8 +26,21 @@ spec:
           type: RuntimeDefault
       containers:
         - name: postgres
-          image: pgvector/pgvector:pg18
+          # Pinned to a digest so the Debian/glibc base can't drift (the mutable
+          # :pg18 tag slid 2.41→2.36 once and broke the collation version, forcing
+          # a full REINDEX). Repin deliberately, and REINDEX + REFRESH COLLATION
+          # VERSION if the new base changes glibc. See db/replication + memory.
+          image: pgvector/pgvector:pg18@sha256:212765b63c1462883de295c4c415edcd22191b8d8d46853e86ad05d4b577a4cb
           imagePullPolicy: IfNotPresent
+          # Publisher for logical replication to freya (db/replication/). These
+          # take effect on pod restart; changing them restarts prod Postgres.
+          args:
+            - -c
+            - wal_level=logical
+            - -c
+            - max_wal_senders=10
+            - -c
+            - max_replication_slots=10
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -81,18 +94,14 @@ spec:
               cpu: "2"
               memory: 3Gi
           volumeMounts:
+            # Schema is no longer bootstrapped via an initdb ConfigMap — the
+            # db-migrate Job (db/migrate.py) is the single schema mechanism for
+            # both bootstrap and ongoing migrations. See db/README.md.
             - mountPath: /var/lib/postgresql/data
               name: postgres-data
-            - mountPath: /docker-entrypoint-initdb.d/001-schema.sql
-              name: postgres-schema
-              subPath: 001-schema.sql
-              readOnly: true
             - mountPath: /dev/shm
               name: dshm
       volumes:
-        - name: postgres-schema
-          configMap:
-            name: postgres-schema
         - name: dshm
           emptyDir:
             medium: Memory
