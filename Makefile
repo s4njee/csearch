@@ -5,7 +5,7 @@ POSTGRES_PASSWORD ?= change-me-local-postgres
 LOCAL_DSN ?= postgresql://postgres:$(POSTGRES_PASSWORD)@localhost:5433/csearch
 
 .PHONY: help dev down logs migrate seed test api-test rust-test frontend-build \
-        db-smoke eval hygiene
+        db-smoke db-smoke-v2 eval hygiene
 
 help: ## List targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -39,6 +39,9 @@ frontend-build: ## Type-generate and build the frontend
 
 db-smoke: ## Ephemeral Postgres: migrate + seed + pgvector smoke assertions
 	bash scripts/db-smoke.sh
+
+db-smoke-v2: ## V2 corpus drill: stage -> atomic swap -> verify -> rollback
+	bash scripts/db-smoke-v2.sh
 
 eval: ## Run the retrieval eval against fixtures (no OpenAI key needed)
 	uv run backend/nlp/eval/run_eval.py --provider fake --only-fixtures --mode vector --dsn "$(LOCAL_DSN)"

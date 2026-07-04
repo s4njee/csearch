@@ -140,12 +140,21 @@ Fail-loud rules (hard exits, no warnings-and-continue):
   `verify_counts` passes, the manifest promotes, and nights go incremental.
 
 ### Phase 1 — v2 schema + migration chain
-- `db/migrations/0011_nlp_v2.sql`: `nlp.chunks`, `nlp.reconcile_runs`, compat
-  views, grants — additive, coexists with v1 tables (empty on netcup until
-  cutover; the green DB simply never populates v1 tables).
-- **Acceptance:** `make db-smoke` green on an empty pg18 with the full chain;
-  API test suite passes against the compat views (fixtures loaded into
-  `nlp.chunks`).
+- **DONE 2026-07-04 (branch `refactor`):** `0012_nlp_v2_stage.sql` ships the
+  v2 model **staged**: schema `nlp_stage` with the single `chunks` table
+  (`embedding NOT NULL`), compat views (`bill_chunks`, `bill_embeddings`, and
+  `ingest_runs` mapping the new persistent `ops.reconcile_runs` so
+  `/freshness` + smoke keep working post-swap), plus a fifth invariant
+  (`no_stuck_reconciles`). Design refinement over the original sketch: the
+  stage schema + `scripts/swap-nlp-stage.sql` / `rollback-nlp-swap.sql`
+  make bootstrap, v1→v2 cutover, and future model swaps **one identical
+  mechanism** (schema-rename is OID-based, views survive the rename), and run
+  history lives in `ops` so it persists across swaps.
+- **Acceptance met + exceeded:** full chain green via `make db-smoke`; and the
+  entire Phase-5 drill (transform fixtures → atomic swap → assert the whole
+  v1 read contract through the views: retrieval join, coverage anti-joins,
+  ingest_runs status, 5/5 invariants → rollback → v1 intact) now runs as
+  `scripts/db-smoke-v2.sh` on **every CI build** (pg16 + pg18 verified).
 
 ### Phase 2 — Stand up `csearch-v2` on freya (GitOps'd)
 - New dir `k8s/freya-v2/`: `namespace.yaml`, digest-pinned Postgres

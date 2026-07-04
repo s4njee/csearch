@@ -81,6 +81,11 @@ jobs:
             --mode vector --dsn "$PG_SMOKE_DSN"
           python backend/nlp/eval/run_eval.py --provider fake --only-fixtures \
             --mode hybrid --dsn "$PG_SMOKE_DSN"
+      - name: V2 corpus swap drill (stage -> swap -> verify -> rollback)
+        # Rehearses the blue/green cutover mechanism on every build so a
+        # schema/API change that breaks the swap path fails CI, not the
+        # production cutover. See docs/V2-REFACTOR-PLAN.md Phase 5.
+        run: bash scripts/db-smoke-v2.sh
 
   scraper:
     name: Scraper (Rust)
