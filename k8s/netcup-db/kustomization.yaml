@@ -16,6 +16,7 @@ resources:
   - db-migrate-job.yaml
   - zip-districts-seed-job.yaml
   - postgres-b2-backup-cronjob.yaml
+  - invariant-check-cronjob.yaml
 
 configMapGenerator:
   - name: postgres-backup-scripts

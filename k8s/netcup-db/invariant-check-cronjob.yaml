@@ -1,0 +1,98 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invariant-check
+  labels:
+    app.kubernetes.io/name: invariant-check
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: csearch
+spec:
+  # 13:00 UTC — after the nightly data pipeline (05:00 America/Chicago) has
+  # finished, so the check sees the post-run state.
+  schedule: "0 13 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0          # a red invariant must stay red, not retry-flap
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: invariant-check
+            app.kubernetes.io/component: monitoring
+            app.kubernetes.io/part-of: csearch
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+            - name: registry-s8njee-pull
+          securityContext:
+            fsGroup: 999
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: check
+              image: registry.s8njee.com/csearch-db-migrate:latest
+              imagePullPolicy: Always
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 999
+                runAsGroup: 999
+                capabilities:
+                  drop:
+                    - ALL
+              envFrom:
+                - configMapRef:
+                    name: postgres-config
+                - secretRef:
+                    name: postgres-auth
+              env:
+                # Optional dead-man's-switch ping (BACKLOG E4). Create with:
+                #   kubectl create secret generic invariant-check \
+                #     --from-literal=HEALTHCHECKS_URL='https://hc-ping.com/<uuid>'
+                # Absent secret = no ping, check still runs.
+                - name: HEALTHCHECKS_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invariant-check
+                      key: HEALTHCHECKS_URL
+                      optional: true
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  export PGHOST="$POSTGRES_RW_HOST"
+                  export PGUSER="$POSTGRES_USER"
+                  export PGDATABASE="$POSTGRES_DB"
+                  export PGPASSWORD="$POSTGRES_PASSWORD"
+                  until pg_isready -h "$PGHOST" -U "$PGUSER" -d "$PGDATABASE"; do
+                    echo "waiting for postgres..."; sleep 2
+                  done
+                  echo "=== ops.check_invariants() ==="
+                  psql -v ON_ERROR_STOP=1 -c "SELECT * FROM ops.check_invariants();"
+                  failures="$(psql -tA -v ON_ERROR_STOP=1 \
+                    -c "SELECT name || ': ' || detail FROM ops.check_invariants() WHERE NOT ok;")"
+                  ping() {
+                    # best-effort; never let the ping outcome mask the check's
+                    [ -n "${HEALTHCHECKS_URL:-}" ] || return 0
+                    python3 -c "import sys,urllib.request;urllib.request.urlopen(sys.argv[1],timeout=10)" "$1" \
+                      || echo "warning: healthchecks ping failed"
+                  }
+                  if [ -n "$failures" ]; then
+                    echo "INVARIANT FAILURES:"
+                    echo "$failures"
+                    ping "${HEALTHCHECKS_URL:-}/fail"
+                    exit 1
+                  fi
+                  echo "all invariants green"
+                  ping "${HEALTHCHECKS_URL:-}"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi

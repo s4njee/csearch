@@ -126,10 +126,18 @@ Fail-loud rules (hard exits, no warnings-and-continue):
 - `k8s/*/invariant-check-cronjob.yaml` (netcup + freya): daily, runs the
   `csearch-db-migrate` image → `psql -c "SELECT * FROM ops.check_invariants()"`,
   **exits non-zero on any red** + pings healthchecks.io (E4 dead-man's switch).
-- **Acceptance:** red on netcup today (orphans exist) — that's the point.
-  Clean the 107K orphans (`DELETE FROM nlp.bill_embeddings e WHERE NOT EXISTS
-  (SELECT 1 FROM nlp.bill_chunks c WHERE c.id = e.chunk_id)`), then green, and
-  v1's nightly run finally passes `verify_counts` and promotes its manifest.
+- **DONE 2026-07-04 (branch `refactor`):** `0010_ops_invariants.sql` +
+  `invariant-check` CronJobs shipped; on netcup the checks went red exactly as
+  predicted (129,119 orphans by then — today's failed run had stranded 21K
+  more, proving the accumulation live) and the stuck Jul-3 run was flagged.
+  Root cause found in the process: **netcup's live `bill_embeddings` predates
+  the migration chain and was missing 0002's `ON DELETE CASCADE` FK** — the
+  schema-as-defined made orphans impossible; the schema-as-deployed made them
+  inevitable. `0011_nlp_embeddings_fk.sql` (idempotent purge + FK install, the
+  structural fix pulled forward from Phase 1) applied to netcup in 37s.
+  **All four invariants now green on prod.** Expect one more full-reprocess
+  night (manifest still unpromoted from today's failed run), after which
+  `verify_counts` passes, the manifest promotes, and nights go incremental.
 
 ### Phase 1 — v2 schema + migration chain
 - `db/migrations/0011_nlp_v2.sql`: `nlp.chunks`, `nlp.reconcile_runs`, compat
