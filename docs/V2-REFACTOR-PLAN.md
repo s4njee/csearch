@@ -201,8 +201,15 @@ Fail-loud rules (hard exits, no warnings-and-continue):
     chunk_index)` assumption false on the real corpus (59,773 dupes from
     multi-version bills) — dropped in migration 0013; `source_hash` is the
     identity.
-  * Congress-119 seed netcup→freya-v2 streaming now (330,569 rows, verified
-    by row count + ordered source_hash md5 on both ends when it lands).
+  * **Seed VERIFIED 2026-07-04:** freya-v2 `nlp_stage.chunks` = 330,569 rows,
+    ordered-source_hash md5 `abdc6e0f…` — bit-for-bit equal to netcup's
+    congress-119, $0 embedding spend. ANN retrieval sane, 5/5 invariants
+    green. Took three designs (documented for the netcup runbook): a single
+    ~4GB COPY stream over two kubectl tunnels cannot survive this WAN
+    (died at 99.96%); batch-level retry still replays too much exposure;
+    the working shape is **server-side `COPY TO PROGRAM 'gzip …'` in the pod
+    → sha256-pinned, byte-offset-resumable download → LAN load**. The local
+    dump (`seed119.csv.gz`, 2.3GB) is reusable for future re-seeds.
   * **Remaining for Phase 3:** run the fetcher on freya-v2 (corpus volume +
     CronJob wiring), then the real-corpus reconcile — expect a small,
     explainable delta vs the seed, not zero, since GovInfo moves daily.
