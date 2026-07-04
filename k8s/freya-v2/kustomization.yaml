@@ -4,8 +4,8 @@ kind: Kustomization
 # csearch V2 green environment on freya (docs/V2-REFACTOR-PLAN.md Phase 2).
 # Isolated namespace: own digest-pinned Postgres, the db-migrate Job as the
 # only schema mechanism (applies 0000-0012 incl. the staged v2 corpus), the
-# invariant checker, Redis, and the API. The v2 reconciler CronJob arrives in
-# Phase 3 alongside its image. GitOps'd by freya's own ArgoCD
+# invariant checker, Redis, and the API. The v2 reconciler CronJob (pipeline-v2,
+# suspended) fetches bill text then runs the declarative reconciler. GitOps'd by freya's own ArgoCD
 # (argo/applications/csearch-freya-v2.yaml) — push to main deploys.
 #
 # One-time secrets (see docs/V2-REFACTOR-PLAN.md):
@@ -22,3 +22,4 @@ resources:
   - invariant-check-cronjob.yaml
   - redis.yaml
   - api.yaml
+  - pipeline-v2-cronjob.yaml

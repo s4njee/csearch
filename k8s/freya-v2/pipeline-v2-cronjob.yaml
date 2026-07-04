@@ -1,0 +1,112 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: csearch-pipeline-v2
+  labels:
+    app.kubernetes.io/name: csearch-pipeline-v2
+    app.kubernetes.io/component: data-pipeline
+    app.kubernetes.io/part-of: csearch
+spec:
+  # Suspended until the first supervised run (V2 plan Phase 3): the corpus
+  # under /home/sanjee/congress/data (BILLSTATUS from the Rust scraper +
+  # bill text under tarp/bills_<congress>) must be freshly fetched, and the
+  # first reconcile against the netcup-seeded stage should be watched — a
+  # small explainable delta is expected, a huge delete plan means a stale
+  # corpus (and the reconciler will refuse it on its own).
+  suspend: true
+  schedule: "30 5 * * *"
+  timeZone: America/Chicago
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0            # fail-loud: a failed reconcile must stay failed
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: csearch-pipeline-v2
+            app.kubernetes.io/component: data-pipeline
+            app.kubernetes.io/part-of: csearch
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: freya   # corpus hostPath lives on this node
+          imagePullSecrets:
+            - name: registry-s8njee-pull
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: reconcile
+              image: registry.s8njee.com/csearch-tarp-updater:latest
+              imagePullPolicy: Always
+              command:
+                - /bin/bash
+                - -ceu
+                - |
+                  export CONGRESS="${CONGRESS:-$(( ( $(date +%Y) - 1789 ) / 2 + 1 ))}"
+                  export PG_CONNECTION_STRING="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/${DB_NAME}"
+                  echo "--- fetch new bill text (same fetcher as v1) ---"
+                  python fetcher.py --data-root "$CONGRESS_DATA_ROOT" --congresses "$CONGRESS" --workers 16
+                  echo "--- declarative reconcile into the v2 corpus ---"
+                  python reconciler.py --congress "$CONGRESS" --corpus-root "$DATA_DIR"
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              env:
+                - name: CONGRESS_DATA_ROOT
+                  value: /congress-data
+                - name: DATA_DIR
+                  value: /app/data
+                - name: DB_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: postgres-config
+                      key: POSTGRES_RW_HOST
+                - name: DB_USER
+                  valueFrom:
+                    configMapKeyRef:
+                      name: postgres-config
+                      key: POSTGRES_USER
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-auth
+                      key: POSTGRES_PASSWORD
+                - name: DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: postgres-config
+                      key: POSTGRES_DB
+                - name: OPENAI_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: csearch-api-openai
+                      key: OPENAI_API_KEY
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 1Gi
+                limits:
+                  cpu: "2"
+                  memory: 6Gi
+              volumeMounts:
+                - name: congress-data
+                  mountPath: /congress-data
+                  readOnly: true
+                - name: tarp-data
+                  mountPath: /app/data
+          volumes:
+            # Shared read with the v1 pipeline: the scraped corpus is
+            # version-agnostic source data. v2 never writes v1's delta dirs.
+            - name: congress-data
+              hostPath:
+                path: /home/sanjee/congress/data
+                type: DirectoryOrCreate
+            - name: tarp-data
+              hostPath:
+                path: /home/sanjee/congress/data/tarp
+                type: DirectoryOrCreate
