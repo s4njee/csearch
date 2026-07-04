@@ -86,6 +86,11 @@ jobs:
         # schema/API change that breaks the swap path fails CI, not the
         # production cutover. See docs/V2-REFACTOR-PLAN.md Phase 5.
         run: bash scripts/db-smoke-v2.sh
+      - name: Reconciler drill (zero-plan, thresholds, crash recovery)
+        # Proves the declarative reconcile on every build: cold start, hash
+        # fidelity (zero plan), delete-threshold abort, embedding reuse, and
+        # kill-mid-run convergence. Own ephemeral DB; fake embeddings.
+        run: bash scripts/reconcile-drill.sh
 
   scraper:
     name: Scraper (Rust)

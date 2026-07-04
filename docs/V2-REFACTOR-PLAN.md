@@ -188,6 +188,24 @@ Fail-loud rules (hard exits, no warnings-and-continue):
   throughout.
 - **Acceptance:** all four paths behave; a kill -9 mid-run leaves invariants
   green and the next run self-heals (idempotence under crash).
+- **STATUS 2026-07-04 — reconciler DONE and drilled; seed in flight:**
+  * `reconciler.py` (csearch-nlp submodule) implements the full loop, reusing
+    v1's `chunk_source_hash` so seeded v1 rows match reconciler-computed
+    hashes bit-for-bit. Embeddings are **reused by hash** on bill replace —
+    only genuinely new chunks hit OpenAI.
+  * `scripts/reconcile-drill.sh` runs on every CI build: cold start → zero
+    plan → delete-threshold abort → apply-with-reuse → **kill mid-run →
+    invariants green → recovery run supersedes the abandoned audit row and
+    converges on just the unfinished bill** (per-bill txns proven).
+  * Reality check before seeding found the v2 `UNIQUE (bill_uid,
+    chunk_index)` assumption false on the real corpus (59,773 dupes from
+    multi-version bills) — dropped in migration 0013; `source_hash` is the
+    identity.
+  * Congress-119 seed netcup→freya-v2 streaming now (330,569 rows, verified
+    by row count + ordered source_hash md5 on both ends when it lands).
+  * **Remaining for Phase 3:** run the fetcher on freya-v2 (corpus volume +
+    CronJob wiring), then the real-corpus reconcile — expect a small,
+    explainable delta vs the seed, not zero, since GovInfo moves daily.
 
 ### Phase 4 — Parity harness (blue vs green)
 - `scripts/diff-corpus.sh`: per-congress bill counts, per-bill chunk counts,
