@@ -6,9 +6,13 @@ resources:
   - orchestrator-cronjob.yaml
 
 images:
+  # Digest-pinned to a build that includes ops.refresh_data_versions() (the
+  # data-freshness bump the site's "updated" date depends on). The prior
+  # newTag 8e74e595 predated that feature, so the scraper never refreshed
+  # ops.data_versions and the site's date went stale. Repin deliberately.
   - name: registry.s8njee.com/csearch-updater
     newName: registry.s8njee.com/csearch-updater
-    newTag: 8e74e595076d940bd3f897a03ae2f4a11d2a13e8
+    digest: sha256:d709d93caf4d1760d973b11c96b0db08d3f61016d896c6e37967348b83eedada
   - name: registry.s8njee.com/csearch-tarp-updater
     newName: registry.s8njee.com/csearch-tarp-updater
     newTag: 0d76b1ae0
