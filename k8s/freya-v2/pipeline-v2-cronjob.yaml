@@ -35,6 +35,12 @@ spec:
           imagePullSecrets:
             - name: registry-s8njee-pull
           securityContext:
+            # The corpus hostPath is owned by uid 1000 (written by the v1
+            # orchestrator, which runs as 1000) — match it or the fetcher
+            # cannot update bill text.
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
             seccompProfile:
               type: RuntimeDefault
           containers:
