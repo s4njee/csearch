@@ -1,0 +1,23 @@
+# Apply to FREYA's ArgoCD (kubectl --context freya -n argocd apply -f), not
+# netcup's. Freya runs its own Argo (it already manages cb8); this app makes
+# the V2 green environment deploy on every push to main.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: csearch-v2
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/s4njee/csearch.git
+    targetRevision: main
+    path: k8s/freya-v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: csearch-v2
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

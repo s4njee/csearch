@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# csearch V2 green environment on freya (docs/V2-REFACTOR-PLAN.md Phase 2).
+# Isolated namespace: own digest-pinned Postgres, the db-migrate Job as the
+# only schema mechanism (applies 0000-0012 incl. the staged v2 corpus), the
+# invariant checker, Redis, and the API. The v2 reconciler CronJob arrives in
+# Phase 3 alongside its image. GitOps'd by freya's own ArgoCD
+# (argo/applications/csearch-freya-v2.yaml) — push to main deploys.
+#
+# One-time secrets (see docs/V2-REFACTOR-PLAN.md):
+#   registry-s8njee-pull, postgres-auth, csearch-api-secrets, csearch-api-openai
+
+namespace: csearch-v2
+
+resources:
+  - namespace.yaml
+  - postgres-config.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
+  - db-migrate-job.yaml
+  - invariant-check-cronjob.yaml
+  - redis.yaml
+  - api.yaml
