@@ -165,8 +165,16 @@ Fail-loud rules (hard exits, no warnings-and-continue):
   `csearch-api-openai`).
 - Register as an **Application on freya's own ArgoCD** (it already manages
   `cb8`) watching `k8s/freya-v2` on `main` — push = deploy, no manual drift.
-- **Acceptance:** `/healthz` + `/readyz` green in the new ns; empty-DB API
-  returns empty lists, not errors; invariant checker green (trivially).
+- **DONE 2026-07-04:** `k8s/freya-v2/` live, GitOps'd by freya's own ArgoCD
+  (`argo/applications/csearch-freya-v2.yaml`, Synced/Healthy). db-migrate hook
+  applied the full chain 0000–0012 (`nlp_stage.chunks` present), **5/5
+  invariants green**, `/health` + `/readyz` 200 (db+cache connected), empty
+  corpus returns `[]`/nulls — data-shaped, not errors. Secrets provisioned
+  (registry pull, fresh postgres-auth, api-secrets, openai copied).
+  *Gotcha for the runbook:* the first hook Job raced the `csearch-db-migrate`
+  image build and applied only 0000–0009 — hooks pull `:latest`, so after
+  pushing new migrations, confirm Build Images finished before trusting a
+  sync (or re-run the Job).
 
 ### Phase 3 — Seed green + prove the reconciler
 - **Seed, don't re-embed:** `pg_dump` netcup's `nlp.bill_chunks` +
