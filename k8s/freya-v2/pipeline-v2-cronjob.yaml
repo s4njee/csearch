@@ -7,13 +7,11 @@ metadata:
     app.kubernetes.io/component: data-pipeline
     app.kubernetes.io/part-of: csearch
 spec:
-  # Suspended until the first supervised run (V2 plan Phase 3): the corpus
-  # under /home/sanjee/congress/data (BILLSTATUS from the Rust scraper +
-  # bill text under tarp/bills_<congress>) must be freshly fetched, and the
-  # first reconcile against the netcup-seeded stage should be watched — a
-  # small explainable delta is expected, a huge delete plan means a stale
-  # corpus (and the reconciler will refuse it on its own).
-  suspend: true
+  # First supervised run completed 2026-07-04: one-time convergence of the
+  # seeded prod corpus onto f(corpus, current code) — 429 added / 219,442
+  # reused / 56 deleted, exact-manifest verify, 5/5 invariants green.
+  # Nightly runs from here are incremental (~zero plan on quiet days).
+  suspend: false
   schedule: "30 5 * * *"
   timeZone: America/Chicago
   concurrencyPolicy: Forbid
