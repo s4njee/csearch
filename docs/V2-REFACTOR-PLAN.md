@@ -233,8 +233,13 @@ Fail-loud rules (hard exits, no warnings-and-continue):
   top-K retrieval overlap (vector + hybrid) on `eval_set.json` queries between
   netcup (blue, v1) and freya green (v2 via compat views), latency sanity.
 - Thresholds: counts explainable to zero; overlap@10 ≥ 0.9 on the eval set.
-- **Acceptance:** written report checked into `docs/` — this harness is also
-  the permanent gate for the eventual netcup cutover and future model swaps.
+- **DONE 2026-07-05 — PASS at 92.5% mean overlap@10** (10/12 queries at 100%;
+  `scripts/parity-harness.py`, report `docs/PARITY-2026-07-04.md`). Residual
+  divergence is candidate-pool dilution on blue (27 congresses in one HNSW),
+  not corpus deficiency — the at-cap mega-bills retrieve fine on green, so
+  no cap re-convergence needed. Green latency 16ms vs blue 96ms median.
+  Methodology lesson kept in the report: slice to the shared corpus or
+  overlap is meaningless (unsliced first run read 6.7%).
 
 ### Phase 5 — Cutover rehearsal (the drill that de-risks netcup)
 1. **In-DB swap drill** on green: rebuild into `nlp_stage` via the reconciler,
@@ -242,9 +247,15 @@ Fail-loud rules (hard exits, no warnings-and-continue):
    retrieval; then **rollback drill** (rename back) and verify again. Time it.
 2. **Environment cutover** on freya: point the LAN frontend at the v2 API;
    run for ≥ a week of suspended-→-re-enabled nightly reconciles.
-- **Acceptance:** both drills documented as a runbook
-  (`docs/CUTOVER-RUNBOOK.md`) with measured durations — that runbook *is* the
-  netcup migration procedure.
+- **DONE 2026-07-05 (in-DB drill + live cutover on green):** swap → E2E
+  verify (semantic POST returns real results through unchanged API SQL) →
+  rollback → re-swap, **~22s per direction including API restart**, 5/5
+  invariants green throughout. Green now RUNS v2 live (`nlp` = v2 corpus,
+  `nlp_prev` = retired empty v1); the nightly reconciler auto-targets the
+  post-swap schema. Runbook with every earned gotcha:
+  `docs/CUTOVER-RUNBOOK.md`. *Time-gated residue:* the ≥1-week green soak
+  (starts tonight — nightly reconciles are the proof) and optionally
+  repointing freya's LAN frontend at the v2 API.
 
 ### Phase 6 — netcup promotion (exit criteria only; separate change)
 Promote only when, on freya v2: invariants green for **7 consecutive nightly
