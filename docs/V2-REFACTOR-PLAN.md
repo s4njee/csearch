@@ -210,9 +210,23 @@ Fail-loud rules (hard exits, no warnings-and-continue):
     the working shape is **server-side `COPY TO PROGRAM 'gzip …'` in the pod
     → sha256-pinned, byte-offset-resumable download → LAN load**. The local
     dump (`seed119.csv.gz`, 2.3GB) is reusable for future re-seeds.
-  * **Remaining for Phase 3:** run the fetcher on freya-v2 (corpus volume +
-    CronJob wiring), then the real-corpus reconcile — expect a small,
-    explainable delta vs the seed, not zero, since GovInfo moves daily.
+  * **PHASE 3 COMPLETE 2026-07-05.** Supervised chain ran: freya rscraper
+    BILLSTATUS catch-up (April→current, 30 min) → pipeline-v2 fetch →
+    reconcile. Two instructive failures first: EACCES (CronJob must run as
+    uid 1000 to match the corpus hostPath) and an OOM that exposed a real
+    memory bug (preloading the replace-set's embeddings; now per-bill,
+    O(bill) not O(replace-set)). The successful run was a **one-time
+    convergence**: prod's corpus is heterogeneous across historical chunker
+    params (900-chunk bills vs today's cap=200), so the reconciler replaced
+    3,793 bills to converge onto f(corpus, current code) — **429 chunks
+    embedded (~$0.01), 219,442 embeddings reused by hash, 56 rows deleted,
+    exact-manifest verify, 5/5 invariants green, 14.5 min execution.**
+    The green corpus (243,475 chunks) is now REPRODUCIBLE. Nightly CronJob
+    unsuspended — every night is a stability proof.
+    *Phase-4 note:* green intentionally has fewer chunks than prod (330K):
+    cap-200 enforcement on mega-bills. Whether that hurts long-bill
+    retrieval is a question FOR the parity harness; if it does, bump
+    --max-chunks-per-bill deliberately and re-converge.
 
 ### Phase 4 — Parity harness (blue vs green)
 - `scripts/diff-corpus.sh`: per-congress bill counts, per-bill chunk counts,
