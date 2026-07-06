@@ -151,6 +151,7 @@ def test_freshness_default_is_fast_summary():
                 "explore_version": "2026-07-01",
                 "semantic_version": None,
             },
+            {"last_refreshed_at": datetime(2026, 7, 6, 10, 8, 15)},
         ]
     )
     client = build_client(db)
@@ -162,9 +163,12 @@ def test_freshness_default_is_fast_summary():
     body = response.json()
     assert body["last_bill_update_at"] == "2026-07-01"
     assert body["last_vote_at"] == "2026-06-30"
+    # Advances with the pipeline run, not the newest content date.
+    assert body["last_refreshed_at"].startswith("2026-07-06")
     assert body["bills_total"] is None
-    assert len(db.calls) == 1
+    assert len(db.calls) == 2
     assert "ops.data_versions" in db.calls[0][1]
+    assert "refreshed_at" in db.calls[1][1]
 
 
 def test_freshness_detail_includes_exact_counts():
@@ -177,6 +181,7 @@ def test_freshness_detail_includes_exact_counts():
                 "votes_version": date(2026, 6, 30),
             },
             {"semantic_version": datetime(2026, 7, 1, 12, 30, 0)},
+            {"last_refreshed_at": datetime(2026, 7, 6, 10, 8, 15)},
             {"bills_updated_24h": 17, "bills_total": 60123},
             {"votes_total": 1492},
             {"semantic_chunks_total": 99, "semantic_bills_total": 22},
@@ -192,6 +197,7 @@ def test_freshness_detail_includes_exact_counts():
     body = response.json()
     assert body["last_bill_update_at"] == "2026-07-01"
     assert body["last_vote_at"] == "2026-06-30"
+    assert body["last_refreshed_at"].startswith("2026-07-06")
     assert body["bills_updated_24h"] == 17
     assert body["bills_total"] == 60123
     assert body["votes_total"] == 1492

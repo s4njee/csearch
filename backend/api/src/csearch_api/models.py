@@ -279,6 +279,10 @@ class CoverageResponse(ApiModel):
 
 class FreshnessResponse(ApiModel):
     now: datetime
+    # When the refresh pipeline last ran (ops.data_versions.refreshed_at), as
+    # opposed to the dates of the newest content below. Advances daily whenever
+    # the scraper runs, even on a quiet day with no new bills/votes.
+    last_refreshed_at: datetime | None = None
     last_bill_action_at: Dateish = None
     last_bill_update_at: Dateish = None
     last_vote_at: Dateish = None

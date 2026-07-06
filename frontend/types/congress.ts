@@ -191,6 +191,7 @@ export interface ExploreQueryResponse {
 
 export interface FreshnessResponse {
   now: string
+  last_refreshed_at?: string | null
   last_bill_action_at?: string | null
   last_bill_update_at?: string | null
   last_vote_at?: string | null

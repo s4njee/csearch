@@ -32,10 +32,17 @@ const { data: freshness } = useAsyncData(
   () => getFreshness(),
   { server: false, lazy: true },
 )
-const updatedAt = computed(() => newestDateish(
-  freshness.value?.last_bill_update_at,
-  freshness.value?.last_vote_at,
-))
+// Prefer when the refresh pipeline last ran (advances daily even when no new
+// bills/votes landed), so the footer reflects "we checked today" rather than
+// the date of the newest content. Falls back to content dates when the ops
+// schema is unavailable (e.g. local/partial DBs return no last_refreshed_at).
+const updatedAt = computed(() =>
+  freshness.value?.last_refreshed_at
+  ?? newestDateish(
+    freshness.value?.last_bill_update_at,
+    freshness.value?.last_vote_at,
+  ),
+)
 </script>
 
 <template>

@@ -128,6 +128,20 @@ async def _cache_versions(db: Database, include_semantic: bool = True) -> dict:
     return await _ops_versions(db) or await _indexed_versions(db, include_semantic=include_semantic)
 
 
+async def _last_refreshed_at(db: Database):
+    """When the refresh pipeline last ran, from ops.data_versions.refreshed_at.
+
+    This is the "data was checked today" signal, distinct from the content
+    version dates: it advances whenever the scraper runs, even on quiet days.
+    Degrades to null when the ops schema is absent (local/partial DBs).
+    """
+    row = await _safe_read_fetchrow(
+        db,
+        "SELECT MAX(refreshed_at) AS last_refreshed_at FROM ops.data_versions",
+    )
+    return row["last_refreshed_at"] if row else None
+
+
 @router.get("/", response_model=RootResponse)
 async def root():
     return {"root": True}
@@ -221,10 +235,12 @@ async def freshness(
     response.headers["Cache-Control"] = "no-store"
 
     versions = await _cache_versions(db, include_semantic=detail)
+    last_refreshed_at = await _last_refreshed_at(db)
 
     if not detail:
         return {
             "now": datetime.now(UTC).isoformat(),
+            "last_refreshed_at": last_refreshed_at,
             "last_bill_action_at": versions["bill_actions_version"],
             "last_bill_update_at": versions["bill_updates_version"] or versions["bills_version"],
             "last_vote_at": versions["votes_version"],
@@ -263,6 +279,7 @@ async def freshness(
 
     return {
         "now": datetime.now(UTC).isoformat(),
+        "last_refreshed_at": last_refreshed_at,
         "last_bill_action_at": versions["bill_actions_version"],
         "last_bill_update_at": versions["bill_updates_version"] or versions["bills_version"],
         "last_vote_at": versions["votes_version"],
