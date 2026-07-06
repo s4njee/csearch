@@ -6,6 +6,15 @@ metadata:
     app.kubernetes.io/name: csearch-data-pipeline
     app.kubernetes.io/component: scraper-nlp-orchestrator
 spec:
+  # SUSPENDED 2026-07-06: the nlp-updater stage fails nightly on the v1
+  # orphaned-embeddings integrity check (embeddings > chunks, delta growing
+  # 107K→129K), leaving ingest_runs stuck in "running" and re-reddening the
+  # invariant checker every morning. It produces nothing useful for the live
+  # site — csearch-rscraper (cronjob.yaml) still scrapes bills+votes and
+  # refreshes ops.data_versions daily, so freshness is unaffected. Re-enable
+  # (or retire) at the V2 netcup promotion (docs/V2-REFACTOR-PLAN.md Phase 6),
+  # which rebuilds the corpus and eliminates the pathology.
+  suspend: true
   timeZone: "America/Chicago"
   # GovInfo BILLSTATUS typically updates later in the early morning, so run after that window.
   schedule: "0 5 * * *"
