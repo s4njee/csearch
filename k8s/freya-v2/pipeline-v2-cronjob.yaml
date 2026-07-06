@@ -41,6 +41,76 @@ spec:
             fsGroup: 1000
             seccompProfile:
               type: RuntimeDefault
+          initContainers:
+            # Scrape bills + votes (metadata, roll-calls, data_versions) into the
+            # v2 DB and refresh the /congress-data source files, BEFORE the
+            # reconcile container fetches text and embeds. Folded in from the v1
+            # orchestrator (freya-scraper/orchestrator-cronjob.yaml) at the v2
+            # cutover: previously v2 did only text+embeddings and relied on the
+            # now-suspended v1 scraper to advance bills/votes/data_versions, so
+            # the v2 DB (and the site's "data as of" date) went stale. Same
+            # csearch-updater image and RUN_BILLS/RUN_VOTES flags as the v1
+            # scraper; postgres-config/postgres-auth resolve to the v2 Postgres
+            # because this Pod runs in the csearch-v2 namespace. Runs as an
+            # initContainer so a scrape failure blocks the reconcile (fail-loud,
+            # matching backoffLimit: 0).
+            - name: scraper
+              image: registry.s8njee.com/csearch-updater:latest
+              imagePullPolicy: Always
+              command: ["/usr/local/bin/docker-entrypoint.sh", "/usr/local/bin/updater"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                runAsUser: 1000
+                runAsGroup: 1000
+                capabilities:
+                  drop:
+                    - ALL
+              env:
+                - name: CONGRESSDIR
+                  value: /srv/csearch
+                - name: POSTGRESURI
+                  valueFrom:
+                    configMapKeyRef:
+                      name: postgres-config
+                      key: POSTGRES_RW_HOST
+                - name: REDIS_URL
+                  value: "redis://csearch-redis:6379"
+                - name: LOG_LEVEL
+                  value: "info"
+                - name: DB_USER
+                  valueFrom:
+                    configMapKeyRef:
+                      name: postgres-config
+                      key: POSTGRES_USER
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-auth
+                      key: POSTGRES_PASSWORD
+                - name: DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: postgres-config
+                      key: POSTGRES_DB
+                - name: RUN_BILLS
+                  value: "true"
+                - name: RUN_VOTES
+                  value: "true"
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: "2"
+                  memory: 4Gi
+              volumeMounts:
+                - name: congress-code
+                  mountPath: /srv/csearch/congress
+                - name: congress-data
+                  mountPath: /srv/csearch/data
+                - name: congress-data
+                  mountPath: /srv/csearch/congress/data
           containers:
             - name: reconcile
               image: registry.s8njee.com/csearch-tarp-updater:latest
@@ -104,8 +174,14 @@ spec:
                 - name: tarp-data
                   mountPath: /app/data
           volumes:
-            # Shared read with the v1 pipeline: the scraped corpus is
-            # version-agnostic source data. v2 never writes v1's delta dirs.
+            # Code checkout the scraper (updater) needs on PATH; hostPath on freya.
+            - name: congress-code
+              hostPath:
+                path: /home/sanjee/congress
+                type: Directory
+            # The scraped corpus is version-agnostic source data. The scraper
+            # initContainer writes it (RW mount above); the reconcile container
+            # reads it (readOnly mount above).
             - name: congress-data
               hostPath:
                 path: /home/sanjee/congress/data
