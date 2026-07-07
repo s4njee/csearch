@@ -27,6 +27,7 @@ mod votes;
 
 // `use` brings specific items into scope so you don't have to write the
 // full path every time. Like `from x import y` in Python.
+use std::io::IsTerminal;
 use std::process::ExitCode;
 use std::time::Instant;
 
@@ -88,11 +89,13 @@ async fn main() -> ExitCode {
     }
 }
 
-/// Sets up structured JSON logging.
+/// Sets up logging.
 ///
-/// This configures the `tracing` framework to output JSON-formatted log lines
-/// (useful for log aggregation in Kubernetes). The log level can be controlled
-/// via the `RUST_LOG` or `LOG_LEVEL` environment variables.
+/// Defaults to a compact human-readable format — these logs are mostly read
+/// by a person via `kubectl logs`/Lens, where JSON lines are painful to scan.
+/// Set `LOG_FORMAT=json` to restore machine-readable JSON lines (the old
+/// default) if some aggregation pipeline ever needs it. The log level is
+/// controlled via the `RUST_LOG` or `LOG_LEVEL` environment variables.
 fn init_tracing() {
     // Try to read filter from RUST_LOG env var first, then fall back to
     // LOG_LEVEL, then default to "info". This chain of `.or_else()` calls
@@ -104,14 +107,29 @@ fn init_tracing() {
         })
         .unwrap_or_else(|_| EnvFilter::new("info"));
 
-    // Build the tracing subscriber (the thing that actually processes log events).
-    // `.json()` makes it output JSON lines instead of human-readable text.
-    tracing_subscriber::fmt()
-        .json()
-        .with_env_filter(filter)
-        .with_current_span(false)
-        .with_span_list(false)
-        .init();
+    let json = std::env::var("LOG_FORMAT")
+        .map(|v| v.eq_ignore_ascii_case("json"))
+        .unwrap_or(false);
+
+    if json {
+        tracing_subscriber::fmt()
+            .json()
+            .with_env_filter(filter)
+            .with_current_span(false)
+            .with_span_list(false)
+            .init();
+    } else {
+        // Compact single-line text: timestamp, level, message, key=value
+        // fields. `with_target(false)` drops the module path noise; ANSI
+        // colors only when stdout is a real terminal (pod logs are not),
+        // so `kubectl logs` doesn't fill with escape codes.
+        tracing_subscriber::fmt()
+            .compact()
+            .with_env_filter(filter)
+            .with_target(false)
+            .with_ansi(std::io::stdout().is_terminal())
+            .init();
+    }
 }
 
 /// Main orchestration function — runs the full scraper pipeline.
@@ -247,8 +265,14 @@ async fn run() -> anyhow::Result<()> {
 
     // Log final statistics. `started_at.elapsed()` returns the wall-clock
     // time since `Instant::now()` was called at the start.
+    //
+    // bills_inserted = brand-new bills; bills_updated = existing bills whose
+    // metadata was refreshed (congress.gov bumps update_date for cosponsor or
+    // text-version tweaks). The old single `bills_processed` counter conflated
+    // the two, which read as "N bills added" on runs that added nothing.
     info!(
-        bills_processed = stats.bills_processed,
+        bills_inserted = stats.bills_inserted,
+        bills_updated = stats.bills_updated,
         bills_skipped = stats.bills_skipped,
         bills_failed = stats.bills_failed,
         votes_processed = stats.votes_processed,

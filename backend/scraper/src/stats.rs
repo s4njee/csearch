@@ -18,7 +18,15 @@
 
 #[derive(Debug, Default)]
 pub struct RunStats {
+    /// Total bills written (inserted + updated). Kept as the roll-up because
+    /// `has_writes()` and the ops run-summary consume it.
     pub bills_processed: u64,
+    /// Bills that did not exist before this run (brand-new rows).
+    pub bills_inserted: u64,
+    /// Bills that already existed and were re-upserted (metadata refresh).
+    /// A run can report hundreds of these with zero new bills — e.g. when
+    /// congress.gov bumps update_date for cosponsor/text-version tweaks.
+    pub bills_updated: u64,
     pub bills_skipped: u64,
     pub bills_failed: u64,
     pub votes_processed: u64,

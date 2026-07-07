@@ -389,11 +389,17 @@ ON CONFLICT ON CONSTRAINT vote_members_pkey DO NOTHING
 
 /// Inserts or updates a bill in the `bills` table.
 /// Uses a composite unique key: (billtype, billnumber, congress).
+///
+/// Returns `true` when the bill is brand-new (INSERT path) and `false` when
+/// an existing row was updated (ON CONFLICT path). The `(xmax = 0)` test is
+/// the standard PostgreSQL idiom for this: freshly inserted tuples have
+/// xmax = 0, while ON CONFLICT DO UPDATE leaves the updating transaction's
+/// id in xmax of the returned row version.
 pub async fn insert_bill(
     tx: &mut Transaction<'_, Postgres>,
     bill: &InsertBillParams,
-) -> Result<()> {
-    sqlx::query(
+) -> Result<bool> {
+    let inserted: bool = sqlx::query_scalar(
         r#"
 INSERT INTO bills (
     billid, billnumber, billtype, introducedat, congress,
@@ -418,6 +424,7 @@ INSERT INTO bills (
     statusat            = excluded.statusat,
     shorttitle          = excluded.shorttitle,
     officialtitle       = excluded.officialtitle
+RETURNING (xmax = 0) AS inserted
         "#,
     )
     .bind(&bill.billid)
@@ -439,9 +446,9 @@ INSERT INTO bills (
     .bind(bill.statusat)
     .bind(&bill.shorttitle)
     .bind(&bill.officialtitle)
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?;
-    Ok(())
+    Ok(inserted)
 }
 
 /// Replaces all actions for a bill atomically using a CTE chain.

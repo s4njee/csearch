@@ -29,6 +29,29 @@ use crate::models::ParsedBill;
 
 use crate::bills::ChangedBill;
 
+/// Per-billtype write tally, split by whether the bill row was brand-new.
+/// `processed` (insert + update) stays the roll-up that feeds RunStats.
+#[derive(Debug, Default)]
+pub(crate) struct BillWriteOutcome {
+    pub processed: u32,
+    pub inserted: u32,
+    pub failed: u32,
+}
+
+impl BillWriteOutcome {
+    /// Records one successful bill write in both this tally and the run stats.
+    fn record_write(&mut self, stats: &mut RunStats, inserted: bool) {
+        self.processed += 1;
+        stats.bills_processed += 1;
+        if inserted {
+            self.inserted += 1;
+            stats.bills_inserted += 1;
+        } else {
+            stats.bills_updated += 1;
+        }
+    }
+}
+
 /// Inserts a parsed bill and ALL its related data in a single transaction.
 ///
 /// This is the most complex DB operation. In one atomic transaction:
@@ -40,17 +63,20 @@ use crate::bills::ChangedBill;
 ///
 /// If ANY step fails, the entire transaction is rolled back (nothing is
 /// partially written). This ensures data consistency.
-pub(crate) async fn insert_parsed_bill(pool: &PgPool, parsed_bill: &ParsedBill) -> Result<()> {
+///
+/// Returns `true` when the bill row was brand-new (insert), `false` when an
+/// existing bill was refreshed (update) — see `db::insert_bill`.
+pub(crate) async fn insert_parsed_bill(pool: &PgPool, parsed_bill: &ParsedBill) -> Result<bool> {
     let mut tx = pool.begin().await?;
-    insert_parsed_bill_in_tx(&mut tx, parsed_bill).await?;
+    let inserted = insert_parsed_bill_in_tx(&mut tx, parsed_bill).await?;
     tx.commit().await?;
-    Ok(())
+    Ok(inserted)
 }
 
 pub(crate) async fn insert_parsed_bill_in_tx(
     tx: &mut Transaction<'_, Postgres>,
     parsed_bill: &ParsedBill,
-) -> Result<()> {
+) -> Result<bool> {
     let bill = &parsed_bill.bill;
 
     // Validate required fields before starting the transaction.
@@ -80,8 +106,8 @@ pub(crate) async fn insert_parsed_bill_in_tx(
         ));
     }
 
-    // Step 1: Upsert the bill row.
-    db::insert_bill(tx, bill).await.with_context(|| {
+    // Step 1: Upsert the bill row (remembering whether it was a fresh insert).
+    let inserted = db::insert_bill(tx, bill).await.with_context(|| {
         format!(
             "InsertBill failed for {}-{}-{}",
             bill.congress, bill.billtype, bill.billnumber
@@ -144,7 +170,7 @@ pub(crate) async fn insert_parsed_bill_in_tx(
     .await
     .context("ReplaceBillSubjects failed")?;
 
-    Ok(())
+    Ok(inserted)
 }
 
 pub(crate) async fn write_bills_incremental(
@@ -156,44 +182,44 @@ pub(crate) async fn write_bills_incremental(
     table: &str,
     changed_bills: Vec<ChangedBill>,
     initial_failed: u32,
-) -> (u32, u32) {
+) -> BillWriteOutcome {
     let write_sem = Arc::new(Semaphore::new(cfg.db_write_concurrency as usize));
     let mut write_tasks = JoinSet::new();
 
     for changed_bill in changed_bills {
         let pool = pool.clone();
         let write_sem = write_sem.clone();
-        let billtype = table.to_string();
         write_tasks.spawn(async move {
             let _permit = write_sem.acquire_owned().await?;
-            insert_parsed_bill(&pool, &changed_bill.parsed_bill).await?;
-            Ok::<_, anyhow::Error>((changed_bill, billtype))
+            let inserted = insert_parsed_bill(&pool, &changed_bill.parsed_bill).await?;
+            Ok::<_, anyhow::Error>((changed_bill, inserted))
         });
     }
 
-    let mut table_processed = 0u32;
-    let mut table_failed = initial_failed;
+    let mut outcome = BillWriteOutcome {
+        failed: initial_failed,
+        ..BillWriteOutcome::default()
+    };
     while let Some(result) = write_tasks.join_next().await {
         match result {
-            Ok(Ok((changed_bill, _billtype))) => {
+            Ok(Ok((changed_bill, inserted))) => {
                 hashes.mark_processed(&changed_bill.path, changed_bill.hash);
-                stats.bills_processed += 1;
-                table_processed += 1;
+                outcome.record_write(stats, inserted);
             }
             Ok(Err(err)) => {
                 warn!(congress, billtype = table, error = %err, "unable to insert bill");
                 stats.bills_failed += 1;
-                table_failed += 1;
+                outcome.failed += 1;
             }
             Err(err) => {
                 warn!(congress, billtype = table, error = %err, "bill write task failed");
                 stats.bills_failed += 1;
-                table_failed += 1;
+                outcome.failed += 1;
             }
         }
     }
 
-    (table_processed, table_failed)
+    outcome
 }
 
 pub(crate) async fn write_bills_seed(
@@ -205,9 +231,11 @@ pub(crate) async fn write_bills_seed(
     table: &str,
     changed_bills: Vec<ChangedBill>,
     initial_failed: u32,
-) -> (u32, u32) {
-    let mut table_processed = 0u32;
-    let mut table_failed = initial_failed;
+) -> BillWriteOutcome {
+    let mut outcome = BillWriteOutcome {
+        failed: initial_failed,
+        ..BillWriteOutcome::default()
+    };
     let total_chunks = changed_bills.len().div_ceil(cfg.bill_seed_chunk_size);
     let mut pending = changed_bills.into_iter();
     let mut write_tasks = JoinSet::new();
@@ -239,11 +267,10 @@ pub(crate) async fn write_bills_seed(
 
     while let Some(result) = write_tasks.join_next().await {
         match result {
-            Ok(Ok((chunk_index, Ok(chunk)))) => {
-                for changed_bill in &chunk {
+            Ok(Ok((chunk_index, Ok((chunk, inserted_flags))))) => {
+                for (changed_bill, inserted) in chunk.iter().zip(inserted_flags) {
                     hashes.mark_processed(&changed_bill.path, changed_bill.hash.clone());
-                    stats.bills_processed += 1;
-                    table_processed += 1;
+                    outcome.record_write(stats, inserted);
                 }
 
                 info!(
@@ -252,7 +279,7 @@ pub(crate) async fn write_bills_seed(
                     chunk_index,
                     total_chunks,
                     chunk_size = chunk.len(),
-                    processed_total = table_processed,
+                    processed_total = outcome.processed,
                     "seed bill chunk committed"
                 );
             }
@@ -269,10 +296,9 @@ pub(crate) async fn write_bills_seed(
 
                 for changed_bill in &chunk {
                     match insert_parsed_bill(pool, &changed_bill.parsed_bill).await {
-                        Ok(()) => {
+                        Ok(inserted) => {
                             hashes.mark_processed(&changed_bill.path, changed_bill.hash.clone());
-                            stats.bills_processed += 1;
-                            table_processed += 1;
+                            outcome.record_write(stats, inserted);
                         }
                         Err(err) => {
                             warn!(
@@ -282,7 +308,7 @@ pub(crate) async fn write_bills_seed(
                                 "unable to insert bill after chunk fallback"
                             );
                             stats.bills_failed += 1;
-                            table_failed += 1;
+                            outcome.failed += 1;
                         }
                     }
                 }
@@ -293,39 +319,44 @@ pub(crate) async fn write_bills_seed(
                     chunk_index,
                     total_chunks,
                     chunk_size = chunk.len(),
-                    processed_total = table_processed,
-                    failed_total = table_failed,
+                    processed_total = outcome.processed,
+                    failed_total = outcome.failed,
                     "seed bill chunk fallback complete"
                 );
             }
             Ok(Err(err)) => {
                 warn!(congress, billtype = table, error = %err, "seed bill chunk task failed");
                 stats.bills_failed += 1;
-                table_failed += 1;
+                outcome.failed += 1;
             }
             Err(err) => {
                 warn!(congress, billtype = table, error = %err, "seed bill join task failed");
                 stats.bills_failed += 1;
-                table_failed += 1;
+                outcome.failed += 1;
             }
         }
     }
 
-    (table_processed, table_failed)
+    outcome
 }
 
+/// Writes one chunk of bills in a single transaction. On success, returns the
+/// chunk together with a parallel `Vec<bool>` of per-bill "was inserted" flags
+/// (same order as the chunk) so the caller can split insert/update tallies.
 pub(crate) async fn write_bill_seed_chunk(
     pool: &PgPool,
     chunk: Vec<ChangedBill>,
-) -> std::result::Result<Vec<ChangedBill>, (anyhow::Error, Vec<ChangedBill>)> {
+) -> std::result::Result<(Vec<ChangedBill>, Vec<bool>), (anyhow::Error, Vec<ChangedBill>)> {
     let mut tx = match pool.begin().await {
         Ok(tx) => tx,
         Err(err) => return Err((err.into(), chunk)),
     };
 
+    let mut inserted_flags = Vec::with_capacity(chunk.len());
     for changed_bill in &chunk {
-        if let Err(err) = insert_parsed_bill_in_tx(&mut tx, &changed_bill.parsed_bill).await {
-            return Err((err, chunk));
+        match insert_parsed_bill_in_tx(&mut tx, &changed_bill.parsed_bill).await {
+            Ok(inserted) => inserted_flags.push(inserted),
+            Err(err) => return Err((err, chunk)),
         }
     }
 
@@ -333,5 +364,5 @@ pub(crate) async fn write_bill_seed_chunk(
         return Err((err.into(), chunk));
     }
 
-    Ok(chunk)
+    Ok((chunk, inserted_flags))
 }

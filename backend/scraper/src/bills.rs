@@ -160,7 +160,7 @@ pub async fn process_bills(
             stats.bills_skipped += u64::from(collected.skipped);
             stats.bills_failed += u64::from(collected.failed);
 
-            let (table_processed, table_failed) = match cfg.bill_write_mode {
+            let outcome = match cfg.bill_write_mode {
                 BillWriteMode::Incremental => {
                     write_bills_incremental(
                         pool,
@@ -189,14 +189,18 @@ pub async fn process_bills(
                 }
             };
 
+            // `inserted` = brand-new bills; `updated` = existing bills whose
+            // metadata was refreshed. Keeping them separate avoids reading a
+            // metadata-refresh run as "N bills added".
             info!(
                 congress,
                 billtype = *table,
                 candidates = bill_candidates,
                 changed = changed_candidates,
                 skipped = collected.skipped,
-                processed = table_processed,
-                failed = table_failed,
+                inserted = outcome.inserted,
+                updated = outcome.processed - outcome.inserted,
+                failed = outcome.failed,
                 "congress bill type done"
             );
         }
