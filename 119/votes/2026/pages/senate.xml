@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00195</vote_number>
+      <vote_date>14-Jul</vote_date>
+      <issue>S. 4784</issue>
+      <question>On Cloture on the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Motion to Proceed to S. 4784; An original bill to authorize appropriations for fiscal year 2027 for military activities of the Department of Defense, for military construction, and for defense activities of the Department of Energy, to prescribe military personnel strengths for such fiscal year, and for other purposes.</title>
+    </vote>
+    <vote>
       <vote_number>00194</vote_number>
       <vote_date>14-Jul</vote_date>
       <issue>PN938-2</issue>
