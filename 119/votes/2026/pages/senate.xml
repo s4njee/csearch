@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00193</vote_number>
+      <vote_date>13-Jul</vote_date>
+      <issue>PN930-3</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>46</yeas>
+        <nays>44</nays>
+      </vote_tally>
+      <title>Confirmation: Arthur Roberts Jones, of T.X., to be U.S. District Judge for the Southern District of Texas</title>
+    </vote>
+    <vote>
       <vote_number>00192</vote_number>
       <vote_date>24-Jun</vote_date>
       <issue>S.J.Res. 185</issue>
