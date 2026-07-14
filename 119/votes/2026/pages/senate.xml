@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00194</vote_number>
+      <vote_date>14-Jul</vote_date>
+      <issue>PN938-2</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>45</nays>
+      </vote_tally>
+      <title>Confirmation: Matthew A. Schwartz, of New York, to be U.S. Circuit Judge for the Second Circuit</title>
+    </vote>
+    <vote>
       <vote_number>00193</vote_number>
       <vote_date>13-Jul</vote_date>
       <issue>PN930-3</issue>
