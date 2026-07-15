@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00196</vote_number>
+      <vote_date>15-Jul</vote_date>
+      <issue>PN930-4</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Jeffrey T. Kuntz to be U.S. District Judge for the Southern District of Florida</title>
+    </vote>
+    <vote>
       <vote_number>00195</vote_number>
       <vote_date>14-Jul</vote_date>
       <issue>S. 4784</issue>
