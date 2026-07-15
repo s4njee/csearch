@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00197</vote_number>
+      <vote_date>15-Jul</vote_date>
+      <issue>PN930-4</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Confirmation: Jeffrey T. Kuntz, of Florida, to be U.S. District Judge for the Southern District of Florida</title>
+    </vote>
+    <vote>
       <vote_number>00196</vote_number>
       <vote_date>15-Jul</vote_date>
       <issue>PN930-4</issue>
