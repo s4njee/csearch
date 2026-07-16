@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00198</vote_number>
+      <vote_date>16-Jul</vote_date>
+      <issue>PN851-8</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>48</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Kara Marie Westercamp to be a Judge of the U.S. Court of International Trade</title>
+    </vote>
+    <vote>
       <vote_number>00197</vote_number>
       <vote_date>15-Jul</vote_date>
       <issue>PN930-4</issue>
