@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00199</vote_number>
+      <vote_date>16-Jul</vote_date>
+      <issue>S.J.Res. 198</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>46</yeas>
+        <nays>50</nays>
+      </vote_tally>
+      <title>Motion to Proceed to S.J. Res. 198; A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Centers for Medicare &amp; Medicaid Services of the Department of Health and Human Services relating to "Medicare Program; Implementation of Prior Authorization for Select Services for the Wasteful and Inappropriate Services Reduction (WISeR) Model".</title>
+    </vote>
+    <vote>
       <vote_number>00198</vote_number>
       <vote_date>16-Jul</vote_date>
       <issue>PN851-8</issue>
