@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00200</vote_number>
+      <vote_date>20-Jul</vote_date>
+      <issue>PN938-1</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>43</yeas>
+        <nays>40</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Benjamin M. Flowers to be U.S. Circuit Judge for the Sixth Circuit</title>
+    </vote>
+    <vote>
       <vote_number>00199</vote_number>
       <vote_date>16-Jul</vote_date>
       <issue>S.J.Res. 198</issue>
