@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00205</vote_number>
+      <vote_date>22-Jul</vote_date>
+      <issue>PN999-5</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>54</yeas>
+        <nays>44</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Antonio M. Pozos to be U.S. District Judge for the Eastern District of Pennsylvania</title>
+    </vote>
+    <vote>
+      <vote_number>00204</vote_number>
+      <vote_date>22-Jul</vote_date>
+      <issue>PN999-3</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>62</yeas>
+        <nays>36</nays>
+      </vote_tally>
+      <title>Confirmation: Michael C. Martin, of Michigan, to be U.S. District Judge for the Eastern District of Michigan</title>
+    </vote>
+    <vote>
       <vote_number>00203</vote_number>
       <vote_date>22-Jul</vote_date>
       <issue>PN999-3</issue>
