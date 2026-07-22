@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00203</vote_number>
+      <vote_date>22-Jul</vote_date>
+      <issue>PN999-3</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>60</yeas>
+        <nays>35</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Michael C. Martin to be U.S. District Judge for the Eastern District of Michigan</title>
+    </vote>
+    <vote>
+      <vote_number>00202</vote_number>
+      <vote_date>22-Jul</vote_date>
+      <issue>PN938-1</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Confirmation: Benjamin M. Flowers, of Ohio, to be U.S. Circuit Judge for the Sixth Circuit</title>
+    </vote>
+    <vote>
       <vote_number>00201</vote_number>
       <vote_date>21-Jul</vote_date>
       <issue>PN851-8</issue>
