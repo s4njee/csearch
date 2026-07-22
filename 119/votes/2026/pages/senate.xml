@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00201</vote_number>
+      <vote_date>21-Jul</vote_date>
+      <issue>PN851-8</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>48</nays>
+      </vote_tally>
+      <title>Confirmation: Kara Marie Westercamp, of Virginia, to be a Judge of the U.S. Court of International Trade</title>
+    </vote>
+    <vote>
       <vote_number>00200</vote_number>
       <vote_date>20-Jul</vote_date>
       <issue>PN938-1</issue>
