@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00208</vote_number>
+      <vote_date>23-Jul</vote_date>
+      <issue>PN999-6</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>48</yeas>
+        <nays>47</nays>
+      </vote_tally>
+      <title>Confirmation: Daniel Mack Traynor, of North Dakota, to United States Circuit Judge for the Eighth Circuit</title>
+    </vote>
+    <vote>
+      <vote_number>00207</vote_number>
+      <vote_date>23-Jul</vote_date>
+      <issue>S.J.Res. 180</issue>
+      <question>On the Motion to Discharge
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>49</nays>
+      </vote_tally>
+      <title>Motion to Discharge S.J.Res. 180 from the Committee on Foreign Relations; A joint resolution to direct the removal of United States Armed Forces from hostilities within or against the Islamic Republic of Iran that have not been authorized by Congress.</title>
+    </vote>
+    <vote>
       <vote_number>00206</vote_number>
       <vote_date>22-Jul</vote_date>
       <issue>PN999-6</issue>
