@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00206</vote_number>
+      <vote_date>22-Jul</vote_date>
+      <issue>PN999-6</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Daniel Mack Traynor to be U.S. Circuit Judge for the Eighth Circuit</title>
+    </vote>
+    <vote>
       <vote_number>00205</vote_number>
       <vote_date>22-Jul</vote_date>
       <issue>PN999-5</issue>
