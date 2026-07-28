@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00210</vote_number>
+      <vote_date>27-Jul</vote_date>
+      <issue>PN1092</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>43</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Walter Clayton to be Director of National Intelligence</title>
+    </vote>
+    <vote>
       <vote_number>00209</vote_number>
       <vote_date>23-Jul</vote_date>
       <issue>PN999-5</issue>
