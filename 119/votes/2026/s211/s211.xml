@@ -2,16 +2,16 @@
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
-  <vote_number>210</vote_number>
-  <vote_date>July 27, 2026,  05:30 PM</vote_date>
-  <modify_date>July 28, 2026,  06:47 PM</modify_date>
-  <vote_question_text>On the Cloture Motion PN1092</vote_question_text>
+  <vote_number>211</vote_number>
+  <vote_date>July 28, 2026,  06:21 PM</vote_date>
+  <modify_date>July 28, 2026,  07:34 PM</modify_date>
+  <vote_question_text>On the Nomination PN1092</vote_question_text>
   <vote_document_text>Walter Clayton, of New York, to be Director of National Intelligence</vote_document_text>
-  <vote_result_text>Cloture Motion Agreed to (51-43)</vote_result_text>
-  <question>On the Cloture Motion</question>
-  <vote_title>Motion to Invoke Cloture: Walter Clayton to be Director of National Intelligence</vote_title>
+  <vote_result_text>Nomination Confirmed (51-47)</vote_result_text>
+  <question>On the Nomination</question>
+  <vote_title>Confirmation: Walter Clayton, of N.Y., to be Director of National Intelligence</vote_title>
   <majority_requirement>1/2</majority_requirement>
-  <vote_result>Cloture Motion Agreed to</vote_result>
+  <vote_result>Nomination Confirmed</vote_result>
   <document>
     <document_congress>119</document_congress>
     <document_type>PN</document_type>
@@ -30,9 +30,9 @@
   </amendment>
   <count>
     <yeas>51</yeas>
-    <nays>43</nays>
+    <nays>47</nays>
     <present/>
-    <absent>6</absent>
+    <absent>2</absent>
   </count>
   <tie_breaker>
     <by_whom/>
@@ -333,7 +333,7 @@
       <first_name>Kirsten</first_name>
       <party>D</party>
       <state>NY</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S331</lis_member_id>
     </member>
     <member>
@@ -342,7 +342,7 @@
       <first_name>Darline</first_name>
       <party>R</party>
       <state>SC</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S441</lis_member_id>
     </member>
     <member>
@@ -468,7 +468,7 @@
       <first_name>Mark</first_name>
       <party>D</party>
       <state>AZ</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S406</lis_member_id>
     </member>
     <member>
@@ -675,7 +675,7 @@
       <first_name>Gary</first_name>
       <party>D</party>
       <state>MI</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S380</lis_member_id>
     </member>
     <member>
@@ -693,7 +693,7 @@
       <first_name>Pete</first_name>
       <party>R</party>
       <state>NE</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S423</lis_member_id>
     </member>
     <member>
@@ -900,7 +900,7 @@
       <first_name>Peter</first_name>
       <party>D</party>
       <state>VT</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S422</lis_member_id>
     </member>
     <member>
