@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00214</vote_number>
+      <vote_date>29-Jul</vote_date>
+      <issue>S.Res. 817</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>45</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: S. Res. 817; An executive resolution authorizing the en bloc consideration in Executive Session of certain nominations on the Executive Calendar.</title>
+    </vote>
+    <vote>
+      <vote_number>00213</vote_number>
+      <vote_date>29-Jul</vote_date>
+      <issue>H.R. 5334</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>84</yeas>
+        <nays>12</nays>
+      </vote_tally>
+      <title>Motion to Proceed to H.R. 5334; A bill to amend the Internal Revenue Code of 1986 to allow early childhood educators to take the educator expense deduction, and for other purposes.</title>
+    </vote>
+    <vote>
       <vote_number>00212</vote_number>
       <vote_date>28-Jul</vote_date>
       <issue>H.R. 5334</issue>
