@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00216</vote_number>
+      <vote_date>30-Jul</vote_date>
+      <issue>S.J.Res. 181</issue>
+      <question>Unspecified
+         </question>
+      <result>Unspecified</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>50</nays>
+      </vote_tally>
+      <title>Motion to Discharge S.J. Res. 181; A joint resolution to direct the removal of United States Armed Forces from hostilities within or against the Islamic Republic of Iran that have not been authorized by Congress.</title>
+    </vote>
+    <vote>
+      <vote_number>00215</vote_number>
+      <vote_date>30-Jul</vote_date>
+      <issue>S.J.Res. 199</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>52</nays>
+      </vote_tally>
+      <title>Motion to Proceed to S.J. Res. 199; A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Department of Health and Human Services relating to "Restoring Flexibility in the Child Care and Development Fund (CCDF)".</title>
+    </vote>
+    <vote>
       <vote_number>00214</vote_number>
       <vote_date>29-Jul</vote_date>
       <issue>S.Res. 817</issue>
