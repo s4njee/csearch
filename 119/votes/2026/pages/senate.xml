@@ -4,12 +4,25 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00217</vote_number>
+      <vote_date>30-Jul</vote_date>
+      <issue>S.Res. 817</issue>
+      <question>On the Resolution
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>47</nays>
+      </vote_tally>
+      <title>S. Res. 817; An executive resolution authorizing the en bloc consideration in Executive Session of certain nominations on the Executive Calendar.</title>
+    </vote>
+    <vote>
       <vote_number>00216</vote_number>
       <vote_date>30-Jul</vote_date>
       <issue>S.J.Res. 181</issue>
-      <question>Unspecified
+      <question>On the Motion to Discharge
          </question>
-      <result>Unspecified</result>
+      <result>Rejected</result>
       <vote_tally>
         <yeas>49</yeas>
         <nays>50</nays>
