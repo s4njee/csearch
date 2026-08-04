@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00218</vote_number>
+      <vote_date>03-Aug</vote_date>
+      <issue>H.R. 6500</issue>
+      <question>On Cloture on the Motion to Proceed
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>89</yeas>
+        <nays>4</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Motion to Proceed to H.R. 6500; A bill to extend duty-free treatment provided with respect to imports from certain countries in Africa under the African Growth and Opportunity Act, to extend customs user fees, and for other purposes.</title>
+    </vote>
+    <vote>
       <vote_number>00217</vote_number>
       <vote_date>30-Jul</vote_date>
       <issue>S.Res. 817</issue>
