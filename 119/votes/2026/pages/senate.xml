@@ -4,6 +4,408 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00222</vote_number>
+      <vote_date>05-Aug</vote_date>
+      <issue>S.J.Res. 187</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>48</yeas>
+        <nays>50</nays>
+      </vote_tally>
+      <title>Motion to Proceed to S. J. Res. 187; A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Environmental Protection Agency relating to "Modification to the Start of the Submission Period for Perfluoroalkyl and Polyfluoroalkyl Substances (PFAS) Reporting and Recordkeeping Under TSCA 8(a)(7)".</title>
+    </vote>
+    <vote>
+      <vote_number>00221</vote_number>
+      <vote_date>05-Aug</vote_date>
+      <en_bloc>
+        <matter>
+          <issue>PN961-1</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN937-5</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-1</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN730-38</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN962-3</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN931-6</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-25</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN806-5</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-10</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1012</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN931-5</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN931-4</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN937-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-22</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN962-1</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN961-4</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-3</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN806-7</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN730-23</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-7</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-6</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN961-3</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN937-9</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN937-8</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN937-7</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-34</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-31</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-15</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-9</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-8</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1022-3</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN961-9</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN931-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1093-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1093-1</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN1011</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN961-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN930-8</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN930-6</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN930-5</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN930-1</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-12</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN850</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN787-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN730-18</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN730-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN933</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN852-3</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN806-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN961-7</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-7</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-6</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN792</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN786-10</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN931-3</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN730-59</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN786-5</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN937-1</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-11</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN859-5</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN730-36</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-5</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN859-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN859-1</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN901-10</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN852-11</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN852-9</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN859-6</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN852-6</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN852-2</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN806-9</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+        <matter>
+          <issue>PN730-11</issue>
+          <question>On the Cloture Motion</question>
+          <result>Agreed to</result>
+        </matter>
+      </en_bloc>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>44</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: En Bloc Nominations Provided for under the provisions of S. Res. 817</title>
+    </vote>
+    <vote>
+      <vote_number>00220</vote_number>
+      <vote_date>05-Aug</vote_date>
+      <issue>PN932</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>44</nays>
+      </vote_tally>
+      <title>Confirmation: Erica Schwartz, of Florida, to be Director of the Centers for Disease Control and Prevention</title>
+    </vote>
+    <vote>
       <vote_number>00219</vote_number>
       <vote_date>05-Aug</vote_date>
       <issue>PN932</issue>
