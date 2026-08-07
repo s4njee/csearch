@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00223</vote_number>
+      <vote_date>07-Aug</vote_date>
+      <issue>H.R. 5334</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6715</measure></question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>32</yeas>
+        <nays>64</nays>
+      </vote_tally>
+      <title>Paul Amdt. No. 6715; To strike the provision relating to duties on countries that purchase Russian-origin crude oil or natural gas or facilitate sanctions evasion.</title>
+    </vote>
+    <vote>
       <vote_number>00222</vote_number>
       <vote_date>05-Aug</vote_date>
       <issue>S.J.Res. 187</issue>
