@@ -4,6 +4,413 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00226</vote_number>
+      <vote_date>07-Aug</vote_date>
+      <issue>H.R. 6500</issue>
+      <question>On the Cloture Motion
+        <measure>S.Amdt. 6732</measure></question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>91</yeas>
+        <nays>6</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Collins Amdt. No. 6732 to H.R. 6500; In the nature of a substitute.</title>
+    </vote>
+    <vote>
+      <vote_number>00225</vote_number>
+      <vote_date>07-Aug</vote_date>
+      <en_bloc>
+        <matter>
+          <issue>PN961-1</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN937-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-1</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN730-38</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN962-3</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN931-6</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-25</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN806-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-10</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1012</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN931-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN931-4</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN937-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-22</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN962-1</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN961-4</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-3</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN806-7</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN730-23</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-7</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-6</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN961-3</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN937-9</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN937-8</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN937-7</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-34</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-31</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-15</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-9</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-8</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1022-3</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN961-9</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN931-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1093-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1093-1</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN1011</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN961-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN930-8</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN930-6</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN930-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN930-1</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-12</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN850</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN787-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN730-18</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN730-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN933</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN852-3</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN806-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN961-7</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-7</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-6</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN792</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN786-10</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN931-3</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN730-59</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN786-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN937-1</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-11</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN859-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN730-36</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN859-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN859-1</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN901-10</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN852-11</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN852-9</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN859-6</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN852-6</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN852-5</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN852-2</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN806-9</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+        <matter>
+          <issue>PN730-11</issue>
+          <question>On the Nomination</question>
+          <result>Confirmed</result>
+        </matter>
+      </en_bloc>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>47</nays>
+      </vote_tally>
+      <title>Confirmation: En Bloc nominations provided for under the provisions of S. Res. 817</title>
+    </vote>
+    <vote>
+      <vote_number>00224</vote_number>
+      <vote_date>07-Aug</vote_date>
+      <issue>H.R. 5334</issue>
+      <question>On Passage of the Bill
+         </question>
+      <result>Passed</result>
+      <vote_tally>
+        <yeas>86</yeas>
+        <nays>11</nays>
+      </vote_tally>
+      <title>H.R. 5334, as amended; An act to impose sanctions and other measures with respect to the Russian Federation, as championed by the late Senator Lindsey O. Graham, and for other purposes.</title>
+    </vote>
+    <vote>
       <vote_number>00223</vote_number>
       <vote_date>07-Aug</vote_date>
       <issue>H.R. 5334</issue>
@@ -512,7 +919,7 @@
         <yeas>84</yeas>
         <nays>12</nays>
       </vote_tally>
-      <title>Motion to Proceed to H.R. 5334; A bill to amend the Internal Revenue Code of 1986 to allow early childhood educators to take the educator expense deduction, and for other purposes.</title>
+      <title>Motion to Proceed to H.R. 5334; An act to impose sanctions and other measures with respect to the Russian Federation, as championed by the late Senator Lindsey O. Graham, and for other purposes.</title>
     </vote>
     <vote>
       <vote_number>00212</vote_number>
@@ -525,7 +932,7 @@
         <yeas>86</yeas>
         <nays>12</nays>
       </vote_tally>
-      <title>Motion to Invoke Cloture on the Motion to Proceed to H.R. 5334; A bill to amend the Internal Revenue Code of 1986 to allow early childhood educators to take the educator expense deduction, and for other purposes.</title>
+      <title>Motion to Invoke Cloture on the Motion to Proceed to H.R. 5334; An act to impose sanctions and other measures with respect to the Russian Federation, as championed by the late Senator Lindsey O. Graham, and for other purposes.</title>
     </vote>
     <vote>
       <vote_number>00211</vote_number>
