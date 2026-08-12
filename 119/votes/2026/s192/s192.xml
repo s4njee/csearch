@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?><roll_call_vote>
+<?xml version="1.0" encoding="iso-8859-1"?>
+<roll_call_vote>
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
@@ -18,14 +19,14 @@
     <document_number>185</document_number>
     <document_name>S.J.Res. 185</document_name>
     <document_title>A joint resolution to direct the removal of United States Armed Forces from hostilities within or against the Islamic Republic of Iran that have not been authorized by Congress.</document_title>
-    <document_short_title/>
+    <document_short_title />
   </document>
   <amendment>
-    <amendment_number/>
-    <amendment_to_amendment_number/>
-    <amendment_to_amendment_to_amendment_number/>
-    <amendment_to_document_number/>
-    <amendment_to_document_short_title/>
+    <amendment_number />
+    <amendment_to_amendment_number />
+    <amendment_to_amendment_to_amendment_number />
+    <amendment_to_document_number />
+    <amendment_to_document_short_title />
     <amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
   </amendment>
   <count>
@@ -35,8 +36,8 @@
     <absent>2</absent>
   </count>
   <tie_breaker>
-    <by_whom/>
-    <tie_breaker_vote/>
+    <by_whom />
+    <tie_breaker_vote />
   </tie_breaker>
   <members>
     <member>

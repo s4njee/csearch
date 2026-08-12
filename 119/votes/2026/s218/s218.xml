@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?><roll_call_vote>
+<?xml version="1.0" encoding="iso-8859-1"?>
+<roll_call_vote>
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
@@ -21,22 +22,22 @@
     <document_short_title>A bill to extend duty-free treatment provided with respect to imports from certain countries in Africa under the African Growth and Opportunity Act, to extend customs user fees, and for other purposes.</document_short_title>
   </document>
   <amendment>
-    <amendment_number/>
-    <amendment_to_amendment_number/>
-    <amendment_to_amendment_to_amendment_number/>
-    <amendment_to_document_number/>
-    <amendment_to_document_short_title/>
+    <amendment_number />
+    <amendment_to_amendment_number />
+    <amendment_to_amendment_to_amendment_number />
+    <amendment_to_document_number />
+    <amendment_to_document_short_title />
     <amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
   </amendment>
   <count>
     <yeas>89</yeas>
     <nays>4</nays>
-    <present/>
+    <present />
     <absent>7</absent>
   </count>
   <tie_breaker>
-    <by_whom/>
-    <tie_breaker_vote/>
+    <by_whom />
+    <tie_breaker_vote />
   </tie_breaker>
   <members>
     <member>

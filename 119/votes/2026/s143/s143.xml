@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?><roll_call_vote>
+<?xml version="1.0" encoding="iso-8859-1"?>
+<roll_call_vote>
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
@@ -15,15 +16,15 @@
   <document>
     <document_congress>119</document_congress>
     <document_type>S.Amdt.</document_type>
-    <document_number/>
-    <document_name/>
-    <document_title/>
-    <document_short_title/>
+    <document_number />
+    <document_name />
+    <document_title />
+    <document_short_title />
   </document>
   <amendment>
     <amendment_number>S.Amdt. 5556</amendment_number>
     <amendment_to_amendment_number>S.Amdt. 5453</amendment_to_amendment_number>
-    <amendment_to_amendment_to_amendment_number/>
+    <amendment_to_amendment_to_amendment_number />
     <amendment_to_document_number>S. 2</amendment_to_document_number>
     <amendment_to_document_short_title>No short title on file</amendment_to_document_short_title>
     <amendment_purpose>To prohibit an individual from acting as Director of National Intelligence if such individual is simultaneously serving as the head of any other Federal department or agency.</amendment_purpose>
@@ -31,12 +32,12 @@
   <count>
     <yeas>49</yeas>
     <nays>49</nays>
-    <present/>
+    <present />
     <absent>2</absent>
   </count>
   <tie_breaker>
-    <by_whom/>
-    <tie_breaker_vote/>
+    <by_whom />
+    <tie_breaker_vote />
   </tie_breaker>
   <members>
     <member>

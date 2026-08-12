@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?><roll_call_vote>
+<?xml version="1.0" encoding="iso-8859-1"?>
+<roll_call_vote>
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
@@ -21,22 +22,22 @@
     <document_short_title>A bill to amend the Internal Revenue Code of 1986 to allow early childhood educators to take the educator expense deduction, and for other purposes.</document_short_title>
   </document>
   <amendment>
-    <amendment_number/>
-    <amendment_to_amendment_number/>
-    <amendment_to_amendment_to_amendment_number/>
-    <amendment_to_document_number/>
-    <amendment_to_document_short_title/>
+    <amendment_number />
+    <amendment_to_amendment_number />
+    <amendment_to_amendment_to_amendment_number />
+    <amendment_to_document_number />
+    <amendment_to_document_short_title />
     <amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
   </amendment>
   <count>
     <yeas>86</yeas>
     <nays>11</nays>
-    <present/>
+    <present />
     <absent>3</absent>
   </count>
   <tie_breaker>
-    <by_whom/>
-    <tie_breaker_vote/>
+    <by_whom />
+    <tie_breaker_vote />
   </tie_breaker>
   <members>
     <member>
