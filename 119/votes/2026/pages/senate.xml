@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?><vote_summary>
-
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
@@ -1011,7 +1010,7 @@
         <yeas>51</yeas>
         <nays>47</nays>
       </vote_tally>
-      <title>Confirmation: Walter Clayton, of N.Y., to be Director of National Intelligence</title>
+      <title>Confirmation: Walter Clayton, of New York, to be Director of National Intelligence</title>
     </vote>
     <vote>
       <vote_number>00210</vote_number>
@@ -1245,7 +1244,7 @@
         <yeas>46</yeas>
         <nays>44</nays>
       </vote_tally>
-      <title>Confirmation: Arthur Roberts Jones, of T.X., to be U.S. District Judge for the Southern District of Texas</title>
+      <title>Confirmation: Arthur Roberts Jones, of Texas, to be U.S. District Judge for the Southern District of Texas</title>
     </vote>
     <vote>
       <vote_number>00192</vote_number>
