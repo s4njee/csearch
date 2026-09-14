@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00232</vote_number>
+      <vote_date>14-Sep</vote_date>
+      <issue>PN1093-3</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Matthew R. Byrne to be U.S. District Judge for the Southern District of Ohio</title>
+    </vote>
+    <vote>
       <vote_number>00231</vote_number>
       <vote_date>08-Aug</vote_date>
       <issue>S. 5271</issue>
@@ -1387,7 +1400,7 @@
         <yeas>85</yeas>
         <nays>5</nays>
       </vote_tally>
-      <title>Motion to Concur in the House Amendment to the Senate Amendment to H.R. 6644 with an Amendment (SA 5823); A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+      <title>Motion to Concur in the House Amendment to the Senate Amendment to H.R. 6644 with an Amendment (SA 5823); To increase the supply of housing in America, and for other purposes</title>
     </vote>
     <vote>
       <vote_number>00181</vote_number>
@@ -1413,7 +1426,7 @@
         <yeas>84</yeas>
         <nays>8</nays>
       </vote_tally>
-      <title>Motion to Invoke Cloture: Motion to Concur in the House Amendment to the Senate Amendment to H.R. 6644 with an Amendment (SA 5823); A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+      <title>Motion to Invoke Cloture: Motion to Concur in the House Amendment to the Senate Amendment to H.R. 6644 with an Amendment (SA 5823); To increase the supply of housing in America, and for other purposes</title>
     </vote>
     <vote>
       <vote_number>00179</vote_number>
@@ -1478,7 +1491,7 @@
         <yeas>87</yeas>
         <nays>8</nays>
       </vote_tally>
-      <title>Motion to Proceed to House Message to Accompany H.R. 6644; A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+      <title>Motion to Proceed to House Message to Accompany H.R. 6644; To increase the supply of housing in America, and for other purposes</title>
     </vote>
     <vote>
       <vote_number>00174</vote_number>
@@ -3550,7 +3563,7 @@
         <yeas>89</yeas>
         <nays>10</nays>
       </vote_tally>
-      <title>H.R. 6644, as amended; A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+      <title>H.R. 6644, as amended; To increase the supply of housing in America, and for other purposes</title>
     </vote>
     <vote>
       <vote_number>00052</vote_number>
@@ -3563,7 +3576,7 @@
         <yeas>82</yeas>
         <nays>11</nays>
       </vote_tally>
-      <title>Motion to Invoke Cloture: H.R. 6644 as amended; A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+      <title>Motion to Invoke Cloture: H.R. 6644 as amended; To increase the supply of housing in America, and for other purposes</title>
     </vote>
     <vote>
       <vote_number>00051</vote_number>
@@ -3654,7 +3667,7 @@
         <yeas>90</yeas>
         <nays>8</nays>
       </vote_tally>
-      <title>Motion to Proceed to H.R. 6644; A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+      <title>Motion to Proceed to H.R. 6644; To increase the supply of housing in America, and for other purposes</title>
     </vote>
     <vote>
       <vote_number>00044</vote_number>
@@ -3667,7 +3680,7 @@
         <yeas>84</yeas>
         <nays>6</nays>
       </vote_tally>
-      <title>Motion to Invoke Cloture: Motion to Proceed to H.R. 6644; A bill a bill to increase the supply of housing in America, and for other purposes.</title>
+      <title>Motion to Invoke Cloture: Motion to Proceed to H.R. 6644; To increase the supply of housing in America, and for other purposes</title>
     </vote>
     <vote>
       <vote_number>00043</vote_number>
