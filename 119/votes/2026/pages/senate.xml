@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00233</vote_number>
+      <vote_date>15-Sep</vote_date>
+      <issue>PN1093-3</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>52</yeas>
+        <nays>45</nays>
+      </vote_tally>
+      <title>Confirmation: Matthew R. Byrne, of Ohio, to be U.S. District Judge for the Southern District of Ohio</title>
+    </vote>
+    <vote>
       <vote_number>00232</vote_number>
       <vote_date>14-Sep</vote_date>
       <issue>PN1093-3</issue>
