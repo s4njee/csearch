@@ -4,6 +4,45 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00238</vote_number>
+      <vote_date>17-Sep</vote_date>
+      <issue>PN999-4</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>45</nays>
+      </vote_tally>
+      <title>Confirmation: Kasdin Miller Mitchell, of Texas, to be U.S. District Judge for the Northern District of Texas</title>
+    </vote>
+    <vote>
+      <vote_number>00237</vote_number>
+      <vote_date>17-Sep</vote_date>
+      <issue>PN999-4</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>47</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Kasdin Miller Mitchell to be U.S. District Judge for the Northern District of Texas</title>
+    </vote>
+    <vote>
+      <vote_number>00236</vote_number>
+      <vote_date>17-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>77</yeas>
+        <nays>22</nays>
+      </vote_tally>
+      <title>Motion to Proceed to S. 4668; A bill to protect the name, image, and likeness rights of, and provide protections for, student athletes and to promote fair competition among intercollegiate athletics, and for other purposes.</title>
+    </vote>
+    <vote>
       <vote_number>00235</vote_number>
       <vote_date>15-Sep</vote_date>
       <issue>S. 4668</issue>
