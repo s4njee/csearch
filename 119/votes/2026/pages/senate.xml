@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00240</vote_number>
+      <vote_date>22-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Cloture Motion
+        <measure>S.Amdt. 6776</measure></question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>70</yeas>
+        <nays>21</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Cruz Amdt. No. 6776; In the nature of a substitute.</title>
+    </vote>
+    <vote>
+      <vote_number>00239</vote_number>
+      <vote_date>22-Sep</vote_date>
+      <issue>PN999-1</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>52</yeas>
+        <nays>43</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Angela Veronica Colmenero to be U.S. District Judge for the Southern District of Texas</title>
+    </vote>
+    <vote>
       <vote_number>00238</vote_number>
       <vote_date>17-Sep</vote_date>
       <issue>PN999-4</issue>
