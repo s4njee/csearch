@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00241</vote_number>
+      <vote_date>23-Sep</vote_date>
+      <issue>PN999-1</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>50</yeas>
+        <nays>47</nays>
+      </vote_tally>
+      <title>Confirmation: Angela Veronica Colmenero, of T.X., to be U.S. District Judge for the Southern District of Texas</title>
+    </vote>
+    <vote>
       <vote_number>00240</vote_number>
       <vote_date>22-Sep</vote_date>
       <issue>S. 4668</issue>

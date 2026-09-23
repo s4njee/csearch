@@ -2,16 +2,16 @@
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
-  <vote_number>239</vote_number>
-  <vote_date>September 22, 2026,  05:42 PM</vote_date>
-  <modify_date>September 23, 2026,  03:50 PM</modify_date>
-  <vote_question_text>On the Cloture Motion PN999-1</vote_question_text>
+  <vote_number>241</vote_number>
+  <vote_date>September 23, 2026,  02:16 PM</vote_date>
+  <modify_date>September 23, 2026,  03:46 PM</modify_date>
+  <vote_question_text>On the Nomination PN999-1</vote_question_text>
   <vote_document_text>Angela Veronica Colmenero, of Texas, to be United States District Judge for the Southern District of Texas</vote_document_text>
-  <vote_result_text>Cloture Motion Agreed to (52-43)</vote_result_text>
-  <question>On the Cloture Motion</question>
-  <vote_title>Motion to Invoke Cloture: Angela Veronica Colmenero to be U.S. District Judge for the Southern District of Texas</vote_title>
+  <vote_result_text>Nomination Confirmed (50-47)</vote_result_text>
+  <question>On the Nomination</question>
+  <vote_title>Confirmation: Angela Veronica Colmenero, of T.X., to be U.S. District Judge for the Southern District of Texas</vote_title>
   <majority_requirement>1/2</majority_requirement>
-  <vote_result>Cloture Motion Agreed to</vote_result>
+  <vote_result>Nomination Confirmed</vote_result>
   <document>
     <document_congress>119</document_congress>
     <document_type>PN</document_type>
@@ -29,10 +29,10 @@
     <amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
   </amendment>
   <count>
-    <yeas>52</yeas>
-    <nays>43</nays>
+    <yeas>50</yeas>
+    <nays>47</nays>
     <present/>
-    <absent>5</absent>
+    <absent>3</absent>
   </count>
   <tie_breaker>
     <by_whom/>
@@ -180,7 +180,7 @@
       <first_name>Bill</first_name>
       <party>R</party>
       <state>LA</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S373</lis_member_id>
     </member>
     <member>
@@ -198,7 +198,7 @@
       <first_name>Christopher</first_name>
       <party>D</party>
       <state>DE</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S337</lis_member_id>
     </member>
     <member>
@@ -270,7 +270,7 @@
       <first_name>Steve</first_name>
       <party>R</party>
       <state>MT</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S375</lis_member_id>
     </member>
     <member>
@@ -297,7 +297,7 @@
       <first_name>Joni</first_name>
       <party>R</party>
       <state>IA</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S376</lis_member_id>
     </member>
     <member>
@@ -324,7 +324,7 @@
       <first_name>Ruben</first_name>
       <party>D</party>
       <state>AZ</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S432</lis_member_id>
     </member>
     <member>
@@ -630,7 +630,7 @@
       <first_name>Christopher</first_name>
       <party>D</party>
       <state>CT</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S364</lis_member_id>
     </member>
     <member>
@@ -846,7 +846,7 @@
       <first_name>Thomas</first_name>
       <party>R</party>
       <state>NC</state>
-      <vote_cast>Yea</vote_cast>
+      <vote_cast>Not Voting</vote_cast>
       <lis_member_id>S384</lis_member_id>
     </member>
     <member>
@@ -909,7 +909,7 @@
       <first_name>Sheldon</first_name>
       <party>D</party>
       <state>RI</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S316</lis_member_id>
     </member>
     <member>
