@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00243</vote_number>
+      <vote_date>24-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>74</yeas>
+        <nays>25</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: S. 4668, as Amended; A bill to protect the name, image, and likeness rights of, and provide protections for, student athletes and to promote fair competition among intercollegiate athletics, and for other purposes.</title>
+    </vote>
+    <vote>
+      <vote_number>00242</vote_number>
+      <vote_date>24-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6776</measure></question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>77</yeas>
+        <nays>23</nays>
+      </vote_tally>
+      <title>Amdt. No. 6776; In the nature of a substitute.</title>
+    </vote>
+    <vote>
       <vote_number>00241</vote_number>
       <vote_date>23-Sep</vote_date>
       <issue>PN999-1</issue>
