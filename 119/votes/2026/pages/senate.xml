@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00246</vote_number>
+      <vote_date>28-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6758</measure></question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>1</yeas>
+        <nays>94</nays>
+      </vote_tally>
+      <title>Paul Amdt. No. 6758; To improve the bill.</title>
+    </vote>
+    <vote>
+      <vote_number>00245</vote_number>
+      <vote_date>28-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6828</measure></question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>96</yeas>
+        <nays>1</nays>
+      </vote_tally>
+      <title>Baldwin Amdt. No. 6828; To modify the provision relating to the relationship of this Act to existing law.</title>
+    </vote>
+    <vote>
       <vote_number>00244</vote_number>
       <vote_date>24-Sep</vote_date>
       <issue>H.Con.Res. 89</issue>
