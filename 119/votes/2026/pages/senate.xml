@@ -4,6 +4,58 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00250</vote_number>
+      <vote_date>28-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On Passage of the Bill
+         </question>
+      <result>Passed</result>
+      <vote_tally>
+        <yeas>77</yeas>
+        <nays>22</nays>
+      </vote_tally>
+      <title>S. 4668, as amended; A bill to protect the name, image, and likeness rights of, and provide protections for, student athletes and to promote fair competition among intercollegiate athletics, and for other purposes.</title>
+    </vote>
+    <vote>
+      <vote_number>00249</vote_number>
+      <vote_date>28-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6835</measure></question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>52</nays>
+      </vote_tally>
+      <title>Booker Amdt. No. 6835; To establish certain standards with respect to coaches of varsity sports teams.</title>
+    </vote>
+    <vote>
+      <vote_number>00248</vote_number>
+      <vote_date>28-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6805</measure></question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>50</nays>
+      </vote_tally>
+      <title>Booker Amdt. No. 6805; To increase the limitation on funding for post-eligibility insurance and catastrophic injury for student athletes.</title>
+    </vote>
+    <vote>
+      <vote_number>00247</vote_number>
+      <vote_date>28-Sep</vote_date>
+      <issue>S. 4668</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6760</measure></question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>42</yeas>
+        <nays>54</nays>
+      </vote_tally>
+      <title>Kennedy Amdt. No. 6760; To limit price increases for college athletics tickets.</title>
+    </vote>
+    <vote>
       <vote_number>00246</vote_number>
       <vote_date>28-Sep</vote_date>
       <issue>S. 4668</issue>
