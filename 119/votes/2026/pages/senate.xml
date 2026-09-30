@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00251</vote_number>
+      <vote_date>29-Sep</vote_date>
+      <issue>S.J.Res. 197</issue>
+      <question>On the Motion to Proceed
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>48</yeas>
+        <nays>51</nays>
+      </vote_tally>
+      <title>Motion to Proceed to S.J. Res. 197; A joint resolution providing for congressional disapproval under chapter 8 of title 5, United States Code, of the rule submitted by the Centers for Medicare &amp; Medicaid Services of the Department of Health and Human Services relating to "Patient Protection and Affordable Care Act, HHS Notice of Benefit and Payment Parameters for 2027; and Basic Health Program".</title>
+    </vote>
+    <vote>
       <vote_number>00250</vote_number>
       <vote_date>28-Sep</vote_date>
       <issue>S. 4668</issue>
