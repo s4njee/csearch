@@ -2,37 +2,37 @@
   <congress>119</congress>
   <session>2</session>
   <congress_year>2026</congress_year>
-  <vote_number>246</vote_number>
-  <vote_date>September 28, 2026,  07:38 PM</vote_date>
-  <modify_date>September 30, 2026,  05:48 PM</modify_date>
-  <vote_question_text>On the Amendment S.Amdt. 6758 to S.Amdt. 6776 to S. 4668 (No short title on file)</vote_question_text>
-  <vote_document_text>To improve the bill.</vote_document_text>
-  <vote_result_text>Amendment Rejected (1-94)</vote_result_text>
-  <question>On the Amendment</question>
-  <vote_title>Paul Amdt. No. 6758</vote_title>
+  <vote_number>255</vote_number>
+  <vote_date>September 30, 2026,  01:41 PM</vote_date>
+  <modify_date>September 30, 2026,  02:42 PM</modify_date>
+  <vote_question_text>On the Cloture Motion PN1129</vote_question_text>
+  <vote_document_text>Keith Sonderling, of Florida, to be Secretary of Labor</vote_document_text>
+  <vote_result_text>Cloture Motion Agreed to (53-47)</vote_result_text>
+  <question>On the Cloture Motion</question>
+  <vote_title>Motion to Invoke Cloture: Keith Sonderling to be Secretary of Labor</vote_title>
   <majority_requirement>1/2</majority_requirement>
-  <vote_result>Amendment Rejected</vote_result>
+  <vote_result>Cloture Motion Agreed to</vote_result>
   <document>
     <document_congress>119</document_congress>
-    <document_type>S.Amdt.</document_type>
-    <document_number/>
-    <document_name/>
-    <document_title/>
+    <document_type>PN</document_type>
+    <document_number>1129</document_number>
+    <document_name>PN1129</document_name>
+    <document_title>Keith Sonderling, of Florida, to be Secretary of Labor</document_title>
     <document_short_title/>
   </document>
   <amendment>
-    <amendment_number>S.Amdt. 6758</amendment_number>
-    <amendment_to_amendment_number>S.Amdt. 6776</amendment_to_amendment_number>
+    <amendment_number/>
+    <amendment_to_amendment_number/>
     <amendment_to_amendment_to_amendment_number/>
-    <amendment_to_document_number>S. 4668</amendment_to_document_number>
-    <amendment_to_document_short_title>No short title on file</amendment_to_document_short_title>
-    <amendment_purpose>To improve the bill.</amendment_purpose>
+    <amendment_to_document_number/>
+    <amendment_to_document_short_title/>
+    <amendment_purpose>No Statement of Purpose on File.</amendment_purpose>
   </amendment>
   <count>
-    <yeas>1</yeas>
-    <nays>94</nays>
+    <yeas>53</yeas>
+    <nays>47</nays>
     <present/>
-    <absent>5</absent>
+    <absent/>
   </count>
   <tie_breaker>
     <by_whom/>
@@ -54,7 +54,7 @@
       <first_name>Alan</first_name>
       <party>R</party>
       <state>OK</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S440</lis_member_id>
     </member>
     <member>
@@ -72,7 +72,7 @@
       <first_name>Jim</first_name>
       <party>R</party>
       <state>IN</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S429</lis_member_id>
     </member>
     <member>
@@ -81,7 +81,7 @@
       <first_name>John</first_name>
       <party>R</party>
       <state>WY</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S317</lis_member_id>
     </member>
     <member>
@@ -99,7 +99,7 @@
       <first_name>Marsha</first_name>
       <party>R</party>
       <state>TN</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S396</lis_member_id>
     </member>
     <member>
@@ -135,7 +135,7 @@
       <first_name>John</first_name>
       <party>R</party>
       <state>AR</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S343</lis_member_id>
     </member>
     <member>
@@ -144,7 +144,7 @@
       <first_name>Katie</first_name>
       <party>R</party>
       <state>AL</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S416</lis_member_id>
     </member>
     <member>
@@ -153,7 +153,7 @@
       <first_name>Ted</first_name>
       <party>R</party>
       <state>NC</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S417</lis_member_id>
     </member>
     <member>
@@ -171,7 +171,7 @@
       <first_name>Shelley</first_name>
       <party>R</party>
       <state>WV</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S372</lis_member_id>
     </member>
     <member>
@@ -180,7 +180,7 @@
       <first_name>Bill</first_name>
       <party>R</party>
       <state>LA</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S373</lis_member_id>
     </member>
     <member>
@@ -189,7 +189,7 @@
       <first_name>Susan</first_name>
       <party>R</party>
       <state>ME</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S252</lis_member_id>
     </member>
     <member>
@@ -207,7 +207,7 @@
       <first_name>John</first_name>
       <party>R</party>
       <state>TX</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S287</lis_member_id>
     </member>
     <member>
@@ -225,7 +225,7 @@
       <first_name>Tom</first_name>
       <party>R</party>
       <state>AR</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S374</lis_member_id>
     </member>
     <member>
@@ -234,7 +234,7 @@
       <first_name>Kevin</first_name>
       <party>R</party>
       <state>ND</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S398</lis_member_id>
     </member>
     <member>
@@ -243,7 +243,7 @@
       <first_name>Mike</first_name>
       <party>R</party>
       <state>ID</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S266</lis_member_id>
     </member>
     <member>
@@ -252,7 +252,7 @@
       <first_name>Ted</first_name>
       <party>R</party>
       <state>TX</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S355</lis_member_id>
     </member>
     <member>
@@ -261,7 +261,7 @@
       <first_name>John </first_name>
       <party>R</party>
       <state>UT</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S431</lis_member_id>
     </member>
     <member>
@@ -270,7 +270,7 @@
       <first_name>Steve</first_name>
       <party>R</party>
       <state>MT</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S375</lis_member_id>
     </member>
     <member>
@@ -297,7 +297,7 @@
       <first_name>Joni</first_name>
       <party>R</party>
       <state>IA</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S376</lis_member_id>
     </member>
     <member>
@@ -315,7 +315,7 @@
       <first_name>Deb</first_name>
       <party>R</party>
       <state>NE</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S357</lis_member_id>
     </member>
     <member>
@@ -342,7 +342,7 @@
       <first_name>Darline</first_name>
       <party>R</party>
       <state>SC</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S441</lis_member_id>
     </member>
     <member>
@@ -351,7 +351,7 @@
       <first_name>Chuck</first_name>
       <party>R</party>
       <state>IA</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S153</lis_member_id>
     </member>
     <member>
@@ -360,7 +360,7 @@
       <first_name>Bill</first_name>
       <party>R</party>
       <state>TN</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S407</lis_member_id>
     </member>
     <member>
@@ -378,7 +378,7 @@
       <first_name>Josh</first_name>
       <party>R</party>
       <state>MO</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S399</lis_member_id>
     </member>
     <member>
@@ -414,7 +414,7 @@
       <first_name>John</first_name>
       <party>R</party>
       <state>ND</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S344</lis_member_id>
     </member>
     <member>
@@ -423,7 +423,7 @@
       <first_name>Jon</first_name>
       <party>R</party>
       <state>OH</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S438</lis_member_id>
     </member>
     <member>
@@ -432,7 +432,7 @@
       <first_name>Cindy</first_name>
       <party>R</party>
       <state>MS</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S395</lis_member_id>
     </member>
     <member>
@@ -441,7 +441,7 @@
       <first_name>Ron</first_name>
       <party>R</party>
       <state>WI</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S345</lis_member_id>
     </member>
     <member>
@@ -450,7 +450,7 @@
       <first_name>James</first_name>
       <party>R</party>
       <state>WV</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S437</lis_member_id>
     </member>
     <member>
@@ -477,7 +477,7 @@
       <first_name>John</first_name>
       <party>R</party>
       <state>LA</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S389</lis_member_id>
     </member>
     <member>
@@ -513,7 +513,7 @@
       <first_name>James</first_name>
       <party>R</party>
       <state>OK</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S378</lis_member_id>
     </member>
     <member>
@@ -522,7 +522,7 @@
       <first_name>Mike</first_name>
       <party>R</party>
       <state>UT</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S346</lis_member_id>
     </member>
     <member>
@@ -540,7 +540,7 @@
       <first_name>Cynthia</first_name>
       <party>R</party>
       <state>WY</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S410</lis_member_id>
     </member>
     <member>
@@ -558,7 +558,7 @@
       <first_name>Roger</first_name>
       <party>R</party>
       <state>KS</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S411</lis_member_id>
     </member>
     <member>
@@ -567,7 +567,7 @@
       <first_name>Mitch</first_name>
       <party>R</party>
       <state>KY</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S174</lis_member_id>
     </member>
     <member>
@@ -576,7 +576,7 @@
       <first_name>David</first_name>
       <party>R</party>
       <state>PA</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S433</lis_member_id>
     </member>
     <member>
@@ -594,7 +594,7 @@
       <first_name>Ashley</first_name>
       <party>R</party>
       <state>FL</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S439</lis_member_id>
     </member>
     <member>
@@ -603,7 +603,7 @@
       <first_name>Jerry</first_name>
       <party>R</party>
       <state>KS</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S347</lis_member_id>
     </member>
     <member>
@@ -612,7 +612,7 @@
       <first_name>Bernie</first_name>
       <party>R</party>
       <state>OH</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S434</lis_member_id>
     </member>
     <member>
@@ -621,7 +621,7 @@
       <first_name>Lisa</first_name>
       <party>R</party>
       <state>AK</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S288</lis_member_id>
     </member>
     <member>
@@ -693,7 +693,7 @@
       <first_name>Pete</first_name>
       <party>R</party>
       <state>NE</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S423</lis_member_id>
     </member>
     <member>
@@ -702,7 +702,7 @@
       <first_name>James </first_name>
       <party>R</party>
       <state>ID</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S323</lis_member_id>
     </member>
     <member>
@@ -720,7 +720,7 @@
       <first_name>Mike</first_name>
       <party>R</party>
       <state>SD</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S381</lis_member_id>
     </member>
     <member>
@@ -756,7 +756,7 @@
       <first_name>Eric </first_name>
       <party>R</party>
       <state>MO</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S420</lis_member_id>
     </member>
     <member>
@@ -774,7 +774,7 @@
       <first_name>Rick</first_name>
       <party>R</party>
       <state>FL</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S404</lis_member_id>
     </member>
     <member>
@@ -783,7 +783,7 @@
       <first_name>Tim</first_name>
       <party>R</party>
       <state>SC</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S365</lis_member_id>
     </member>
     <member>
@@ -801,7 +801,7 @@
       <first_name>Tim</first_name>
       <party>R</party>
       <state>MT</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S435</lis_member_id>
     </member>
     <member>
@@ -828,7 +828,7 @@
       <first_name>Dan</first_name>
       <party>R</party>
       <state>AK</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S383</lis_member_id>
     </member>
     <member>
@@ -837,7 +837,7 @@
       <first_name>John</first_name>
       <party>R</party>
       <state>SD</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S303</lis_member_id>
     </member>
     <member>
@@ -846,7 +846,7 @@
       <first_name>Thomas</first_name>
       <party>R</party>
       <state>NC</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S384</lis_member_id>
     </member>
     <member>
@@ -855,7 +855,7 @@
       <first_name>Tommy</first_name>
       <party>R</party>
       <state>AL</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S412</lis_member_id>
     </member>
     <member>
@@ -873,7 +873,7 @@
       <first_name>Mark</first_name>
       <party>D</party>
       <state>VA</state>
-      <vote_cast>Not Voting</vote_cast>
+      <vote_cast>Nay</vote_cast>
       <lis_member_id>S327</lis_member_id>
     </member>
     <member>
@@ -918,7 +918,7 @@
       <first_name>Roger</first_name>
       <party>R</party>
       <state>MS</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S318</lis_member_id>
     </member>
     <member>
@@ -936,7 +936,7 @@
       <first_name>Todd</first_name>
       <party>R</party>
       <state>IN</state>
-      <vote_cast>Nay</vote_cast>
+      <vote_cast>Yea</vote_cast>
       <lis_member_id>S391</lis_member_id>
     </member>
   </members>

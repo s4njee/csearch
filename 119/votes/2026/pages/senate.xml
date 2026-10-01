@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00255</vote_number>
+      <vote_date>30-Sep</vote_date>
+      <issue>PN1129</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>53</yeas>
+        <nays>47</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Keith Sonderling to be Secretary of Labor</title>
+    </vote>
+    <vote>
       <vote_number>00254</vote_number>
       <vote_date>30-Sep</vote_date>
       <issue>H.R. 9340</issue>
