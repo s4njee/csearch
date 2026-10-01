@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00256</vote_number>
+      <vote_date>30-Sep</vote_date>
+      <issue>PN1129</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>41</nays>
+      </vote_tally>
+      <title>Confirmation: Keith Sonderling, of F.L., to be Secretary of Labor</title>
+    </vote>
+    <vote>
       <vote_number>00255</vote_number>
       <vote_date>30-Sep</vote_date>
       <issue>PN1129</issue>
