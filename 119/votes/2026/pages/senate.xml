@@ -4,6 +4,32 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00262</vote_number>
+      <vote_date>12-Nov</vote_date>
+      <issue>PN1181-7</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>26</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Anna St. John to be U.S. Circuit Judge for the Fifth Circuit</title>
+    </vote>
+    <vote>
+      <vote_number>00261</vote_number>
+      <vote_date>12-Nov</vote_date>
+      <issue>PN999-2</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>27</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Daniel Desmond Domenico to be U.S. Circuit Judge for the Tenth Circuit</title>
+    </vote>
+    <vote>
       <vote_number>00260</vote_number>
       <vote_date>12-Nov</vote_date>
       <issue>PN1181-1</issue>
