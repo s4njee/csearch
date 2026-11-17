@@ -4,6 +4,45 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00265</vote_number>
+      <vote_date>17-Nov</vote_date>
+      <issue>PN1181-7</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>52</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Confirmation: Anna St. John, of L.A., to be U.S. Circuit Judge for the Fifth Circuit</title>
+    </vote>
+    <vote>
+      <vote_number>00264</vote_number>
+      <vote_date>16-Nov</vote_date>
+      <issue>H.R. 2347</issue>
+      <question>On the Cloture Motion
+        <measure>S.Amdt. 6883</measure></question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>70</yeas>
+        <nays>27</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Capito Amdt. No. 6883; In the nature of a substitute.</title>
+    </vote>
+    <vote>
+      <vote_number>00263</vote_number>
+      <vote_date>16-Nov</vote_date>
+      <issue>PN999-2</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>51</yeas>
+        <nays>46</nays>
+      </vote_tally>
+      <title>Confirmation: Daniel Desmond Domenico, of C.O., to be U.S. Circuit Judge for the Tenth Circuit</title>
+    </vote>
+    <vote>
       <vote_number>00262</vote_number>
       <vote_date>12-Nov</vote_date>
       <issue>PN1181-7</issue>
