@@ -4,6 +4,45 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00268</vote_number>
+      <vote_date>18-Nov</vote_date>
+      <issue>H.R. 2347</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>65</yeas>
+        <nays>31</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture Re. H.R. 2347; A bill to amend the Internal Revenue Code of 1986 to exclude from gross income any damages, other than punitive damages, received on account of any sexual acts or sexual contact.</title>
+    </vote>
+    <vote>
+      <vote_number>00267</vote_number>
+      <vote_date>18-Nov</vote_date>
+      <issue>H.R. 2347</issue>
+      <question>On the Amendment
+        <measure>S.Amdt. 6883</measure></question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>69</yeas>
+        <nays>27</nays>
+      </vote_tally>
+      <title>Capito Amdt. No. 6883; In the nature of a substitute.</title>
+    </vote>
+    <vote>
+      <vote_number>00266</vote_number>
+      <vote_date>18-Nov</vote_date>
+      <issue>H.R. 2347</issue>
+      <question>On the Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>70</yeas>
+        <nays>26</nays>
+      </vote_tally>
+      <title>Motion to Waive All Applicable Budgetary Discipline Re: H.R. 2347; A bill to amend the Internal Revenue Code of 1986 to exclude from gross income any damages, other than punitive damages, received on account of any sexual acts or sexual contact.</title>
+    </vote>
+    <vote>
       <vote_number>00265</vote_number>
       <vote_date>17-Nov</vote_date>
       <issue>PN1181-7</issue>
