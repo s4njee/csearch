@@ -4,6 +4,19 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00269</vote_number>
+      <vote_date>19-Nov</vote_date>
+      <issue>H.Con.Res. 93</issue>
+      <question>On the Concurrent Resolution
+         </question>
+      <result>Rejected</result>
+      <vote_tally>
+        <yeas>48</yeas>
+        <nays>51</nays>
+      </vote_tally>
+      <title>H.Con.Res. 93; A concurrent resolution directing the President, pursuant to section 5(c) of the War Powers Resolution, to remove United States Armed Forces from hostilities with Iran.</title>
+    </vote>
+    <vote>
       <vote_number>00268</vote_number>
       <vote_date>18-Nov</vote_date>
       <issue>H.R. 2347</issue>
