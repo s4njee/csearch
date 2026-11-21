@@ -4,6 +4,84 @@
   <congress_year>2026</congress_year>
   <votes>
     <vote>
+      <vote_number>00279</vote_number>
+      <vote_date>20-Nov</vote_date>
+      <issue>PN1272-10</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>45</yeas>
+        <nays>33</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Jesus A. Osete to be U.S. District Judge for the Western District of Missouri</title>
+    </vote>
+    <vote>
+      <vote_number>00278</vote_number>
+      <vote_date>20-Nov</vote_date>
+      <issue>PN1272-8</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>48</yeas>
+        <nays>31</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Peter M. Mansfield to be U.S. District Judge for the Eastern District of Louisiana</title>
+    </vote>
+    <vote>
+      <vote_number>00277</vote_number>
+      <vote_date>20-Nov</vote_date>
+      <issue>PN1272-7</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>47</yeas>
+        <nays>35</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Robert E. Long, Jr., to be U.S. District Judge for the Middle District of Florida</title>
+    </vote>
+    <vote>
+      <vote_number>00276</vote_number>
+      <vote_date>20-Nov</vote_date>
+      <issue>PN1272-3</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>48</yeas>
+        <nays>36</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Daniel Lewis Ballou to be U.S. District Judge for the Eastern District of Kentucky</title>
+    </vote>
+    <vote>
+      <vote_number>00275</vote_number>
+      <vote_date>20-Nov</vote_date>
+      <issue>PN1272-13</issue>
+      <question>On the Cloture Motion
+         </question>
+      <result>Agreed to</result>
+      <vote_tally>
+        <yeas>55</yeas>
+        <nays>31</nays>
+      </vote_tally>
+      <title>Motion to Invoke Cloture: Kyle Frederick Reardon to be U.S. District Judge for the District of Alaska</title>
+    </vote>
+    <vote>
+      <vote_number>00274</vote_number>
+      <vote_date>20-Nov</vote_date>
+      <issue>PN1272-5</issue>
+      <question>On the Nomination
+         </question>
+      <result>Confirmed</result>
+      <vote_tally>
+        <yeas>49</yeas>
+        <nays>41</nays>
+      </vote_tally>
+      <title>Confirmation: Courtney Leigh Coker, of T.X., to be U.S. District Judge for the Northern District of Texas</title>
+    </vote>
+    <vote>
       <vote_number>00273</vote_number>
       <vote_date>20-Nov</vote_date>
       <issue>PN1272-5</issue>
